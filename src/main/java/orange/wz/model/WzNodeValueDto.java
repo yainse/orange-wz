@@ -2,7 +2,7 @@ package orange.wz.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import orange.wz.lib.properties.WzPngFormat;
+import orange.wz.provider.properties.WzPngFormat;
 import lombok.Getter;
 
 @Getter

@@ -1,7 +1,7 @@
 package orange.wz.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import orange.wz.lib.WzObject;
+import orange.wz.provider.WzObject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;

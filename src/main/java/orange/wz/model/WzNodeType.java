@@ -1,10 +1,10 @@
 package orange.wz.model;
 
-import orange.wz.lib.WzDirectory;
-import orange.wz.lib.WzFile;
-import orange.wz.lib.WzImage;
-import orange.wz.lib.WzObject;
-import orange.wz.lib.properties.*;
+import orange.wz.provider.WzDirectory;
+import orange.wz.provider.WzFile;
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzObject;
+import orange.wz.provider.properties.*;
 
 public enum WzNodeType {
     FOLDER,

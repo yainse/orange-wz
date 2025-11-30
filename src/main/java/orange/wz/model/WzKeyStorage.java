@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.*;
 import java.util.*;
 
-import static orange.wz.lib.WzAESConstant.*;
+import static orange.wz.provider.WzAESConstant.*;
 
 public class WzKeyStorage {
     private static final String STORAGE_FILE = "wz_keys.json";

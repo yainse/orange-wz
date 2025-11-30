@@ -75,6 +75,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.1.0</version>
                 <configuration>
                     <excludes>
                         <exclude>
@@ -95,6 +96,25 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>net.roseboy</groupId>
+                <artifactId>classfinal-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <configuration>
+                    <password>#</password><!-- #表示启动时不需要密码,事实上对于代码混淆来说,这个密码没什么用,它只是一个启动密码 -->
+                    <excludes>org.spring</excludes>
+                    <packages>${project.groupId}</packages><!-- 加密的包名,多个包用逗号分开 -->
+                    <cfgfiles>application.properties</cfgfiles><!-- 加密的配置文件,多个包用逗号分开 -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>classFinal</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- 复制依赖库 -->
