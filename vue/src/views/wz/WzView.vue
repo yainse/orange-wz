@@ -204,7 +204,7 @@
     treeData.value = data;
   };
 
-  const closeClick = async (id: number) => {
+  const closeClick = async () => {
     let count = 0;
     pFunc('getViewsId', viewId.value, (response) => {
       count = response.length;
@@ -253,7 +253,11 @@
         const path = findNodePath(treeData.value, row.id);
         pFunc('syncExpand', viewId.value, path);
       }
-      tree.value.setExpandedKeys(expandedKeys.value);
+      await nextTick(() => {
+        if (tree.value) {
+          tree.value.setExpandedKeys(expandedKeys.value);
+        }
+      });
       lastClickedNode.value = null;
       return;
     } else {
@@ -421,126 +425,61 @@
 
   const savePngClick = async () => {
     const base64String = editFormData.value.png;
+
+    // 去掉 data:image/png;base64,
+    const pureBase64 = base64String.replace(/^data:image\/png;base64,/, '');
+    const byteArray = Uint8Array.from(atob(pureBase64), (c) => c.charCodeAt(0));
+
+    const blob = new Blob([byteArray], { type: 'image/png' });
     const filename = `${editFormData.value.name}.png`;
-    // 统一清理Base64字符串的函数
-    const cleanBase64 = (str: string): string => {
-      return str.replace(/^data:image\/png;base64,/, '');
-    };
-
-    // 统一Base64转Blob的函数
-    const base64ToBlob = (base64: string): Blob => {
-      const cleanBase64Str = cleanBase64(base64);
-      const byteCharacters = atob(cleanBase64Str);
-      const byteNumbers = new Array(byteCharacters.length);
-
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-
-      const byteArray = new Uint8Array(byteNumbers);
-      return new Blob([byteArray], { type: 'image/png' });
-    };
 
     try {
-      if ('showSaveFilePicker' in window) {
-        // 使用File System Access API
-        const blob = base64ToBlob(base64String);
-
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: filename,
-          types: [
-            {
-              description: 'PNG图片',
-              accept: { 'image/png': ['.png'] },
-            },
-          ],
-        });
-
-        const writable = await fileHandle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-
-        ElMessage.success({
-          message: `文件已保存到选择的位置: ${fileHandle.name}`,
-          duration: 3000,
-        });
-      } else {
-        ElMessage.error({
-          message: '浏览器不支持',
-          duration: 3000,
-        });
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        ElMessage.error({
-          message: '取消保存操作',
-          duration: 3000,
-        });
-        return;
-      }
-      ElMessage.error({
-        message: `保存文件时发生错误:${error}`,
-        duration: 3000,
+      const fileHandle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'PNG图片', accept: { 'image/png': ['.png'] } }],
       });
-      throw error;
+
+      const writable = await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+
+      ElMessage.success('已保存');
+    } catch (error) {
+      ElMessage.error(`保存失败${error}`);
     }
   };
 
   const saveMp3Click = async () => {
     const base64String = editFormData.value.mp3;
     const filename = `${editFormData.value.name}.mp3`;
-    // 统一清理Base64字符串的函数
-    const cleanBase64 = (str: string): string => {
-      return str.replace(/^data:audio\/wav;base64,/, '');
-    };
 
-    // 统一Base64转Blob的函数
-    const base64ToBlob = (base64: string): Blob => {
-      const cleanBase64Str = cleanBase64(base64);
-      const byteCharacters = atob(cleanBase64Str);
-      const byteNumbers = new Array(byteCharacters.length);
+    // 去掉前缀 data:audio/mp3;base64,
+    const pureBase64 = base64String.replace(/^data:audio\/(mp3|mpeg|wav);base64,/, '');
 
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
+    // 转回原始二进制（无损）
+    const byteArray = Uint8Array.from(atob(pureBase64), (c) => c.charCodeAt(0));
 
-      const byteArray = new Uint8Array(byteNumbers);
-      return new Blob([byteArray], { type: 'audio/wav' });
-    };
+    // 创建 Blob（二进制保持完全一致）
+    const blob = new Blob([byteArray], { type: 'audio/mp3' });
 
-    // 传统下载方式
-    const downloadWithLink = (blob: Blob, fileName: string): void => {
+    // 用于降级下载
+    const downloadWithLink = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-
       link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-
-      document.body.appendChild(link);
+      link.download = filename;
       link.click();
-
-      // 清理
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
+      URL.revokeObjectURL(url);
     };
 
     try {
-      const blob = base64ToBlob(base64String);
-
       if ('showSaveFilePicker' in window) {
-        // 使用File System Access API
         const fileHandle = await window.showSaveFilePicker({
           suggestedName: filename,
           types: [
             {
-              description: 'MP3音频文件',
-              accept: {
-                'audio/wav': ['.mp3'],
-                'audio/mp3': ['.mp3'],
-              },
+              description: 'MP3 音频文件',
+              accept: { 'audio/mp3': ['.mp3'], 'audio/mpeg': ['.mp3'] },
             },
           ],
         });
@@ -549,48 +488,35 @@
         await writable.write(blob);
         await writable.close();
 
-        ElMessage.success({
-          message: `MP3文件已保存到选择的位置: ${fileHandle.name}`,
-          duration: 3000,
-        });
+        ElMessage.success(`MP3 已保存: ${fileHandle.name}`);
       } else {
-        // 降级到传统下载方式
-        downloadWithLink(blob, filename);
+        downloadWithLink();
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        ElMessage.error({
-          message: '取消保存操作',
-          duration: 3000,
-        });
-        return;
-      }
-
-      ElMessage.error({
-        message: `保存MP3文件时发生错误:${error}`,
-        duration: 3000,
-      });
-
-      // 即使出错也尝试使用传统下载方式
-      try {
-        const blob = base64ToBlob(base64String);
-        downloadWithLink(blob, filename);
-      } catch (fallbackError) {
-        ElMessage.error({
-          message: `备用下载方式也失败了:${fallbackError}`,
-          duration: 3000,
-        });
-        throw error;
-      }
+      ElMessage.error(`保存失败，使用下载方式 ${error}`);
+      downloadWithLink();
     }
   };
 
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(file);
+
+      reader.onload = () => {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+
+        const base64 = btoa(binary);
+        resolve(`data:image/png;base64,${base64}`);
+      };
+
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
     });
   };
 
