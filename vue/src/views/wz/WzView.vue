@@ -155,7 +155,6 @@
     fixOutlink,
     getNode,
     getValue,
-    localization,
     moveView,
     paste,
     removeView,
@@ -190,6 +189,8 @@
     'syncCollapse',
     'syncLoadEditForm',
     'removeView',
+    'setCmsId',
+    'chineseClick',
   ]);
 
   const viewId = ref<number>(-1);
@@ -607,7 +608,6 @@
   const menuRef = useTemplateRef('WzContextMenuRef');
   const updateKeyId = ref<number>(-1);
   const wzKeyRef = useTemplateRef('WzKeyRef');
-  const cmsWzId = ref<number>(-1);
   const newNodeFormRef = useTemplateRef('NewNodeFormRef');
 
   const contextMenu = (event: Event, data: IWzNode) => {
@@ -752,11 +752,10 @@
         fixOutlink(contextMenuRow.value.id);
         break;
       case 'setCMS':
-        cmsWzId.value = contextMenuRow.value.id;
-        ElMessage.success({ message: '设置成功，页面刷新前有效。' });
+        pFunc('setCmsId', contextMenuRow.value.id);
         break;
       case 'chinese':
-        chineseClick(contextMenuRow.value.id);
+        pFunc('chineseClick', contextMenuRow.value.id);
         break;
       case 'copy':
         copyClick();
@@ -834,15 +833,6 @@
     ElMessage.success({
       message: '导出成功, 文件位于 export 目录下',
     });
-  };
-
-  const chineseClick = async (to: number) => {
-    const from = cmsWzId.value;
-    if (!from || from < 0) {
-      ElMessage.error({ message: '请先设置汉化用的 WZ' });
-    }
-    await localization(from, to);
-    ElMessage.success({ message: '操作成功，请手动检查并保存汉化后的 wz' });
   };
 
   const copyClick = async () => {

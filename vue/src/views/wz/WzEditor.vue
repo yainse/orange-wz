@@ -23,6 +23,8 @@
           @syncCollapse="syncCollapse"
           @syncLoadEditForm="syncLoadEditForm"
           @removeView="removeView"
+          @setCmsId="setCmsId"
+          @chineseClick="chineseClick"
         />
       </el-splitter-panel>
     </el-splitter>
@@ -31,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-  import { addView, getViews, load } from '@/api/wz.ts';
+  import { addView, getViews, load, localization } from '@/api/wz.ts';
   import type { IWorkplace } from '@/store/wzEditor.ts';
   import { removeNodeById } from '@/utils/nodeUtils.ts';
   import WzLoad from '@/views/wz/WzLoad.vue';
@@ -141,6 +143,23 @@
           message: '操作已取消',
         });
       });
+  };
+
+  /* 汉化 -------------------------------------------------------------------------------------------------------------*/
+  const cmsId = ref<number>(-1);
+  const setCmsId = (id: number) => {
+    cmsId.value = id;
+    ElMessage.success({ message: '设置成功，页面刷新前有效。' });
+  };
+
+  const chineseClick = async (to: number) => {
+    const from = cmsId.value;
+    if (!from || from < 0) {
+      ElMessage.error({ message: '请先设置汉化用的 WZ' });
+      return;
+    }
+    await localization(from, to);
+    ElMessage.success({ message: '操作成功，请手动检查并保存汉化后的 wz' });
   };
 </script>
 
