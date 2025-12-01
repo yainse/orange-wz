@@ -648,6 +648,7 @@
   const genFileMenuItems = (data: IWzNode, menuItems: []) => {
     if (!data.file) return;
 
+    menuItems.push({ name: '粘贴', command: 'paste' });
     menuItems.push({ name: '保存', command: 'save' });
     menuItems.push({ name: '修改密钥', command: 'updateKey' });
     menuItems.push({ name: '关闭', command: 'unload' });
@@ -702,14 +703,7 @@
 
     menuItems.push({ name: '复制', command: 'copy' });
     if (
-      shouldShowItem(data, [
-        'WZ',
-        'WZ_DIRECTORY',
-        'IMAGE',
-        'IMAGE_LIST',
-        'IMAGE_CONVEX',
-        'IMAGE_CANVAS',
-      ])
+      shouldShowItem(data, ['WZ_DIRECTORY', 'IMAGE', 'IMAGE_LIST', 'IMAGE_CONVEX', 'IMAGE_CANVAS'])
     ) {
       menuItems.push({ name: '粘贴', command: 'paste' });
     }
