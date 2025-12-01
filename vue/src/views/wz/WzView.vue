@@ -293,7 +293,7 @@
   };
 
   /* 复选框 ---------------------------------------------------------------------------------------*/
-  const lastChecked = ref<IWzNode>(null);
+  const lastChecked = ref<IWzNode>({ id: -520 });
   const checkedKey = ref<number[]>([]);
   const handleCheck = (data: IWzNode, event: KeyboardEvent) => {
     const ctrlKeyDowned = event.ctrlKey;
@@ -939,7 +939,9 @@
     let dataList = treeData.value;
     for (const p of pathNames) {
       dataList = dataList.find((i) => i.name === p);
-      if (dataList && !dataList.leaf) {
+      if (!dataList) {
+        break;
+      } else if (!dataList.leaf) {
         if (dataList.children.length == 0) {
           const { data } = await getNode(dataList.id);
           dataList.children.push(...data);
@@ -948,7 +950,12 @@
         if (dataList.children.length > 0) {
           handleNodeExpand(dataList);
         }
+
+        lastChecked.value = dataList;
+        checkedKey.value = [dataList.id];
       } else {
+        lastChecked.value = dataList;
+        checkedKey.value = [dataList.id];
         break;
       }
       dataList = dataList.children;

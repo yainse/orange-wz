@@ -3,7 +3,6 @@
     <template #header>
       <span>Wz 编辑器</span>
     </template>
-    <!--    <WzWorkplace />-->
     <el-button type="primary" :icon="AiOutlineFolderOpen" @click="loadClick">打开</el-button>
     <el-button type="primary" :icon="AiOutlinePlus" @click="addViewClick">视图</el-button>
     <el-button
@@ -13,6 +12,7 @@
     >
       同步
     </el-button>
+    <el-button type="primary" :icon="AiOutlineFolderOpen" @click="expandClick">展开</el-button>
     <el-splitter style="margin-top: 10px">
       <el-splitter-panel v-for="item in viewList" :key="item.id">
         <WzView
@@ -118,6 +118,29 @@
     const firstView = viewList.value[0];
     await load(id, firstView.id, version, key);
     await firstView.ref.initial(firstView.id);
+  };
+
+  /* 展开 -------------------------------------------------------------------------------------------------------------*/
+  const expandClick = () => {
+    ElMessageBox.prompt('请粘贴要展开的路径', '路径', {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      inputPattern: /.+/,
+      inputErrorMessage: '至少一个字符',
+    })
+      .then(({ value }) => {
+        syncExpand(-520, value);
+        ElMessage({
+          type: 'success',
+          message: `展开路径: ${value}`,
+        });
+      })
+      .catch(() => {
+        ElMessage({
+          type: 'info',
+          message: '操作已取消',
+        });
+      });
   };
 </script>
 
