@@ -637,6 +637,7 @@
   };
 
   const genNormalMenuItems = (data: IWzNode, menuItems: []) => {
+    menuItems.push({ name: '复制路径', command: 'copyPath' });
     if (
       shouldShowItem(['WZ', 'WZ_DIRECTORY', 'IMAGE', 'IMAGE_LIST', 'IMAGE_CONVEX', 'IMAGE_CANVAS'])
     ) {
@@ -723,6 +724,9 @@
       return;
     }
     switch (action) {
+      case 'copyPath':
+        copyPathClick();
+        break;
       case 'save':
         saveClick();
         break;
@@ -766,6 +770,16 @@
       case 'delete':
         deleteClick();
         break;
+    }
+  };
+
+  const copyPathClick = async () => {
+    const text = findNodePath(treeData.value, contextMenuRow.value.id);
+    if (text) {
+      await navigator.clipboard.writeText(text);
+      ElMessage.success({ message: `已复制 ${text}` });
+    } else {
+      ElMessage.error({ message: '复制失败' });
     }
   };
 
