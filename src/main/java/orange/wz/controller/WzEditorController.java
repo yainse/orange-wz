@@ -57,7 +57,7 @@ public class WzEditorController {
 
     @DeleteMapping("/unload/{id}")
     public ResultBody<Void> unload(@PathVariable int id) {
-        wzEditorService.unload(id);
+        wzEditorService.unload(id, true);
         return ResultBody.success();
     }
 

@@ -66,7 +66,7 @@ public final class WzEditorService {
 
     public void removeView(int view) {
         if (!views.contains(view)) throw new BizException(ExceptionEnum.NOT_FOUND);
-        unload(view);
+        unload(view, true);
         views.remove(view);
     }
 
@@ -336,7 +336,12 @@ public final class WzEditorService {
     }
 
     /* 卸载节点 --------------------------------------------------------------------------------------------------------*/
-    public void unload(int id) {
+    public void unload(int id, boolean gc) {
+        unload(id);
+        if (gc) System.gc();
+    }
+
+    private void unload(int id) {
         WzNode node = nodeCache.get(id);
         if (node == null) throw new BizException(ExceptionEnum.NOT_FOUND_FILE_OR_FOLDER);
 
