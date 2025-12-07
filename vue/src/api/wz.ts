@@ -3,6 +3,10 @@ import type { IWzNodeValue } from '@/store/wzEditor.ts';
 
 const apiPath = '/admin/wzEditor';
 
+export function deleteCache() {
+  return api.delete(`${apiPath}/cache`);
+}
+
 export function watchFolder(id: number) {
   return api.get(`${apiPath}/folder/${id}`);
 }

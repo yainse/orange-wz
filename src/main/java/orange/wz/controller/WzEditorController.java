@@ -16,6 +16,12 @@ import java.util.Set;
 public class WzEditorController {
     private final WzEditorService wzEditorService;
 
+    @DeleteMapping("/cache")
+    public ResultBody<Void> deleteCache() {
+        wzEditorService.deleteCache();
+        return ResultBody.success();
+    }
+
     @GetMapping("/views")
     public ResultBody<Set<Integer>> getViews() {
         return ResultBody.success(wzEditorService.getViews());

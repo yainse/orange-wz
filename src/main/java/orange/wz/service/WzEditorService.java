@@ -32,6 +32,29 @@ public final class WzEditorService {
     private static String lastCavPath = null;
     private final static List<WzObject> clipboard = new ArrayList<>();
 
+    public void deleteCache() {
+        Runtime rt = Runtime.getRuntime();
+        long beforeUsed = rt.totalMemory() - rt.freeMemory();
+
+        folderCache.clear();
+        views.clear();
+        nodeCache.clear();
+        nextId.set(0);
+        cavWzFiles.clear();
+        lastCavPath = null;
+        clipboard.clear();
+
+        System.gc();
+
+        // GC 后的内存情况（稍微停一下让 GC 有时间运行）
+        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+        long afterUsed = rt.totalMemory() - rt.freeMemory();
+        long reclaimed = beforeUsed - afterUsed;
+        if (reclaimed < 0) reclaimed = 0; // 避免出现负数
+
+        log.info("缓存已清空，回收内存约: {} MB", reclaimed / 1024 / 1024);
+    }
+
     /* 视图 -----------------------------------------------------------------------------------------------------------*/
     public Set<Integer> getViews() {
         if (views.isEmpty()) {

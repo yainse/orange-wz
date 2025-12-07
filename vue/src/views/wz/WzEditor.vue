@@ -12,7 +12,22 @@
     >
       同步
     </el-button>
-    <el-button type="primary" :icon="AiOutlineFolderOpen" @click="expandClick">展开</el-button>
+    <el-button type="warning" :icon="AiOutlineFolderOpen" @click="expandClick">展开</el-button>
+    <el-popconfirm
+      placement="top"
+      :width="250"
+      :icon="BsTrash"
+      icon-color="red"
+      title="该操作相当于重启软件，确定要清空缓存？"
+      confirm-button-text="是"
+      @confirm="deleteCacheClick"
+      confirm-button-type="danger"
+      cancel-button-text="否"
+    >
+      <template #reference>
+        <el-button type="danger" :icon="BsTrash">缓存</el-button>
+      </template>
+    </el-popconfirm>
     <el-splitter style="margin-top: 10px">
       <el-splitter-panel v-for="item in viewList" :key="item.id">
         <WzView
@@ -33,13 +48,14 @@
 </template>
 
 <script setup lang="ts">
-  import { addView, getViews, load, localization } from '@/api/wz.ts';
+  import { addView, deleteCache, getViews, load, localization } from '@/api/wz.ts';
   import type { IWorkplace } from '@/store/wzEditor.ts';
   import { removeNodeById } from '@/utils/nodeUtils.ts';
   import WzLoad from '@/views/wz/WzLoad.vue';
   import WzView from '@/views/wz/WzView.vue';
   import { ref, useTemplateRef } from 'vue';
   import { AiOutlineFolderOpen, AiOutlinePlus, AiOutlineSync } from 'vue-icons-plus/ai';
+  import { BsTrash } from 'vue-icons-plus/bs';
 
   /* 视图 -----------------------------------------------------------------------------------------*/
   const viewList = ref<IWorkplace[]>([]);
@@ -143,6 +159,15 @@
           message: '操作已取消',
         });
       });
+  };
+
+  /* 展开 -------------------------------------------------------------------------------------------------------------*/
+  const deleteCacheClick = async () => {
+    await deleteCache();
+    ElMessage.success({
+      message: '缓存已清空',
+    });
+    location.reload();
   };
 
   /* 汉化 -------------------------------------------------------------------------------------------------------------*/
