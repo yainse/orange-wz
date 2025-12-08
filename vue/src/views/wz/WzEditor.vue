@@ -12,13 +12,28 @@
     >
       同步
     </el-button>
-    <el-button type="warning" :icon="AiOutlineFolderOpen" @click="expandClick">展开</el-button>
+    <el-button type="primary" :icon="AiOutlineFolderOpen" @click="expandClick">展开</el-button>
+    <el-popconfirm
+      placement="top"
+      :width="250"
+      :icon="BsRecycle"
+      icon-color="orange"
+      title="回收内存，释放文件占用。如果文件已关闭，还提示被占用的话，使用该功能可以解除占用。"
+      confirm-button-text="是"
+      @confirm="gcClick"
+      confirm-button-type="warning"
+      cancel-button-text="否"
+    >
+      <template #reference>
+        <el-button type="warning" :icon="BsRecycle">内存</el-button>
+      </template>
+    </el-popconfirm>
     <el-popconfirm
       placement="top"
       :width="250"
       :icon="BsTrash"
       icon-color="red"
-      title="该操作相当于重启软件，确定要清空缓存？"
+      title="关闭所有打开的文件，重置缓存，并回收内存，是否继续？"
       confirm-button-text="是"
       @confirm="deleteCacheClick"
       confirm-button-type="danger"
@@ -48,14 +63,14 @@
 </template>
 
 <script setup lang="ts">
-  import { addView, deleteCache, getViews, load, localization } from '@/api/wz.ts';
+  import { addView, deleteCache, gc, getViews, load, localization } from '@/api/wz.ts';
   import type { IWorkplace } from '@/store/wzEditor.ts';
   import { removeNodeById } from '@/utils/nodeUtils.ts';
   import WzLoad from '@/views/wz/WzLoad.vue';
   import WzView from '@/views/wz/WzView.vue';
   import { ref, useTemplateRef } from 'vue';
   import { AiOutlineFolderOpen, AiOutlinePlus, AiOutlineSync } from 'vue-icons-plus/ai';
-  import { BsTrash } from 'vue-icons-plus/bs';
+  import { BsRecycle, BsTrash } from 'vue-icons-plus/bs';
 
   /* 视图 -----------------------------------------------------------------------------------------*/
   const viewList = ref<IWorkplace[]>([]);
@@ -163,11 +178,18 @@
 
   /* 展开 -------------------------------------------------------------------------------------------------------------*/
   const deleteCacheClick = async () => {
-    await deleteCache();
+    const { data } = await deleteCache();
     ElMessage.success({
-      message: '缓存已清空',
+      message: data,
     });
     location.reload();
+  };
+
+  const gcClick = async () => {
+    const { data } = await gc();
+    ElMessage.success({
+      message: data,
+    });
   };
 
   /* 汉化 -------------------------------------------------------------------------------------------------------------*/

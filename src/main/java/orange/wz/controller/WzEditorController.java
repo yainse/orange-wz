@@ -17,9 +17,13 @@ public class WzEditorController {
     private final WzEditorService wzEditorService;
 
     @DeleteMapping("/cache")
-    public ResultBody<Void> deleteCache() {
-        wzEditorService.deleteCache();
-        return ResultBody.success();
+    public ResultBody<String> deleteCache() {
+        return ResultBody.success(wzEditorService.gc(true));
+    }
+
+    @DeleteMapping("/gc")
+    public ResultBody<String> gc() {
+        return ResultBody.success(wzEditorService.gc(false));
     }
 
     @GetMapping("/views")

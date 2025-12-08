@@ -7,6 +7,10 @@ export function deleteCache() {
   return api.delete(`${apiPath}/cache`);
 }
 
+export function gc() {
+  return api.delete(`${apiPath}/gc`);
+}
+
 export function getViews() {
   return api.get(`${apiPath}/views`);
 }
