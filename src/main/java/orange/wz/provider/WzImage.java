@@ -57,6 +57,10 @@ public class WzImage extends WzObject {
     }
 
     public void parse() {
+        parse(true);
+    }
+
+    public void parse(boolean realParse) {
         if (!loaded) {
             reader = new BinaryReader(path, iv, key);
             size = reader.getBuffer().capacity();
@@ -73,6 +77,7 @@ public class WzImage extends WzObject {
             return;
         }
 
+        if (!realParse) return;
         reader.setPosition(offset);
         byte b = reader.getByte();
         if (b != wzImageHeaderByte_WithoutOffset || !reader.readString().equals("Property") || reader.getShort() != 0) {

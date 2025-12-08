@@ -141,4 +141,10 @@ public class WzEditorController {
         wzEditorService.localization(from, to);
         return ResultBody.success();
     }
+
+    @GetMapping("/tools/packet")
+    public ResultBody<Void> packet(@RequestParam("fileVersion") short fileVersion, @RequestParam("id") int id) {
+        wzEditorService.packet(fileVersion, id);
+        return ResultBody.success();
+    }
 }

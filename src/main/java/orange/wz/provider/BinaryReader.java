@@ -51,6 +51,16 @@ public final class BinaryReader {
         buffer.order(ByteOrder.LITTLE_ENDIAN);
     }
 
+    /**
+     * 只做临时使用，不做解析
+     *
+     */
+    public BinaryReader(byte[] iv, byte[] userKey) {
+        this.iv = iv;
+        this.userKey = userKey;
+        wzKey = generateWzKey(); // 这个方法有点花时间，如果要大量调用的话需要注意
+    }
+
     /* Key -----------------------------------------------------------------------------------------------------------*/
     public byte[] generateWzKey() {
         byte[] aesKey = getTrimmedUserKey();

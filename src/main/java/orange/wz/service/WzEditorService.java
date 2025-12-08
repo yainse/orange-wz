@@ -47,7 +47,10 @@ public final class WzEditorService {
         System.gc();
 
         // GC 后的内存情况（稍微停一下让 GC 有时间运行）
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ignored) {
+        }
         long afterUsed = rt.totalMemory() - rt.freeMemory();
         long reclaimed = beforeUsed - afterUsed;
         if (reclaimed < 0) reclaimed = 0; // 避免出现负数
@@ -852,7 +855,7 @@ public final class WzEditorService {
 
         WzObject obj = node.getWzObject();
         switch (obj) {
-            case WzFile wzFile -> wzFile.save(wzFile.getPath());
+            case WzFile wzFile -> wzFile.save();
             case WzImage wzImage -> wzImage.save(Path.of(wzImage.getPath()));
             default -> throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目标不是wz或则img文件");
         }
@@ -866,7 +869,7 @@ public final class WzEditorService {
         }
         WzObject obj = wzNode.getWzObject();
         if (obj instanceof WzFile wzFile) {
-            wzFile.save(wzFile.getPath());
+            wzFile.save();
         } else if (obj instanceof WzImage wzImage) {
             wzImage.save(Path.of(wzImage.getPath()));
         }
@@ -1144,6 +1147,108 @@ public final class WzEditorService {
     private boolean isChinese(String str) {
         return !str.matches(".*[\\uAC00-\\uD7A3].*")  // 不能有韩文
                 && str.matches(".*[\\u4e00-\\u9fa5].*");  // 有中文字符
+    }
+
+    public void packet(short fileVersion, int id) {
+        WzNode node = nodeCache.get(id);
+        if (node == null) throw new BizException(ExceptionEnum.NOT_FOUND);
+        if (node.getType() != WzNodeType.FOLDER) throw new BizException(ExceptionEnum.ONLY_FOLDER);
+
+        try {
+            Path basePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "打包wz");
+            FileUtils.createDirectory(basePath);
+        } catch (IOException e) {
+            throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+
+        // Data 一种打法，常规Folder一种打法
+        if (node.getName().equalsIgnoreCase("Data")) {
+            packetData(fileVersion, node);
+        } else {
+            packetFolder(fileVersion, node);
+        }
+    }
+
+    private void packetData(short fileVersion, WzNode dataNode) {
+        Set<String> directories = new HashSet<>();
+        List<WzImage> images = new ArrayList<>();
+        for (WzNode node : dataNode.getChildren()) {
+            if (node.getType() == WzNodeType.FOLDER) {
+                directories.add(node.getName());
+            } else if (node.getType() == WzNodeType.IMAGE) {
+                images.add((WzImage) node.getWzObject());
+            }
+        }
+
+        byte[] iv = images.getFirst().getIv();
+        byte[] key = images.getFirst().getKey();
+
+
+        // Packet Base.wz
+        Path filePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "打包wz", "Base.wz");
+        WzFile wzFile = new WzFile(filePath.toString(), fileVersion, iv, key);
+        wzFile.initialize();
+        directories.forEach(director -> wzFile.getWzDirectory().getDirectories().put(director, new WzDirectory(director, wzFile)));
+        images.forEach(image -> {
+            image.parse(false);
+            wzFile.getWzDirectory().getImages().put(image.getName(), image);
+        });
+        wzFile.save();
+
+        // Packet Other.wz
+        for (WzNode node : dataNode.getChildren()) {
+            if (node.getType() == WzNodeType.FOLDER) {
+                packetFolder(fileVersion, node, iv, key);
+            }
+        }
+    }
+
+    private void packetFolder(short fileVersion, WzNode dataNode) {
+        Map<String, byte[]> ik = searchIvKey(dataNode);
+        if (ik.isEmpty()) throw new BizException(ExceptionEnum.NOT_FOUND_IV_KEY);
+
+        packetFolder(fileVersion, dataNode, ik.get("iv"), ik.get("key"));
+    }
+
+    private void packetFolder(short fileVersion, WzNode dataNode, byte[] iv, byte[] key) {
+        Path filePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "打包wz", dataNode.getName() + ".wz");
+        WzFile wzFile = new WzFile(filePath.toString(), fileVersion, iv, key);
+        wzFile.initialize();
+
+        packetSubToWz(dataNode, wzFile.getWzDirectory());
+
+        wzFile.save();
+    }
+
+    private void packetSubToWz(WzNode dataNode, WzDirectory wzDir) {
+        for (WzNode node : dataNode.getChildren()) {
+            if (node.getType() == WzNodeType.FOLDER) {
+                WzDirectory subDir = new WzDirectory(node.getName(), wzDir);
+                packetSubToWz(node, subDir);
+                wzDir.getDirectories().put(node.getName(), subDir);
+            } else if (node.getType() == WzNodeType.IMAGE) {
+                WzImage image = (WzImage) node.getWzObject();
+                image.parse(false);
+                wzDir.getImages().put(node.getName(), image);
+            }
+        }
+    }
+
+    private Map<String, byte[]> searchIvKey(WzNode dataNode) {
+        Map<String, byte[]> result = new HashMap<>();
+
+        for (WzNode subNode : dataNode.getChildren()) {
+            if (subNode.getType() == WzNodeType.IMAGE) {
+                WzImage image = (WzImage) subNode.getWzObject();
+                result.put("iv", image.getIv());
+                result.put("key", image.getKey());
+                return result;
+            } else if (subNode.getType() == WzNodeType.FOLDER) {
+                return searchIvKey(subNode);
+            }
+        }
+
+        return result;
     }
 
     /* 通用方法 --------------------------------------------------------------------------------------------------------*/

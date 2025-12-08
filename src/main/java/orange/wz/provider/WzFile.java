@@ -10,41 +10,53 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-import static orange.wz.provider.WzAESConstant.DEFAULT_KEY;
-
 @Slf4j
 @Getter
 public class WzFile extends WzObject {
-    private String path;
+    private final String path;
     private WzDirectory wzDirectory;
     private WzHeader header;
     private short version; // 实际版本
     private int versionHash = 0; // uint
-    private short fileVersion = 0; // 指定版本
-    private WzMapleVersion mapleVersion; // GMS
+    private short fileVersion; // 指定版本
     private byte[] wzIv;
     private byte[] userKey;
     private boolean parse = false;
 
-    public WzFile(String filePath, short gameVersion, WzMapleVersion version) {
-        this(filePath, gameVersion, version, DEFAULT_KEY);
-    }
-
-    public WzFile(String filePath, short gameVersion, WzMapleVersion version, byte[] key) {
+    public WzFile(String filePath, short fileVersion, byte[] iv, byte[] key) {
         path = filePath;
         super.setName(Path.of(path).getFileName().toString());
-        fileVersion = gameVersion;
-        mapleVersion = version;
-        wzIv = WzTool.getIvByMapleVersion(mapleVersion);
-        userKey = key;
-    }
-
-    public WzFile(String filePath, short gameVersion, byte[] iv, byte[] key) {
-        path = filePath;
-        super.setName(Path.of(path).getFileName().toString());
-        fileVersion = gameVersion;
+        this.fileVersion = fileVersion;
         wzIv = iv;
         userKey = key;
+    }
+
+    /**
+     * 如果你是要创建一个新的Wz文件，用这个方法初始化对象
+     */
+    public void initialize() {
+        wzDirectory = new WzDirectory(getName(), this);
+        BinaryReader reader = new BinaryReader(wzIv, userKey);
+        wzDirectory.setReader(reader);
+        header = WzHeader.getDefault();
+        createWZVersionHash();
+        parse = true;
+    }
+
+    private void createWZVersionHash() {
+        int versionHash = 0;
+
+        // mapleStoryPatchVersion 假设是 int 或其他可转字符串的类型
+        String ver = String.valueOf(fileVersion);
+
+        for (char ch : ver.toCharArray()) {
+            versionHash = (versionHash * 32) + (byte) ch + 1;
+        }
+
+        byte wzVersionHeader = (byte) ~((versionHash >> 24) & 0xFF ^ (versionHash >> 16) & 0xFF ^ (versionHash >> 8) & 0xFF ^ versionHash & 0xFF);
+
+        this.versionHash = versionHash;
+        this.version = wzVersionHeader;
     }
 
     public void parse() {
@@ -109,6 +121,10 @@ public class WzFile extends WzObject {
             log.error("文件版本错误");
             return 0;
         }
+    }
+
+    public void save() {
+        save(path);
     }
 
     public void save(String path) {

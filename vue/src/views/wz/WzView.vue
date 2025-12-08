@@ -156,6 +156,7 @@
     getNode,
     getValue,
     moveView,
+    packet,
     paste,
     removeView,
     saveNode,
@@ -565,9 +566,19 @@
   const genNormalMenuItems = (data: IWzNode, menuItems: []) => {
     menuItems.push({ name: '复制路径', command: 'copyPath' });
     if (
-      shouldShowItem(['WZ', 'WZ_DIRECTORY', 'IMAGE', 'IMAGE_LIST', 'IMAGE_CONVEX', 'IMAGE_CANVAS'])
+      shouldShowItem(data, [
+        'WZ',
+        'WZ_DIRECTORY',
+        'IMAGE',
+        'IMAGE_LIST',
+        'IMAGE_CONVEX',
+        'IMAGE_CANVAS',
+      ])
     ) {
       menuItems.push({ name: '子节点', command: 'insert' });
+    }
+    if (shouldShowItem(data, ['FOLDER'])) {
+      menuItems.push({ name: '打包', command: 'packet' });
     }
   };
 
@@ -688,6 +699,9 @@
         break;
       case 'delete':
         deleteClick();
+        break;
+      case 'packet':
+        packetClick();
         break;
     }
   };
@@ -831,6 +845,25 @@
     await moveView(contextMenuRow.value.id, view);
     await initial(viewId.value);
     pFunc('reInitial', view);
+  };
+
+  const packetClick = async () => {
+    ElMessageBox.prompt('数字版本号如79、83、95等', '文件版本', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputPattern: /.+/,
+      inputErrorMessage: '至少一个字符',
+    })
+      .then(async ({ value }) => {
+        await packet(value, contextMenuRow.value.id);
+        ElMessage.success({ message: '打包完成请在export/打包wz目录中查看' });
+      })
+      .catch(() => {
+        ElMessage({
+          type: 'info',
+          message: '操作已取消',
+        });
+      });
   };
 
   /* 视图同步 --------------------------------------------------------------------------------------*/

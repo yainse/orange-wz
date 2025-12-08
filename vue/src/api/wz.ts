@@ -7,38 +7,6 @@ export function deleteCache() {
   return api.delete(`${apiPath}/cache`);
 }
 
-export function watchFolder(id: number) {
-  return api.get(`${apiPath}/folder/${id}`);
-}
-
-export function open(id: number, version: string, key: string) {
-  return api.get(`${apiPath}/open/${id}?v=${version}&k=${key}`);
-}
-
-export function watchFile(id: number, size: number, page: number) {
-  return api.get(`${apiPath}/file/${id}?size=${size}&page=${page}`);
-}
-
-export function watchImg(id: number) {
-  return api.get(`${apiPath}/file/${id}/img`);
-}
-
-export function rename(id: number, name: string) {
-  return api.post(`${apiPath}/file/${id}/name`, { name: name });
-}
-
-export function saveWz(id: number) {
-  return api.post(`${apiPath}/file/${id}/save`);
-}
-
-export function close(id: number) {
-  return api.delete(`${apiPath}/file/${id}/close`);
-}
-
-export function closeAll() {
-  return api.delete(`${apiPath}/file/close`);
-}
-
 export function getViews() {
   return api.get(`${apiPath}/views`);
 }
@@ -122,4 +90,8 @@ export function updateWzKey(id: number, version: string, key: string) {
 
 export function localization(from: number, to: number) {
   return api.get(`${apiPath}/tools/localization?from=${from}&to=${to}`);
+}
+
+export function packet(fileVersion: number, id: number) {
+  return api.get(`${apiPath}/tools/packet?fileVersion=${fileVersion}&id=${id}`);
 }

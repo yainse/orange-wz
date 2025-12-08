@@ -26,6 +26,8 @@ public enum ExceptionEnum implements BaseErrorInfoInterface {
     IS_OPENED(50106, "不要重复打开相同的文件!"),
     ONLY_WZ_IMAGE(50107, "WzImage 只能粘贴 WzImageProperty"),
     ONLY_WZ_DIR_OR_IMAGE(50108, "Wz 只能粘贴 WzDirectory 或 WzImage"),
+    ONLY_FOLDER(50109, "只能打包Data文件夹"),
+    NOT_FOUND_IV_KEY(50110, "找不到密钥，请确保文件夹里有img文件"),
     ;
 
     private final int resultCode;
