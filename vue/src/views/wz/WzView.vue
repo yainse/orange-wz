@@ -595,48 +595,141 @@
   };
 
   const genMenuItems = (data: IWzNode) => {
-    const menuItems = [];
-
-    genNormalMenuItems(data, menuItems);
-    genFileMenuItems(data, menuItems);
-    genWzMenuItems(data, menuItems);
-
-    return menuItems;
-  };
-
-  const shouldShowItem = (data: IWzNode, itemTypes: string[]): boolean => {
-    return !itemTypes || itemTypes.length === 0 || itemTypes.includes(data.type);
-  };
-
-  const genNormalMenuItems = (data: IWzNode, menuItems: []) => {
-    menuItems.push({ name: '复制路径', command: 'copyPath' });
-    if (
-      shouldShowItem(data, [
-        'WZ',
-        'WZ_DIRECTORY',
-        'IMAGE',
-        'IMAGE_LIST',
-        'IMAGE_CONVEX',
-        'IMAGE_CANVAS',
-      ])
-    ) {
-      menuItems.push({ name: '子节点', command: 'insert' });
-    }
-    if (shouldShowItem(data, ['FOLDER'])) {
-      menuItems.push({ name: '打包', command: 'packet' });
+    switch (data.type) {
+      case 'FOLDER':
+        return genFolderMenuItems();
+      case 'WZ':
+        return genWzMenuItems();
+      case 'IMAGE':
+        return data.file ? genImgFileMenuItems : genImgMenuItems();
+      case 'WZ_DIRECTORY':
+        return genWzDirMenuItems();
+      case 'IMAGE_LIST':
+      case 'IMAGE_CANVAS':
+      case 'IMAGE_CONVEX':
+        return genListMenuItems();
+      default:
+        return genDefaultMenuItems();
     }
   };
 
-  const genFileMenuItems = (data: IWzNode, menuItems: []) => {
-    if (!data.file) return;
+  const genFolderMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '打包', command: 'packet' },
+      { name: '保存', command: 'save' },
+      { name: '修改密钥', command: 'updateKey' },
+      { name: '关闭', command: 'unload' },
+      { name: '全部关闭', command: 'unloadAll' },
+      genMoveViewsItem(),
+      {
+        name: '导出',
+        command: undefined,
+        children: [
+          { name: '导出 Img', command: 'exportImg' },
+          { name: '导出 XML', command: 'exportXml' },
+          { name: '导出 XML (紧凑)', command: 'exportXmlMini' },
+        ],
+        divided: true,
+      },
+    ].filter(Boolean); // 会把 null 和 undefined 自动过滤掉
+  };
 
-    menuItems.push({ name: '粘贴', command: 'paste' });
-    menuItems.push({ name: '保存', command: 'save' });
-    menuItems.push({ name: '修改密钥', command: 'updateKey' });
-    menuItems.push({ name: '关闭', command: 'unload' });
-    menuItems.push({ name: '全部关闭', command: 'unloadAll' });
+  const genWzMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '子节点', command: 'insert' },
+      { name: '粘贴', command: 'paste' },
+      { name: '保存', command: 'save' },
+      { name: '修改密钥', command: 'updateKey' },
+      { name: '关闭', command: 'unload' },
+      { name: '全部关闭', command: 'unloadAll' },
+      genMoveViewsItem(),
+      {
+        name: '导出',
+        command: undefined,
+        children: [
+          { name: '导出 Img', command: 'exportImg' },
+          { name: '导出 XML', command: 'exportXml' },
+          { name: '导出 XML (紧凑)', command: 'exportXmlMini' },
+        ],
+        divided: true,
+      },
+      { name: 'outlink', command: 'outlink', divided: true },
+      { name: '设为汉化用', command: 'setCMS' },
+      { name: '汉化 WZ', command: 'chinese' },
+    ].filter(Boolean); // 会把 null 和 undefined 自动过滤掉
+  };
 
-    /* 视图 ↓↓↓↓↓↓*/
+  const genImgMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '子节点', command: 'insert' },
+      { name: '粘贴', command: 'paste' },
+      genMoveViewsItem(),
+      {
+        name: '导出',
+        command: undefined,
+        children: [
+          { name: '导出 XML', command: 'exportXml' },
+          { name: '导出 XML (紧凑)', command: 'exportXmlMini' },
+        ],
+        divided: true,
+      },
+    ].filter(Boolean); // 会把 null 和 undefined 自动过滤掉
+  };
+
+  const genImgFileMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '子节点', command: 'insert' },
+      { name: '粘贴', command: 'paste' },
+      { name: '保存', command: 'save' },
+      { name: '修改密钥', command: 'updateKey' },
+      { name: '关闭', command: 'unload' },
+      { name: '全部关闭', command: 'unloadAll' },
+      genMoveViewsItem(),
+      {
+        name: '导出',
+        command: undefined,
+        children: [
+          { name: '导出 XML', command: 'exportXml' },
+          { name: '导出 XML (紧凑)', command: 'exportXmlMini' },
+        ],
+        divided: true,
+      },
+    ].filter(Boolean); // 会把 null 和 undefined 自动过滤掉
+  };
+
+  const genWzDirMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '子节点', command: 'insert' },
+      { name: '复制', command: 'copy' },
+      { name: '粘贴', command: 'paste' },
+      { name: '删除', command: 'delete' },
+    ];
+  };
+
+  const genListMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '子节点', command: 'insert' },
+      { name: '复制', command: 'copy' },
+      { name: '粘贴', command: 'paste' },
+      { name: '删除', command: 'delete' },
+    ];
+  };
+
+  const genDefaultMenuItems = () => {
+    return [
+      { name: '复制路径', command: 'copyPath' },
+      { name: '复制', command: 'copy' },
+      { name: '删除', command: 'delete' },
+    ];
+  };
+
+  const genMoveViewsItem = () => {
     const moveChildren = [];
     let views;
     pFunc('getViewsId', viewId.value, (response) => {
@@ -646,51 +739,15 @@
       moveChildren.push({ name: `移动到视图 ${view}`, command: `moveView${view}` });
     });
     if (moveChildren.length > 0) {
-      menuItems.push({
+      return {
         name: '视图',
         command: undefined,
         children: moveChildren,
         divided: true,
-      });
-    }
-    /* 视图 ↑↑↑↑↑↑*/
-    /* 导出 ↓↓↓↓↓↓*/
-    const exportChildren = [];
-    if (shouldShowItem(data, ['WZ', 'FOLDER'])) {
-      exportChildren.push({ name: '导出 Img', command: 'exportImg' });
-    }
-    if (shouldShowItem(data, ['WZ', 'FOLDER', 'IMAGE'])) {
-      exportChildren.push({ name: '导出 XML', command: 'exportXml' });
-      exportChildren.push({ name: '导出 XML (紧凑)', command: 'exportXmlMini' });
-    }
-    if (exportChildren.length > 0) {
-      menuItems.push({
-        name: '导出',
-        command: undefined,
-        children: exportChildren,
-        divided: true,
-      });
-    }
-    /* 导出 ↑↑↑↑↑↑*/
-
-    if (shouldShowItem(data, ['WZ'])) {
-      menuItems.push({ name: 'outlink', command: 'outlink', divided: true });
-      menuItems.push({ name: '设为汉化用', command: 'setCMS' });
-      menuItems.push({ name: '汉化 WZ', command: 'chinese' });
-    }
-  };
-
-  const genWzMenuItems = (data: IWzNode, menuItems: []) => {
-    if (data.file) return;
-
-    menuItems.push({ name: '复制', command: 'copy' });
-    if (
-      shouldShowItem(data, ['WZ_DIRECTORY', 'IMAGE', 'IMAGE_LIST', 'IMAGE_CONVEX', 'IMAGE_CANVAS'])
-    ) {
-      menuItems.push({ name: '粘贴', command: 'paste' });
+      };
     }
 
-    menuItems.push({ name: '删除', command: 'delete' });
+    return null;
   };
 
   const handleContextMenu = (action: string) => {
