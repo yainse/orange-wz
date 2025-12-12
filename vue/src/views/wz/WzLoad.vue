@@ -51,7 +51,9 @@
   const wzKeyRef = useTemplateRef('WzKeyRef');
 
   const initial = () => {
-    navClick(-1);
+    if (tableData.value.length == 0) {
+      navClick(-1);
+    }
     visible.value = true;
   };
 
