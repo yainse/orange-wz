@@ -443,6 +443,17 @@ public final class WzEditorService {
                     return getUolCanvas(list.get(childName), path, step + 1);
                 }
             }
+        } else if (wzObject instanceof WzImage img) {
+            if (path.length == step + 1) {
+                return (WzCanvasProperty) (img.get(path[step]));
+            } else {
+                String childName = path[step];
+                if (childName.equalsIgnoreCase("..")) {
+                    throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "Img节点无法再往上查询 : " + String.join("/", Arrays.copyOfRange(path, 0, step + 1)));
+                } else {
+                    return getUolCanvas(img.get(childName), path, step + 1);
+                }
+            }
         } else {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "节点不是 List : " + String.join("/", Arrays.copyOfRange(path, 0, step + 1)));
         }
