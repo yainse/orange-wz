@@ -1,8 +1,9 @@
-package orange.wz.provider;
+package orange.wz.provider.tools;
 
 import lombok.Getter;
 import lombok.Setter;
-import orange.wz.provider.tools.WzMutableKey;
+import orange.wz.provider.WzAESConstant;
+import orange.wz.provider.WzHeader;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -228,7 +229,7 @@ public final class BinaryReader {
             case (byte) 0x80 -> {
                 return getFloat();
             }
-            default -> throw new WzReaderError("Unknown float type : %d", floatType);
+            default -> throw new RuntimeException("Unknown float type : " + floatType);
         }
     }
 

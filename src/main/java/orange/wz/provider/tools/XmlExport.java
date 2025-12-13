@@ -1,5 +1,7 @@
-package orange.wz.provider;
+package orange.wz.provider.tools;
 
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.properties.*;
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;

@@ -1,16 +1,8 @@
-package orange.wz.provider;
+package orange.wz.provider.tools;
 
 import java.util.Map;
 
 public class WzTool {
-    public static byte[] getIvByMapleVersion(WzMapleVersion ver) {
-        return switch (ver) {
-            case WzMapleVersion.CMS -> WzAESConstant.WZ_CMS_IV;
-            case WzMapleVersion.GMS -> WzAESConstant.WZ_GMS_IV;
-            default -> WzAESConstant.WZ_LATEST_IV;
-        };
-    }
-
     public static int getCompressedIntLength(int i) {
         if (i > 127 || i < -127)
             return 5;

@@ -3,7 +3,7 @@ package orange.wz.provider.properties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import orange.wz.provider.BinaryWriter;
+import orange.wz.provider.tools.BinaryWriter;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;

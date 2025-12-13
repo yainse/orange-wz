@@ -2,6 +2,8 @@ package orange.wz.provider;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.tools.BinaryReader;
+import orange.wz.provider.tools.BinaryWriter;
 import orange.wz.provider.tools.WzMutableKey;
 
 import java.io.IOException;

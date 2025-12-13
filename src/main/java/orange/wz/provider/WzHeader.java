@@ -11,10 +11,6 @@ public final class WzHeader {
     private long size; // uLong
     private int start; // uInt
 
-    public void recalculateFileStart() {
-        start = 17 + copyright.length(); // ident(4 byte) + fSize(8) + fStart(4) + copyright(size) + 1
-    }
-
     public static WzHeader getDefault() {
         WzHeader header = new WzHeader();
         header.ident = "PKG1";

@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.tools.BinaryReader;
+import orange.wz.provider.tools.BinaryWriter;
 
 import java.util.ArrayList;
 import java.util.List;

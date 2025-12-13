@@ -1,7 +1,7 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.BinaryReader;
-import orange.wz.provider.BinaryWriter;
+import orange.wz.provider.tools.BinaryReader;
+import orange.wz.provider.tools.BinaryWriter;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;
 import lombok.Getter;
