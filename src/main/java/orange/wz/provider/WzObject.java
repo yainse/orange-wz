@@ -7,9 +7,24 @@ import lombok.experimental.SuperBuilder;
 
 @NoArgsConstructor
 @SuperBuilder
-@Setter
-@Getter
 public abstract class WzObject {
-    private WzObject parent;
-    private String name;
+    @Getter
+    @Setter
+    protected WzObject parent;
+    @Getter
+    @Setter
+    protected String name;
+    @Getter
+    protected String path;
+
+    protected WzObject(String name, WzObject parent) {
+        this.name = name;
+        this.parent = parent;
+
+        if (parent == null || name.equals(parent.getName()) && name.endsWith(".wz")) {
+            this.path = name;
+        } else {
+            this.path = parent.getPath() + "/" + name;
+        }
+    }
 }

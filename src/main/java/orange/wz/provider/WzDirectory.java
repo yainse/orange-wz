@@ -7,6 +7,7 @@ import orange.wz.exception.BizException;
 import orange.wz.exception.ExceptionEnum;
 import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.BinaryWriter;
+import orange.wz.provider.tools.WzMutableKey;
 import orange.wz.provider.tools.WzTool;
 import orange.wz.utils.FileUtils;
 
@@ -21,53 +22,42 @@ import java.util.Map;
 public class WzDirectory extends WzObject {
     private final LinkedHashMap<String, WzImage> images = new LinkedHashMap<>();
     private final LinkedHashMap<String, WzDirectory> directories = new LinkedHashMap<>();
-    private BinaryReader reader;
     private int offset;
-    private int hash;
-    private int size;
-    private int checksum;
+    private int dataSize;
+    private int checksum; // reader 所有 bytes 值的和 todo 计算
     private int offsetSize;
-    private byte[] wzIv;
     private WzFile wzFile;
 
-    public WzDirectory(String name, WzObject parent) {
-        super.setName(name);
-        super.setParent(parent);
+    public WzDirectory(String name, WzObject parent, WzFile file) {
+        super(name, parent);
+        wzFile = file;
     }
 
-    public WzDirectory(BinaryReader reader, String name, int hash, byte[] wzIv, WzFile wzFile) {
-        this.reader = reader;
-        super.setName(name);
-        this.hash = hash;
-        this.wzIv = wzIv;
-        this.wzFile = wzFile;
-    }
-
-    public void parse() {
+    public void parse(BinaryReader reader) {
         int entryCount = reader.readCompressedInt();
         for (int i = 0; i < entryCount; i++) {
             byte type = reader.getByte();
-            String fname = null;
+            String fname;
             int fSize;
             int checksum;
             int offset;
 
             int rememberPos = 0;
             switch (WzDirectoryType.getByValue(type)) {
-                case WzDirectoryType.UnknownType_1:   // 01 XX 00 00 00 00 00 OFFSET (4 bytes)
+                case WzDirectoryType.UnknownType:   // 01 XX 00 00 00 00 00 OFFSET (4 bytes)
                     int unknown = reader.getInt();
                     reader.getShort();
-                    int offs = reader.readOffset();
+                    int offs = reader.readOffset(wzFile.getHeader().getDataStartPos(), wzFile.getHeader().getVersionHash());
                     continue;
-                case WzDirectoryType.RetrieveStringFromOffset_2:
+                case WzDirectoryType.RetrieveStringFromOffset:
                     int stringOffset = reader.getInt();
                     rememberPos = reader.getPosition();
-                    reader.setPosition(reader.getHeader().getStart() + stringOffset);
+                    reader.setPosition(wzFile.getHeader().getDataStartPos() + stringOffset);
                     type = reader.getByte();
                     fname = reader.readString();
                     break;
-                case WzDirectoryType.WzDirectory_3:
-                case WzDirectoryType.WzImage_4:
+                case WzDirectoryType.WzDirectory:
+                case WzDirectoryType.WzImage:
                     fname = reader.readString();
                     rememberPos = reader.getPosition();
                     break;
@@ -78,40 +68,33 @@ public class WzDirectory extends WzObject {
             reader.setPosition(rememberPos);
             fSize = reader.readCompressedInt();
             checksum = reader.readCompressedInt();
-            offset = reader.readOffset();
-            if (WzDirectoryType.getByValue(type) == WzDirectoryType.WzDirectory_3) {
-                WzDirectory subDir = new WzDirectory(reader, fname, hash, wzIv, wzFile);
-                subDir.setSize(fSize);
+            offset = reader.readOffset(wzFile.getHeader().getDataStartPos(), wzFile.getHeader().getVersionHash());
+            if (WzDirectoryType.getByValue(type) == WzDirectoryType.WzDirectory) {
+                WzDirectory subDir = new WzDirectory(fname, this, wzFile);
+                subDir.setDataSize(fSize);
                 subDir.setChecksum(checksum);
                 subDir.setOffset(offset);
-                subDir.setParent(this);
                 directories.put(fname, subDir);
             } else {
-                WzImage img = new WzImage(fname, reader);
-                img.setSize(fSize);
+                WzImage img = new WzImage(fname, reader, this);
+                img.setDataSize(fSize);
                 img.setChecksum(checksum);
                 img.setOffset(offset);
-                img.setParent(this);
                 images.put(fname, img);
             }
         }
 
         for (WzDirectory dir : directories.values()) {
             reader.setPosition(dir.getOffset());
-            dir.parse();
+            dir.parse(reader);
         }
-    }
-
-    public void setVersionHash(int versionHash) {
-        hash = versionHash;
-        directories.forEach((k, v) -> v.setVersionHash(versionHash));
     }
 
     public void saveImages(BinaryWriter writer, BinaryWriter tempWriter) {
         for (WzImage img : images.values()) {
             if (img.isChanged()) {
                 tempWriter.setPosition(img.getTempFileStart());
-                byte[] buffer = tempWriter.getBytes(img.getSize());
+                byte[] buffer = tempWriter.getBytes(img.getDataSize());
                 writer.putBytes(buffer);
             } else {
                 img.getReader().setPosition(img.getTempFileStart());
@@ -124,20 +107,20 @@ public class WzDirectory extends WzObject {
     }
 
     public int generateDataFile(BinaryWriter tempWriter, Map<String, Integer> tempStringCache) {
-        size = 0;
+        dataSize = 0;
         int entryCount = directories.size() + images.size();
         if (entryCount == 0) {
             offsetSize = 1;
             return 0;
         }
-        size = WzTool.getCompressedIntLength(entryCount);
+        dataSize = WzTool.getCompressedIntLength(entryCount);
         offsetSize = WzTool.getCompressedIntLength(entryCount);
 
         BinaryWriter imgWriter;
         for (WzImage img : images.values()) {
             if (img.isChanged()) {
                 imgWriter = new BinaryWriter();
-                imgWriter.setWzMutableKey(reader.getWzMutableKey());
+                imgWriter.setWzMutableKey(wzFile.getReader().getWzMutableKey());
                 img.save(imgWriter);
                 img.setChecksum(0);
                 byte[] data = imgWriter.output();
@@ -149,16 +132,16 @@ public class WzDirectory extends WzObject {
                 img.setTempFileEnd(tempWriter.getPosition());
             } else {
                 img.setTempFileStart(img.getOffset());
-                img.setTempFileEnd(img.getOffset() + img.getSize());
+                img.setTempFileEnd(img.getOffset() + img.getDataSize());
             }
 
             int nameLen = WzTool.getWzObjectValueLength(img.getName(), (byte) 4, tempStringCache);
-            size += nameLen;
-            int imgLen = img.getSize();
-            size += WzTool.getCompressedIntLength(imgLen);
-            size += imgLen;
-            size += WzTool.getCompressedIntLength(img.getChecksum());
-            size += 4;
+            dataSize += nameLen;
+            int imgLen = img.getDataSize();
+            dataSize += WzTool.getCompressedIntLength(imgLen);
+            dataSize += imgLen;
+            dataSize += WzTool.getCompressedIntLength(img.getChecksum());
+            dataSize += 4;
             offsetSize += nameLen;
             offsetSize += WzTool.getCompressedIntLength(imgLen);
             offsetSize += WzTool.getCompressedIntLength(img.getChecksum());
@@ -167,18 +150,18 @@ public class WzDirectory extends WzObject {
 
         for (WzDirectory dir : directories.values()) {
             int nameLen = WzTool.getWzObjectValueLength(dir.getName(), (byte) 3, tempStringCache);
-            size += nameLen;
-            size += dir.generateDataFile(tempWriter, tempStringCache);
-            size += WzTool.getCompressedIntLength(dir.getSize());
-            size += WzTool.getCompressedIntLength(dir.getChecksum());
-            size += 4;
+            dataSize += nameLen;
+            dataSize += dir.generateDataFile(tempWriter, tempStringCache);
+            dataSize += WzTool.getCompressedIntLength(dir.getDataSize());
+            dataSize += WzTool.getCompressedIntLength(dir.getChecksum());
+            dataSize += 4;
             offsetSize += nameLen;
-            offsetSize += WzTool.getCompressedIntLength(dir.getSize());
+            offsetSize += WzTool.getCompressedIntLength(dir.getDataSize());
             offsetSize += WzTool.getCompressedIntLength(dir.getChecksum());
             offsetSize += 4;
         }
 
-        return size;
+        return dataSize;
     }
 
     public int getOffsets(int curOffset) {
@@ -195,7 +178,7 @@ public class WzDirectory extends WzObject {
     public int getImgOffsets(int curOffset) {
         for (WzImage img : images.values()) {
             img.setOffset(curOffset);
-            curOffset += img.getSize();
+            curOffset += img.getDataSize();
         }
 
         for (WzDirectory dir : directories.values()) {
@@ -209,25 +192,25 @@ public class WzDirectory extends WzObject {
         offset = writer.getPosition();
         int entryCount = directories.size() + images.size();
         if (entryCount == 0) {
-            size = 0;
+            dataSize = 0;
             return;
         }
         writer.writeCompressedInt(entryCount);
         for (WzImage img : images.values()) {
-            writer.writeWzObjectValue(img.getName(), WzDirectoryType.WzImage_4);
-            writer.writeCompressedInt(img.getSize());
+            writer.writeWzObjectValue(img.getName(), WzDirectoryType.WzImage, wzFile.getHeader().getDataStartPos());
+            writer.writeCompressedInt(img.getDataSize());
             writer.writeCompressedInt(img.getChecksum());
-            writer.writeOffset(img.getOffset());
+            writer.writeOffset(img.getOffset(), wzFile.getHeader().getDataStartPos(), wzFile.getHeader().getVersionHash());
         }
         for (WzDirectory dir : directories.values()) {
-            writer.writeWzObjectValue(dir.getName(), WzDirectoryType.WzDirectory_3);
-            writer.writeCompressedInt(dir.getSize());
+            writer.writeWzObjectValue(dir.getName(), WzDirectoryType.WzDirectory, wzFile.getHeader().getDataStartPos());
+            writer.writeCompressedInt(dir.getDataSize());
             writer.writeCompressedInt(dir.getChecksum());
-            writer.writeOffset(dir.getOffset());
+            writer.writeOffset(dir.getOffset(), wzFile.getHeader().getDataStartPos(), wzFile.getHeader().getVersionHash());
         }
 
         for (WzDirectory dir : directories.values()) {
-            if (dir.getSize() > 0) {
+            if (dir.getDataSize() > 0) {
                 dir.saveDirectory(writer);
             } else {
                 writer.putByte((byte) 0);
@@ -262,8 +245,8 @@ public class WzDirectory extends WzObject {
         images.forEach((s, image) -> image.exportToXml(p.resolve(image.getName() + ".xml"), indent));
     }
 
-    public void parseAll() {
-        directories.forEach((s, directory) -> directory.parseAll());
+    public void parseAllImages() {
+        directories.forEach((s, directory) -> directory.parseAllImages());
         images.forEach((s, image) -> {
             image.parse();
             image.setChanged(true); // 确保保存的时候重新写入，而不是取原来的
@@ -271,7 +254,7 @@ public class WzDirectory extends WzObject {
     }
 
     public WzDirectory deepClone(WzObject parent) {
-        WzDirectory clone = new WzDirectory(getName(), parent);
+        WzDirectory clone = new WzDirectory(getName(), parent, wzFile);
         for (WzDirectory wzDirectory : directories.values()) {
             clone.directories.put(wzDirectory.getName(), wzDirectory.deepClone(clone));
         }
@@ -279,5 +262,9 @@ public class WzDirectory extends WzObject {
             clone.images.put(wzImage.getName(), wzImage.deepClone(clone));
         }
         return clone;
+    }
+
+    public WzMutableKey getWzMutableKey() {
+        return wzFile.getWzMutableKey();
     }
 }

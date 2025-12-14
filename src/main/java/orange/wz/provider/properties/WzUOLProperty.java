@@ -1,28 +1,31 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.tools.BinaryWriter;
-import orange.wz.provider.WzImage;
-import orange.wz.provider.WzObject;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.SuperBuilder;
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzObject;
+import orange.wz.provider.tools.BinaryWriter;
 
 @Getter
 @Setter
-@SuperBuilder
 public class WzUOLProperty extends WzExtended {
-    private String uol;
+    private String value;
     private final String type = "uol";
+
+    public WzUOLProperty(String name, String value, WzObject parent, WzImage wzImage) {
+        super(name, parent, wzImage);
+        this.value = value;
+    }
 
     @Override
     public void writeValue(BinaryWriter writer) {
-        writer.writeStringBlock(WzPropertyType.UOL.getString(), WzImage.wzImageHeaderByte_WithoutOffset, WzImage.wzImageHeaderByte_WithOffset);
+        writer.writeStringBlock(WzPropertyType.UOL.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
         writer.putByte((byte) 0);
-        writer.writeStringBlock(uol, 0x00, 0x01);
+        writer.writeStringBlock(value, 0x00, 0x01);
     }
 
     @Override
     public WzUOLProperty deepClone(WzObject parent) {
-        return WzUOLProperty.builder().name(getName()).parent(parent).uol(uol).build();
+        return new WzUOLProperty(name, value, parent, null);
     }
 }

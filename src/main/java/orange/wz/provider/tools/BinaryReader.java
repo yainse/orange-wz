@@ -3,7 +3,6 @@ package orange.wz.provider.tools;
 import lombok.Getter;
 import lombok.Setter;
 import orange.wz.provider.WzAESConstant;
-import orange.wz.provider.WzHeader;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -12,16 +11,15 @@ import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 
-@Getter
-@Setter
+
 public final class BinaryReader {
+    private boolean file = false;
     private ByteBuffer buffer;
-    private WzHeader header;
-    private int hash;
-    private byte[] iv;
-    private byte[] userKey;
+    @Getter
+    @Setter
     private WzMutableKey wzMutableKey;
 
+    // 构造器 -----------------------------------------------------------------------------------------------------------
     public BinaryReader(String wzPath, byte[] iv, byte[] userKey) {
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(wzPath, "r")) {
             final FileChannel channel = randomAccessFile.getChannel();
@@ -29,11 +27,9 @@ public final class BinaryReader {
             buffer.position(0);
             buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-            this.iv = iv;
-            this.userKey = userKey;
             wzMutableKey = new WzMutableKey(iv, userKey);
+            file = true;
         } catch (IOException e) {
-            buffer = null;
             throw new RuntimeException(e);
         }
     }
@@ -54,12 +50,10 @@ public final class BinaryReader {
      *
      */
     public BinaryReader(byte[] iv, byte[] userKey) {
-        this.iv = iv;
-        this.userKey = userKey;
         wzMutableKey = new WzMutableKey(iv, userKey);
     }
 
-    /* Put -----------------------------------------------------------------------------------------------------------*/
+    // Put -------------------------------------------------------------------------------------------------------------
     private void expandBuffer(int needSize) {
         int remaining = buffer.capacity() - buffer.position();
 
@@ -107,15 +101,6 @@ public final class BinaryReader {
         return data;
     }
 
-    public byte[] getBytes(int offset, int length) {
-        int currentOffset = buffer.position();
-        buffer.position(offset);
-        byte[] data = new byte[length];
-        buffer.get(data);
-        buffer.position(currentOffset);
-        return data;
-    }
-
     public short getShort() {
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getShort();
@@ -139,6 +124,15 @@ public final class BinaryReader {
     public double getDouble() {
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         return buffer.getDouble();
+    }
+
+    public int getDataSize() {
+        if (file) return buffer.capacity();
+        throw new RuntimeException("非文件，不能用该方法获取大小");
+    }
+
+    public boolean hasRemaining() {
+        return buffer.hasRemaining();
     }
 
     /* Read ----------------------------------------------------------------------------------------------------------*/
@@ -233,15 +227,15 @@ public final class BinaryReader {
         }
     }
 
-    public int readOffset() {
+    public int readOffset(int dataStartPos, int versionHash) {
         int offset = getPosition();
-        offset = ~(offset - header.getStart());
-        offset = offset * hash;
+        offset = ~(offset - dataStartPos);
+        offset = offset * versionHash;
         offset = offset - WzAESConstant.WZ_OFFSET_CONSTANT;
         offset = Integer.rotateLeft(offset, offset & 0x1F);
         int encryptedOffset = getInt();
         offset = offset ^ encryptedOffset;
-        offset = offset + header.getStart() * 2;
+        offset = offset + dataStartPos * 2;
         return offset;
     }
 

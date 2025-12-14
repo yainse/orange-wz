@@ -1,9 +1,9 @@
 package orange.wz.provider.tools;
 
+import lombok.extern.slf4j.Slf4j;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.properties.*;
-import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -29,12 +29,23 @@ public final class XmlExport {
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
             switch (c) {
-                case '"': sb.append("&quot;"); break;
-                case '\'': sb.append("&apos;"); break;
-                case '&': sb.append("&amp;"); break;
-                case '<': sb.append("&lt;"); break;
-                case '>': sb.append("&gt;"); break;
-                default: sb.append(c);
+                case '"':
+                    sb.append("&quot;");
+                    break;
+                case '\'':
+                    sb.append("&apos;");
+                    break;
+                case '&':
+                    sb.append("&amp;");
+                    break;
+                case '<':
+                    sb.append("&lt;");
+                    break;
+                case '>':
+                    sb.append("&gt;");
+                    break;
+                default:
+                    sb.append(c);
             }
         }
 
@@ -178,13 +189,13 @@ public final class XmlExport {
             case WzUOLProperty prop -> {
                 e = doc.createElement("uol");
                 e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", escapeText(prop.getUol()));
+                e.setAttribute("value", escapeText(prop.getValue()));
             }
             case WzVectorProperty prop -> {
                 e = doc.createElement("vector");
                 e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("x", String.valueOf(prop.getX().getValue()));
-                e.setAttribute("y", String.valueOf(prop.getY().getValue()));
+                e.setAttribute("x", String.valueOf(prop.getX()));
+                e.setAttribute("y", String.valueOf(prop.getY()));
             }
             case null, default -> e = null;
         }

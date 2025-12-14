@@ -1,13 +1,12 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.tools.BinaryReader;
-import orange.wz.provider.tools.BinaryWriter;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzObject;
 import orange.wz.provider.audio.*;
-import lombok.Getter;
-import lombok.experimental.SuperBuilder;
-import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.tools.BinaryReader;
+import orange.wz.provider.tools.BinaryWriter;
 import orange.wz.provider.tools.WzMutableKey;
 
 import java.nio.ByteBuffer;
@@ -15,7 +14,6 @@ import java.util.Arrays;
 import java.util.Base64;
 
 @Slf4j
-@SuperBuilder
 public class WzSoundProperty extends WzExtended {
     private static final byte[] soundHeader = new byte[]{
             0x02,
@@ -35,6 +33,10 @@ public class WzSoundProperty extends WzExtended {
     private int offset;
     private int soundDataLen;
     private WaveFormat waveFormat;
+
+    public WzSoundProperty(String name, WzObject parent, WzImage wzImage) {
+        super(name, parent, wzImage);
+    }
 
     public void setSound(String base64String, WzMutableKey wzMutableKey) {
         if (base64String == null || base64String.isEmpty()) {
@@ -177,7 +179,7 @@ public class WzSoundProperty extends WzExtended {
 
     @Override
     public void writeValue(BinaryWriter writer) {
-        writer.writeStringBlock(WzPropertyType.SOUND.getString(), WzImage.wzImageHeaderByte_WithoutOffset, WzImage.wzImageHeaderByte_WithOffset);
+        writer.writeStringBlock(WzPropertyType.SOUND.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
         writer.putByte((byte) 0);
         writer.writeCompressedInt(fileBytes.length);
         writer.writeCompressedInt(lenMs);
@@ -187,7 +189,7 @@ public class WzSoundProperty extends WzExtended {
 
     @Override
     public WzSoundProperty deepClone(WzObject parent) {
-        WzSoundProperty clone = WzSoundProperty.builder().name(getName()).parent(parent).build();
+        WzSoundProperty clone = new WzSoundProperty(name, parent, null);
         clone.fileBytes = Arrays.copyOf(fileBytes, fileBytes.length);
         clone.lenMs = lenMs;
         clone.header = Arrays.copyOf(header, header.length);

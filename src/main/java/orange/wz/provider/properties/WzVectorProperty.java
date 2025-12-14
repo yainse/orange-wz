@@ -1,32 +1,33 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.tools.BinaryWriter;
-import orange.wz.provider.WzImage;
-import orange.wz.provider.WzObject;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.SuperBuilder;
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzObject;
+import orange.wz.provider.tools.BinaryWriter;
 
 @Setter
 @Getter
-@SuperBuilder
 public class WzVectorProperty extends WzExtended {
-    private WzIntProperty x;
-    private WzIntProperty y;
+    private int x;
+    private int y;
     private final String type = "vector";
+
+    public WzVectorProperty(String name, int x, int y, WzObject parent, WzImage wzImage) {
+        super(name, parent, wzImage);
+        this.x = x;
+        this.y = y;
+    }
 
     @Override
     public void writeValue(BinaryWriter writer) {
-        writer.writeStringBlock(WzPropertyType.VECTOR.getString(), WzImage.wzImageHeaderByte_WithoutOffset, WzImage.wzImageHeaderByte_WithOffset);
-        writer.writeCompressedInt(x.getValue());
-        writer.writeCompressedInt(y.getValue());
+        writer.writeStringBlock(WzPropertyType.VECTOR.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
+        writer.writeCompressedInt(x);
+        writer.writeCompressedInt(y);
     }
 
     @Override
     public WzVectorProperty deepClone(WzObject parent) {
-        WzVectorProperty clone = WzVectorProperty.builder().name(getName()).parent(parent).build();
-        clone.x = x.deepClone(clone);
-        clone.y = y.deepClone(clone);
-        return clone;
+        return new WzVectorProperty(name, x, y, parent, null);
     }
 }

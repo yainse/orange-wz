@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import orange.wz.provider.WzAESConstant;
 import orange.wz.provider.WzDirectoryType;
-import orange.wz.provider.WzHeader;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -16,13 +15,9 @@ import java.util.Map;
 public final class BinaryWriter {
     private ByteBuffer buffer;
     @Setter
-    private WzHeader header;
-    @Setter
-    private int hash;
+    private WzMutableKey wzMutableKey;
     @Getter
     private final Map<String, Integer> stringCache = new HashMap<>();
-    @Setter
-    private WzMutableKey wzMutableKey;
     private long nextAllocateSize = 4 * 1024 * 1024; // 4MB
 
     public BinaryWriter() {
@@ -229,13 +224,13 @@ public final class BinaryWriter {
         }
     }
 
-    public void writeWzObjectValue(String name, WzDirectoryType type) {
+    public void writeWzObjectValue(String name, WzDirectoryType type, int dataStartPos) {
         String storeName = type.name() + "_" + name;
         if (name.length() > 4 && stringCache.containsKey(storeName)) {
-            putByte(WzDirectoryType.RetrieveStringFromOffset_2.getValue()); // 2
+            putByte(WzDirectoryType.RetrieveStringFromOffset.getValue()); // 2
             putInt(stringCache.get(storeName));
         } else {
-            int sOffset = buffer.position() - header.getStart();
+            int sOffset = buffer.position() - dataStartPos;
             putByte(type.getValue());
             writeString(name);
             if (!stringCache.containsKey(storeName)) {
@@ -244,13 +239,13 @@ public final class BinaryWriter {
         }
     }
 
-    public void writeOffset(long value) {
+    public void writeOffset(long value, int dataStartPos, int versionHash) {
         int encOffset = buffer.position();
-        encOffset = ~(encOffset - header.getStart());
-        encOffset *= hash;
+        encOffset = ~(encOffset - dataStartPos);
+        encOffset *= versionHash;
         encOffset -= WzAESConstant.WZ_OFFSET_CONSTANT;
         encOffset = Integer.rotateLeft(encOffset, encOffset & 0x1F);
-        int writeOffset = (int) (encOffset ^ (value - (header.getStart() * 2)));
+        int writeOffset = (int) (encOffset ^ (value - (dataStartPos * 2)));
         putInt(writeOffset);
     }
 

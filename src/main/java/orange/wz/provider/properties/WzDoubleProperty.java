@@ -1,18 +1,22 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.tools.BinaryWriter;
-import orange.wz.provider.WzImageProperty;
-import orange.wz.provider.WzObject;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.SuperBuilder;
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzImageProperty;
+import orange.wz.provider.WzObject;
+import orange.wz.provider.tools.BinaryWriter;
 
 @Setter
 @Getter
-@SuperBuilder
 public class WzDoubleProperty extends WzImageProperty {
     private double value;
     private final String type = "double";
+
+    public WzDoubleProperty(String name, double value, WzObject parent, WzImage wzImage) {
+        super(name, parent, wzImage);
+        this.value = value;
+    }
 
     @Override
     public void writeValue(BinaryWriter writer) {
@@ -22,6 +26,6 @@ public class WzDoubleProperty extends WzImageProperty {
 
     @Override
     public WzDoubleProperty deepClone(WzObject parent) {
-        return WzDoubleProperty.builder().name(getName()).parent(parent).value(value).build();
+        return new WzDoubleProperty(name, value, parent, null);
     }
 }

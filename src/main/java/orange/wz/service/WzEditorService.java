@@ -182,7 +182,7 @@ public final class WzEditorService {
             view.addChild(file);
             nodeCache.put(file.getId(), file);
         } else if (node.getType() == WzNodeType.IMAGE) {
-            WzImage wzImage = new WzImage(node.getName(), node.getPath().toString(), wzKey.getIv(), wzKey.getUserKey());
+            WzImage wzImage = new WzImageFile(node.getName(), node.getPath().toString(), wzKey.getIv(), wzKey.getUserKey());
             WzNode file = new WzNode(view, nextId.getAndIncrement(), node.getName(), WzNodeType.IMAGE, node.getPath(), wzImage);
             view.addChild(file);
             nodeCache.put(file.getId(), file);
@@ -212,7 +212,7 @@ public final class WzEditorService {
                     children.add(file);
                     nodeCache.put(file.getId(), file);
                 } else if (filename.endsWith(".img")) {
-                    WzImage wzImage = new WzImage(path.getFileName().toString(), String.valueOf(path), wzKey.getIv(), wzKey.getUserKey());
+                    WzImage wzImage = new WzImageFile(path.getFileName().toString(), String.valueOf(path), wzKey.getIv(), wzKey.getUserKey());
                     WzNode file = new WzNode(folder, nextId.getAndIncrement(), filename, WzNodeType.IMAGE, path, wzImage);
                     children.add(file);
                     nodeCache.put(file.getId(), file);
@@ -254,7 +254,7 @@ public final class WzEditorService {
 
     private void loadWzNode(WzNode node) {
         if (node.getWzObject() instanceof WzFile wz) {
-            wz.parse();
+            wz.load();
             if (node.getChildren().isEmpty()) {
                 List<WzNode> children = new ArrayList<>();
                 wz.getWzDirectory().getDirectories().forEach((s, wzDirectory) -> {
@@ -401,7 +401,7 @@ public final class WzEditorService {
 
         // 单独处理
         if (node.getWzObject() instanceof WzUOLProperty obj) {
-            String uol = obj.getUol();
+            String uol = obj.getValue();
             WzCanvasProperty cav = getUolCanvas(obj.getParent(), uol.split("/"), 0);
             if (cav == null) return new WzNodeValueDto(null, WzNodeType.IMAGE_UOL, uol, null, null, null, null, null);
             return new WzNodeValueDto(null, WzNodeType.IMAGE_UOL, uol, cav.getPng().getWidth(), cav.getPng().getHeight(), cav.getPng().getBase64(), cav.getPng().getPngFormat(), null);
@@ -427,7 +427,7 @@ public final class WzEditorService {
             case WzStringProperty obj ->
                     new WzNodeValueDto(null, WzNodeType.IMAGE_STRING, obj.getValue(), null, null, null, null);
             case WzVectorProperty obj ->
-                    new WzNodeValueDto(null, WzNodeType.IMAGE_VECTOR, null, obj.getX().getValue(), obj.getY().getValue(), null, null);
+                    new WzNodeValueDto(null, WzNodeType.IMAGE_VECTOR, null, obj.getX(), obj.getY(), null, null);
             case null, default -> throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "未受支持的类型");
         };
     }
@@ -504,10 +504,10 @@ public final class WzEditorService {
             case WzShortProperty obj -> obj.setValue(Short.parseShort(data.getValue()));
             case WzSoundProperty obj -> obj.setSound(data.getMp3(), parentImg.getReader().getWzMutableKey());
             case WzStringProperty obj -> obj.setValue(data.getValue());
-            case WzUOLProperty obj -> obj.setUol(data.getValue());
+            case WzUOLProperty obj -> obj.setValue(data.getValue());
             case WzVectorProperty obj -> {
-                obj.getX().setValue(data.getX());
-                obj.getY().setValue(data.getY());
+                obj.setX(data.getX());
+                obj.setY(data.getY());
             }
             default -> {
             }
@@ -539,7 +539,7 @@ public final class WzEditorService {
         WzNode targetNode = nodeCache.get(id);
         if (targetNode == null) throw new BizException(ExceptionEnum.NOT_FOUND);
         WzObject targetObj = targetNode.getWzObject();
-        switch (targetObj) {
+        switch (targetObj) { // todo 同一设置prop的wzImage
             case WzFile wzFile -> pasteToWzFile(targetNode, wzFile);
             case WzDirectory wzDir -> pasteToWzDir(targetNode, wzDir);
             case WzImage wzImage -> pasteToWzImage(targetNode, targetObj, wzImage);
@@ -691,18 +691,17 @@ public final class WzEditorService {
 
     private void addDirFromCb(WzNode pNode, WzDirectory pDir) {
         List<WzNode> children = new ArrayList<>();
-        WzMutableKey wzKey = pDir.getReader().getWzMutableKey();
+        WzMutableKey wzKey = pDir.getWzMutableKey();
         clipboard.forEach(child -> {
             child.setParent(pDir);
 
             if (child instanceof WzDirectory directory) {
-                directory.setReader(pDir.getReader()); // 为了避免从 Image 中取 key 取不到
                 pDir.getDirectories().put(directory.getName(), directory);
                 WzNode childNode = new WzNode(pNode, nextId.getAndIncrement(), directory.getName(), WzNodeType.WZ_DIRECTORY, null, directory);
                 children.add(childNode);
                 nodeCache.put(childNode.getId(), childNode);
             } else if (child instanceof WzImage image) {
-                image.setReader(pDir.getReader()); // 为了避免从 Image 中取 key 取不到
+                image.setReader(pDir.getWzFile().getReader()); // 为了避免从 Image 中取 key 取不到
                 image.getProperties().forEach(property -> initSpProp(property, wzKey));
                 pDir.getImages().put(image.getName(), image);
                 WzNode childNode = new WzNode(pNode, nextId.getAndIncrement(), image.getName(), WzNodeType.IMAGE, null, image);
@@ -735,13 +734,13 @@ public final class WzEditorService {
         WzNode node;
         switch (pNode.getWzObject()) {
             case WzFile wzFile -> {
-                wzFile.parse();
+                wzFile.load();
                 if (data.getType() == WzNodeType.WZ_DIRECTORY) {
                     for (WzDirectory directory : wzFile.getWzDirectory().getDirectories().values()) {
                         if (directory.getName().equalsIgnoreCase(data.getName()))
                             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "已有相同节点名了");
                     }
-                    WzDirectory obj = new WzDirectory(wzFile.getWzDirectory().getReader(), data.getName(), wzFile.getVersionHash(), wzFile.getWzIv(), wzFile);
+                    WzDirectory obj = new WzDirectory(data.getName(), wzFile.getWzDirectory(), wzFile);
                     wzFile.getWzDirectory().getDirectories().put(data.getName(), obj);
                     node = new WzNode(pNode, nextId.getAndIncrement(), data.getName(), WzNodeType.WZ_DIRECTORY, null, obj);
                     pNode.addChild(node);
@@ -752,7 +751,7 @@ public final class WzEditorService {
                             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "已有相同节点名了");
                         }
                     }
-                    WzImage img = new WzImage(data.getName(), wzFile.getWzDirectory().getReader());
+                    WzImage img = new WzImage(data.getName(), wzFile.getReader(), wzFile);
                     img.setParsed(true);
                     img.setChanged(true);
                     wzFile.getWzDirectory().getImages().put(data.getName(), img);
@@ -769,7 +768,7 @@ public final class WzEditorService {
                         if (directory.getName().equalsIgnoreCase(data.getName()))
                             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "已有相同节点名了");
                     }
-                    WzDirectory obj = new WzDirectory(wzDirectory.getReader(), data.getName(), wzDirectory.getWzFile().getVersionHash(), wzDirectory.getWzFile().getWzIv(), wzDirectory.getWzFile());
+                    WzDirectory obj = new WzDirectory(data.getName(), wzDirectory, wzDirectory.getWzFile());
                     wzDirectory.getDirectories().put(data.getName(), obj);
                     node = new WzNode(pNode, nextId.getAndIncrement(), data.getName(), WzNodeType.WZ_DIRECTORY, null, obj);
                     pNode.addChild(node);
@@ -780,7 +779,7 @@ public final class WzEditorService {
                             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "已有相同节点名了");
                         }
                     }
-                    WzImage img = new WzImage(data.getName(), wzDirectory.getReader());
+                    WzImage img = new WzImage(data.getName(), wzDirectory.getWzFile().getReader(), wzDirectory);
                     img.setParsed(true);
                     img.setChanged(true);
                     wzDirectory.getImages().put(data.getName(), img);
@@ -911,7 +910,7 @@ public final class WzEditorService {
         WzObject obj = node.getWzObject();
         switch (obj) {
             case WzFile wzFile -> wzFile.save();
-            case WzImage wzImage -> wzImage.save(Path.of(wzImage.getPath()));
+            case WzImageFile wzImage -> wzImage.save(Path.of(wzImage.getFilePath()));
             default -> throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目标不是wz或则img文件");
         }
 
@@ -925,8 +924,8 @@ public final class WzEditorService {
         WzObject obj = wzNode.getWzObject();
         if (obj instanceof WzFile wzFile) {
             wzFile.save();
-        } else if (obj instanceof WzImage wzImage) {
-            wzImage.save(Path.of(wzImage.getPath()));
+        } else if (obj instanceof WzImageFile wzImage) {
+            wzImage.save(Path.of(wzImage.getFilePath()));
         }
     }
 
@@ -957,7 +956,7 @@ public final class WzEditorService {
         WzObject obj = node.getWzObject();
         if (obj instanceof WzFile file) {
             if (file.getName().equalsIgnoreCase("List.wz")) return;
-            file.parse();
+            file.load();
 
             file.exportFileToImg(basePath);
         }
@@ -989,7 +988,7 @@ public final class WzEditorService {
         WzObject obj = node.getWzObject();
         if (obj instanceof WzFile file) {
             if (file.getName().equalsIgnoreCase("List.wz")) return;
-            file.parse();
+            file.load();
 
             file.exportFileToXml(basePath, indent);
         } else if (obj instanceof WzImage image) {
@@ -1060,10 +1059,10 @@ public final class WzEditorService {
         }
 
         if (wzFile == null) return;
-        File file = new File(wzFile.getPath());
+        File file = new File(wzFile.getFilePath());
         String dirPath = file.getParent();
         cavFolderPath = Path.of(dirPath, "_Canvas");
-        fileVersion = wzFile.getFileVersion();
+        fileVersion = wzFile.getHeader().getFileVersion();
         iv = wzFile.getWzIv();
         key = wzFile.getUserKey();
         String sPath = cavFolderPath.toString();
@@ -1083,7 +1082,7 @@ public final class WzEditorService {
 
         cavFiles.forEach(cavFile -> cavWzFiles.add(new WzFile(cavFile.toString(), fileVersion, iv, key)));
         for (WzFile cavWzFile : cavWzFiles) {
-            cavWzFile.parse();
+            cavWzFile.load();
         }
     }
 
@@ -1183,7 +1182,7 @@ public final class WzEditorService {
         WzObject wz = node.getWzObject();
         if (wz instanceof WzFile wzFile) {
             wzFile.changeKey(gameVersion, wzKey.getIv(), wzKey.getUserKey());
-        } else if (wz instanceof WzImage wzImage && wzImage.getPath() != null) {
+        } else if (wz instanceof WzImageFile wzImage && wzImage.getFilePath() != null) {
             wzImage.changeKey(wzKey.getIv(), wzKey.getUserKey());
         } else {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "只能对 WZ 或者 IMG 文件使用");
@@ -1205,8 +1204,8 @@ public final class WzEditorService {
         if (from == null || to == null) return;
 
         if (to instanceof WzFile toFile && from instanceof WzFile fromFile) {
-            toFile.parse();
-            fromFile.parse();
+            toFile.load();
+            fromFile.load();
             toFile.getWzDirectory().getDirectories().forEach((s, toDir) -> localization(fromFile.getWzDirectory().getDirectories().get(s), toDir));
             toFile.getWzDirectory().getImages().forEach((s, toImage) -> localization(fromFile.getWzDirectory().getImages().get(s), toImage));
         } else if (to instanceof WzDirectory toDirectory && from instanceof WzDirectory fromDirectory) {
@@ -1254,12 +1253,12 @@ public final class WzEditorService {
 
     private void packetData(short fileVersion, WzNode dataNode) {
         Set<String> directories = new HashSet<>();
-        List<WzImage> images = new ArrayList<>();
+        List<WzImageFile> images = new ArrayList<>();
         for (WzNode node : dataNode.getChildren()) {
             if (node.getType() == WzNodeType.FOLDER) {
                 directories.add(node.getName());
             } else if (node.getType() == WzNodeType.IMAGE) {
-                images.add((WzImage) node.getWzObject());
+                images.add((WzImageFile) node.getWzObject());
             }
         }
 
@@ -1269,9 +1268,8 @@ public final class WzEditorService {
 
         // Packet Base.wz
         Path filePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "打包wz", "Base.wz");
-        WzFile wzFile = new WzFile(filePath.toString(), fileVersion, iv, key);
-        wzFile.initialize();
-        directories.forEach(director -> wzFile.getWzDirectory().getDirectories().put(director, new WzDirectory(director, wzFile)));
+        WzFile wzFile = WzFile.createNewFile(filePath.toString(), fileVersion, iv, key);
+        directories.forEach(director -> wzFile.getWzDirectory().getDirectories().put(director, new WzDirectory(director, wzFile.getWzDirectory(), wzFile)));
         images.forEach(image -> {
             image.parse(false);
             wzFile.getWzDirectory().getImages().put(image.getName(), image);
@@ -1295,8 +1293,7 @@ public final class WzEditorService {
 
     private void packetFolder(short fileVersion, WzNode dataNode, byte[] iv, byte[] key) {
         Path filePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "打包wz", dataNode.getName() + ".wz");
-        WzFile wzFile = new WzFile(filePath.toString(), fileVersion, iv, key);
-        wzFile.initialize();
+        WzFile wzFile = WzFile.createNewFile(filePath.toString(), fileVersion, iv, key);
 
         packetSubToWz(dataNode, wzFile.getWzDirectory());
 
@@ -1306,7 +1303,7 @@ public final class WzEditorService {
     private void packetSubToWz(WzNode dataNode, WzDirectory wzDir) {
         for (WzNode node : dataNode.getChildren()) {
             if (node.getType() == WzNodeType.FOLDER) {
-                WzDirectory subDir = new WzDirectory(node.getName(), wzDir);
+                WzDirectory subDir = new WzDirectory(node.getName(), wzDir, wzDir.getWzFile());
                 packetSubToWz(node, subDir);
                 wzDir.getDirectories().put(node.getName(), subDir);
             } else if (node.getType() == WzNodeType.IMAGE) {
@@ -1322,7 +1319,7 @@ public final class WzEditorService {
 
         for (WzNode subNode : dataNode.getChildren()) {
             if (subNode.getType() == WzNodeType.IMAGE) {
-                WzImage image = (WzImage) subNode.getWzObject();
+                WzImageFile image = (WzImageFile) subNode.getWzObject();
                 result.put("iv", image.getIv());
                 result.put("key", image.getKey());
                 return result;
@@ -1383,8 +1380,8 @@ public final class WzEditorService {
 
     private WzMutableKey getWzKey(WzObject wzObject) {
         if (wzObject instanceof WzFile wzFile) {
-            wzFile.parse();
-            return wzFile.getWzDirectory().getReader().getWzMutableKey();
+            wzFile.load();
+            return wzFile.getReader().getWzMutableKey();
         }
 
         WzImage wzImage = getParentImg(wzObject);
@@ -1401,42 +1398,37 @@ public final class WzEditorService {
 
     private WzImageProperty genNewImageProperty(WzImage img, WzObject parent, WzNodeValueDto data) {
         if (data.getType() == WzNodeType.IMAGE_CANVAS) {
-            WzCanvasProperty canvasProp = WzCanvasProperty.builder().name(data.getName()).parent(parent).build();
-            WzPngProperty png = WzPngProperty.builder().name(data.getName()).parent(canvasProp).build();
+            WzCanvasProperty canvasProp = new WzCanvasProperty(data.getName(), parent, img);
+            WzPngProperty png = new WzPngProperty(data.getName(), canvasProp, img);
             png.setPng(data.getPng(), img.getReader().getWzMutableKey(), data.getPngFormat());
             canvasProp.setPng(png);
             return canvasProp;
         } else if (data.getType() == WzNodeType.IMAGE_CONVEX) {
-            return WzConvexProperty.builder().name(data.getName()).parent(parent).build();
+            return new WzConvexProperty(data.getName(), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_DOUBLE) {
-            return WzDoubleProperty.builder().name(data.getName()).parent(parent).value(Double.parseDouble(data.getValue())).build();
+            return new WzDoubleProperty(data.getName(), Double.parseDouble(data.getValue()), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_FLOAT) {
-            return WzFloatProperty.builder().name(data.getName()).parent(parent).value(Float.parseFloat(data.getValue())).build();
+            return new WzFloatProperty(data.getName(), Float.parseFloat(data.getValue()), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_INT) {
-            return WzIntProperty.builder().name(data.getName()).parent(parent).value(Integer.parseInt(data.getValue())).build();
+            return new WzIntProperty(data.getName(), Integer.parseInt(data.getValue()), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_LIST) {
-            return WzListProperty.builder().name(data.getName()).parent(parent).build();
+            return new WzListProperty(data.getName(), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_LONG) {
-            return WzLongProperty.builder().name(data.getName()).parent(parent).value(Long.parseLong(data.getValue())).build();
+            return new WzLongProperty(data.getName(), Long.parseLong(data.getValue()), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_NULL) {
-            return WzNullProperty.builder().name(data.getName()).parent(parent).build();
+            return new WzNullProperty(data.getName(), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_SHORT) {
-            return WzShortProperty.builder().name(data.getName()).parent(parent).value(Short.parseShort(data.getValue())).build();
+            return new WzShortProperty(data.getName(), Short.parseShort(data.getValue()), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_SOUND) {
-            WzSoundProperty sound = WzSoundProperty.builder().name(data.getName()).parent(parent).build();
+            WzSoundProperty sound = new WzSoundProperty(data.getName(), parent, img);
             sound.setSound(data.getMp3(), img.getReader().getWzMutableKey());
             return sound;
         } else if (data.getType() == WzNodeType.IMAGE_STRING) {
-            return WzStringProperty.builder().name(data.getName()).parent(parent).value(data.getValue()).build();
+            return new WzStringProperty(data.getName(), data.getValue(), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_UOL) {
-            return WzUOLProperty.builder().name(data.getName()).parent(parent).uol(data.getValue()).build();
+            return new WzUOLProperty(data.getName(), data.getValue(), parent, img);
         } else if (data.getType() == WzNodeType.IMAGE_VECTOR) {
-            WzVectorProperty vecProp = WzVectorProperty.builder().name(data.getName()).parent(parent).build();
-            WzIntProperty xProp = WzIntProperty.builder().name("X").value(data.getX()).parent(vecProp).build();
-            WzIntProperty yProp = WzIntProperty.builder().name("Y").value(data.getY()).parent(vecProp).build();
-            vecProp.setX(xProp);
-            vecProp.setY(yProp);
-            return vecProp;
+            return new WzVectorProperty(data.getName(), data.getX(), data.getY(), parent, img);
         }
         throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "节点生成失败");
     }

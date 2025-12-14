@@ -2,8 +2,8 @@ package orange.wz.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import orange.wz.provider.properties.WzPngFormat;
 import lombok.Getter;
+import orange.wz.provider.properties.WzPngFormat;
 
 @Getter
 public final class WzNodeValueDto {

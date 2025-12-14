@@ -1,20 +1,27 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.tools.BinaryWriter;
+import lombok.Getter;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;
-import lombok.Getter;
-import lombok.experimental.SuperBuilder;
+import orange.wz.provider.tools.BinaryWriter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
-@SuperBuilder
 public class WzListProperty extends WzExtended {
     private final List<WzImageProperty> properties = new ArrayList<>();
     private final String type = "list";
+
+    public WzListProperty(String name, WzObject parent, WzImage wzImage) {
+        super(name, parent, wzImage);
+    }
+
+    public WzListProperty(List<WzImageProperty> properties) {
+        super(null, null, null);
+        addProperties(properties);
+    }
 
     public void addProperties(List<WzImageProperty> properties) {
         this.properties.addAll(properties);
@@ -29,13 +36,13 @@ public class WzListProperty extends WzExtended {
 
     @Override
     public void writeValue(BinaryWriter writer) {
-        writer.writeStringBlock(WzPropertyType.LIST.getString(), WzImage.wzImageHeaderByte_WithoutOffset, WzImage.wzImageHeaderByte_WithOffset);
+        writer.writeStringBlock(WzPropertyType.LIST.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
         WzImage.writeListValue(writer, properties);
     }
 
     @Override
     public WzListProperty deepClone(WzObject parent) {
-        WzListProperty clone = WzListProperty.builder().name(getName()).build();
+        WzListProperty clone = new WzListProperty(name, parent, null);
         for (WzImageProperty property : properties) {
             clone.properties.add(property.deepClone(clone));
         }

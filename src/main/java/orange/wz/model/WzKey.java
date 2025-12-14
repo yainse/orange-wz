@@ -11,7 +11,8 @@ public class WzKey {
     private byte[] userKey;
 
     // 无参构造函数
-    public WzKey() {}
+    public WzKey() {
+    }
 
     // 构造函数
     public WzKey(Integer id, String name, byte[] iv, byte[] userKey) {
@@ -22,17 +23,37 @@ public class WzKey {
     }
 
     // Getter 和 Setter
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
+    public Integer getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-    public byte[] getIv() { return iv; }
-    public void setIv(byte[] iv) { this.iv = iv; }
+    public String getName() {
+        return name;
+    }
 
-    public byte[] getUserKey() { return userKey; }
-    public void setUserKey(byte[] userKey) { this.userKey = userKey; }
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public byte[] getIv() {
+        return iv;
+    }
+
+    public void setIv(byte[] iv) {
+        this.iv = iv;
+    }
+
+    public byte[] getUserKey() {
+        return userKey;
+    }
+
+    public void setUserKey(byte[] userKey) {
+        this.userKey = userKey;
+    }
 
     // 为了方便JSON序列化，提供Base64编码的字符串属性
     @JsonIgnore

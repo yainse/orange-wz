@@ -1,12 +1,12 @@
 package orange.wz.provider.properties;
 
-import orange.wz.provider.tools.BinaryReader;
-import orange.wz.provider.tools.BinaryWriter;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;
-import lombok.Getter;
-import lombok.experimental.SuperBuilder;
-import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.tools.BinaryReader;
+import orange.wz.provider.tools.BinaryWriter;
 import orange.wz.provider.tools.WzMutableKey;
 
 import javax.imageio.ImageIO;
@@ -21,7 +21,6 @@ import java.util.Base64;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
-@SuperBuilder
 @Getter
 @Slf4j
 public class WzPngProperty extends WzImageProperty {
@@ -34,6 +33,10 @@ public class WzPngProperty extends WzImageProperty {
     private boolean listWzUsed;
     private BufferedImage png;
     private final String type = "png";
+
+    public WzPngProperty(String name, WzObject parent, WzImage wzImage) {
+        super(name, parent, wzImage);
+    }
 
     public void setData(BinaryReader reader) {
         width = reader.readCompressedInt();
@@ -244,7 +247,7 @@ public class WzPngProperty extends WzImageProperty {
             reader.setPosition(0);
             BinaryWriter writer = new BinaryWriter();
 
-            while (reader.getBuffer().hasRemaining()) {
+            while (reader.hasRemaining()) {
                 int blockSize = reader.getInt();
                 for (int i = 0; i < blockSize; i++) {
                     writer.putByte((byte) (reader.getByte() ^ wzMutableKey.get(i)));
@@ -907,7 +910,7 @@ public class WzPngProperty extends WzImageProperty {
 
     @Override
     public WzPngProperty deepClone(WzObject parent) {
-        WzPngProperty clone = WzPngProperty.builder().name(getName()).parent(parent).build();
+        WzPngProperty clone = new WzPngProperty(name, parent, null);
         clone.width = width;
         clone.height = height;
         clone.format = format;

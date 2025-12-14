@@ -1,10 +1,9 @@
 package orange.wz.provider;
 
-import orange.wz.provider.properties.*;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.properties.*;
 import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.BinaryWriter;
 
@@ -14,9 +13,22 @@ import java.util.List;
 @Slf4j
 @Setter
 @Getter
-@SuperBuilder
 public abstract class WzImageProperty extends WzObject {
+    protected WzImage wzImage;
+
+    protected WzImageProperty(String name, WzObject parent, WzImage wzImage) {
+        super(name, parent);
+        this.wzImage = wzImage;
+    }
+
     public static List<WzImageProperty> parsePropertyList(int offset, BinaryReader reader, WzObject parent) {
+        WzImage wzImage = null;
+        if (parent instanceof WzImage img) {
+            wzImage = img;
+        } else if (parent instanceof WzImageProperty prop) {
+            wzImage = prop.getWzImage();
+        }
+
         int entryCount = reader.readCompressedInt();
         List<WzImageProperty> properties = new ArrayList<>();
         for (int i = 0; i < entryCount; i++) {
@@ -24,25 +36,25 @@ public abstract class WzImageProperty extends WzObject {
             byte pType = reader.getByte();
             switch (pType) {
                 case 0: // null
-                    properties.add(WzNullProperty.builder().name(name).parent(parent).build());
+                    properties.add(new WzNullProperty(name, parent, wzImage));
                     break;
                 case 2, 11: // short
-                    properties.add(WzShortProperty.builder().name(name).parent(parent).value(reader.getShort()).build());
+                    properties.add(new WzShortProperty(name, reader.getShort(), parent, wzImage));
                     break;
                 case 3, 19: // int
-                    properties.add(WzIntProperty.builder().name(name).parent(parent).value(reader.readCompressedInt()).build());
+                    properties.add(new WzIntProperty(name, reader.readCompressedInt(), parent, wzImage));
                     break;
                 case 20: // long
-                    properties.add(WzLongProperty.builder().name(name).parent(parent).value(reader.readCompressedLong()).build());
+                    properties.add(new WzLongProperty(name, reader.readCompressedLong(), parent, wzImage));
                     break;
                 case 4: // float
-                    properties.add(WzFloatProperty.builder().name(name).parent(parent).value(reader.readCompressedFloat()).build());
+                    properties.add(new WzFloatProperty(name, reader.readCompressedFloat(), parent, wzImage));
                     break;
                 case 5: // double
-                    properties.add(WzDoubleProperty.builder().name(name).parent(parent).value(reader.getDouble()).build());
+                    properties.add(new WzDoubleProperty(name, reader.getDouble(), parent, wzImage));
                     break;
                 case 8: // string
-                    properties.add(WzStringProperty.builder().name(name).parent(parent).value(reader.readStringBlock(offset)).build());
+                    properties.add(new WzStringProperty(name, reader.readStringBlock(offset), parent, wzImage));
                     break;
                 case 9:
                     int eob = reader.getInt() + reader.getPosition();
@@ -61,10 +73,9 @@ public abstract class WzImageProperty extends WzObject {
         try {
             final byte stringType = reader.getByte();
             return switch (stringType) {
-                case 0x01, WzImage.wzImageHeaderByte_WithOffset ->
+                case 0x01, WzImage.withOffsetFlag ->
                         extractMore(reader, offset, endOfBlock, name, reader.readStringAtOffset(offset + reader.getInt()), parent);
-                case 0x00, WzImage.wzImageHeaderByte_WithoutOffset ->
-                        extractMore(reader, offset, endOfBlock, name, "", parent);
+                case 0x00, WzImage.withoutOffsetFlag -> extractMore(reader, offset, endOfBlock, name, "", parent);
                 default -> throw new Exception("Invalid byte read at ParseExtendedProp");
             };
         } catch (Exception e) {
@@ -73,6 +84,13 @@ public abstract class WzImageProperty extends WzObject {
     }
 
     private static WzExtended extractMore(BinaryReader reader, int offset, long eob, String name, String iname, WzObject parent) {
+        WzImage wzImage = null;
+        if (parent instanceof WzImage img) {
+            wzImage = img;
+        } else if (parent instanceof WzImageProperty prop) {
+            wzImage = prop.getWzImage();
+        }
+
         if (iname.equalsIgnoreCase("")) {
             iname = reader.readString();
         }
@@ -80,33 +98,30 @@ public abstract class WzImageProperty extends WzObject {
         try {
             switch (propertyType) {
                 case WzPropertyType.LIST: {
-                    WzListProperty subProp = WzListProperty.builder().name(name).parent(parent).build();
+                    WzListProperty subProp = new WzListProperty(name, parent, wzImage);
                     reader.skip(2); // Reserved?
                     subProp.addProperties(WzImageProperty.parsePropertyList(offset, reader, subProp));
                     return subProp;
                 }
                 case WzPropertyType.CANVAS: {
-                    WzCanvasProperty canvasProp = WzCanvasProperty.builder().name(name).parent(parent).build();
+                    WzCanvasProperty canvasProp = new WzCanvasProperty(name, parent, wzImage);
                     reader.skip(1);
                     if (reader.getByte() == 1) {
                         reader.skip(2);
                         canvasProp.addProperties(WzImageProperty.parsePropertyList(offset, reader, canvasProp));
                     }
-                    WzPngProperty png = WzPngProperty.builder().name(name).parent(canvasProp).build();
+                    WzPngProperty png = new WzPngProperty(name, canvasProp, wzImage);
                     png.setData(reader);
                     canvasProp.setPng(png);
                     return canvasProp;
                 }
                 case WzPropertyType.VECTOR: {
-                    WzVectorProperty vecProp = WzVectorProperty.builder().name(name).parent(parent).build();
-                    WzIntProperty xProp = WzIntProperty.builder().name("X").value(reader.readCompressedInt()).parent(vecProp).build();
-                    WzIntProperty yProp = WzIntProperty.builder().name("Y").value(reader.readCompressedInt()).parent(vecProp).build();
-                    vecProp.setX(xProp);
-                    vecProp.setY(yProp);
-                    return vecProp;
+                    int x = reader.readCompressedInt();
+                    int y = reader.readCompressedInt();
+                    return new WzVectorProperty(name, x, y, parent, wzImage);
                 }
                 case WzPropertyType.CONVEX: {
-                    WzConvexProperty convexProp = WzConvexProperty.builder().name(name).parent(parent).build();
+                    WzConvexProperty convexProp = new WzConvexProperty(name, parent, wzImage);
                     int convexEntryCount = reader.readCompressedInt();
                     for (int i = 0; i < convexEntryCount; i++) {
                         convexProp.addProperty(parseExtendedProp(reader, offset, 0, name, convexProp));
@@ -114,18 +129,19 @@ public abstract class WzImageProperty extends WzObject {
                     return convexProp;
                 }
                 case WzPropertyType.SOUND: {
-                    WzSoundProperty soundProp = WzSoundProperty.builder().name(name).parent(parent).build();
+                    WzSoundProperty soundProp = new WzSoundProperty(name, parent, wzImage);
                     soundProp.setData(reader);
                     return soundProp;
                 }
                 case WzPropertyType.UOL: {
                     reader.skip(1);
-                    return switch (reader.getByte()) {
-                        case 0 -> WzUOLProperty.builder().name(name).parent(parent).uol(reader.readString()).build();
-                        case 1 ->
-                                WzUOLProperty.builder().name(name).parent(parent).uol(reader.readStringAtOffset(offset + reader.getInt())).build();
+                    String value = switch (reader.getByte()) {
+                        case 0 -> reader.readString();
+                        case 1 -> reader.readStringAtOffset(offset + reader.getInt());
                         default -> throw new Exception("Unsupported UOL type");
                     };
+
+                    return new WzUOLProperty(name, value, parent, wzImage);
                 }
                 case WzPropertyType.RAW_DATA: {  // GMS v220++
                     // GMS v255+
@@ -133,7 +149,7 @@ public abstract class WzImageProperty extends WzObject {
                     // UI_000.wz\Login.img\RaceSelect_new\Back0\16\skeleton.skel
                     // UI_000.wz\Login.img\RaceSelect_new\Back0\1005\Sia.skel
                     byte type = reader.getByte();
-                    WzRawDataProperty rawData = WzRawDataProperty.builder().name(name).parent(parent).type(type).build();
+                    WzRawDataProperty rawData = new WzRawDataProperty(name, type, -1, parent, wzImage);
 
                     // type 0: do nothing
                     // type 1: similar to CanvasProperty that has binary data (the PNG) and sub properties (the origin, _hash, etc.)

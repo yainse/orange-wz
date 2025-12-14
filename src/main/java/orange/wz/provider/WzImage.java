@@ -1,10 +1,10 @@
 package orange.wz.provider;
 
-import orange.wz.provider.properties.WzExtended;
-import orange.wz.provider.properties.WzListProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.properties.WzExtended;
+import orange.wz.provider.properties.WzListProperty;
 import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.BinaryWriter;
 import orange.wz.provider.tools.WzMutableKey;
@@ -20,44 +20,34 @@ import java.util.List;
 @Setter
 @Slf4j
 public class WzImage extends WzObject {
-    private boolean parsed = false;
-    private boolean changed = false;
-    private int size;
-    private int checksum;
+    private int dataSize;
+    private int checksum; // reader 所有 bytes 值的和
     private int offset;
     private BinaryReader reader;
     private final List<WzImageProperty> properties = new ArrayList<>();
+
+    private boolean parsed;
+    private boolean changed;
     private int tempFileStart;
     private int tempFileEnd;
 
-    // 以下字段只为 img 文件使用
-    private String path;
-    private byte[] iv;
-    private byte[] key;
-    private boolean loaded = true;
+    public static final int withOffsetFlag = 0x1B;
+    public static final int withoutOffsetFlag = 0x73;
 
-    public static final int wzImageHeaderByte_WithOffset = 0x1B;
-    public static final int wzImageHeaderByte_WithoutOffset = 0x73;
+    protected WzImage(String name, WzObject parent) {
+        super(name, parent);
+    }
 
-    public WzImage(String name, WzObject parent) {
-        super.setName(name);
-        super.setParent(parent);
+    public WzImage(String name, WzObject parent, BinaryReader binaryReader) {
+        super(name, parent);
+        reader = binaryReader;
         parsed = true;
         changed = true;
     }
 
-    public WzImage(String name, BinaryReader reader) { // 不要设置parsed 和 changed
-        this.reader = reader;
-        super.setName(name);
-    }
-
-    public WzImage(String name, String path, byte[] iv, byte[] key) {
-        setName(name);
-        this.reader = null;
-        this.path = path;
-        this.iv = iv;
-        this.key = key;
-        this.loaded = false;
+    public WzImage(String name, BinaryReader binaryReader, WzObject parent) { // 不要设置parsed 和 changed
+        super(name, parent);
+        reader = binaryReader;
     }
 
     public void parse() {
@@ -65,16 +55,7 @@ public class WzImage extends WzObject {
     }
 
     public synchronized void parse(boolean realParse) {
-        if (!loaded) {
-            reader = new BinaryReader(path, iv, key);
-            size = reader.getBuffer().capacity();
-            checksum = 0;
-            byte[] bytes = reader.output();
-            for (byte b : bytes) {
-                checksum += b;
-            }
-            offset = 0;
-        } else if (parsed) {
+        if (parsed) {
             return;
         } else if (changed) {
             parsed = true;
@@ -84,7 +65,7 @@ public class WzImage extends WzObject {
         if (!realParse) return;
         reader.setPosition(offset);
         byte b = reader.getByte();
-        if (b != wzImageHeaderByte_WithoutOffset || !reader.readString().equals("Property") || reader.getShort() != 0) {
+        if (b != withoutOffsetFlag || !reader.readString().equals("Property") || reader.getShort() != 0) {
             return;
         }
 
@@ -120,16 +101,15 @@ public class WzImage extends WzObject {
     public void save(BinaryWriter writer) {
         if (changed) {
             // if (reader != null && !isParsed()) parse(); // 有修改说明已经解析了？
-            WzListProperty imgProp = WzListProperty.builder().build();
             int startPos = writer.getPosition();
-            imgProp.addProperties(properties);
+            WzListProperty imgProp = new WzListProperty(properties);
             imgProp.writeValue(writer);
             writer.getStringCache().clear();
-            size = writer.getPosition() - startPos;
+            dataSize = writer.getPosition() - startPos;
         } else {
             int pos = reader.getPosition();
             reader.setPosition(offset);
-            writer.putBytes(reader.getBytes(size));
+            writer.putBytes(reader.getBytes(dataSize));
             reader.setPosition(pos);
         }
     }
@@ -166,8 +146,6 @@ public class WzImage extends WzObject {
     public void changeKey(byte[] iv, byte[] key) {
         parse(); // 先解析把原有内容解码出来缓存在内存里
         changed = true; // 确保保存的时候重新写入，而不是取原来的
-        reader.setIv(iv);
-        reader.setUserKey(key);
         reader.setWzMutableKey(new WzMutableKey(iv, key));
     }
 
@@ -180,7 +158,7 @@ public class WzImage extends WzObject {
 
     public WzImage deepClone(WzObject parent) {
         parse();
-        WzImage clone = new WzImage(getName(), parent);
+        WzImage clone = new WzImage(getName(), parent, reader);
         for (WzImageProperty property : properties) {
             clone.properties.add(property.deepClone(clone));
         }
