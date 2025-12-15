@@ -539,7 +539,7 @@ public final class WzEditorService {
         WzNode targetNode = nodeCache.get(id);
         if (targetNode == null) throw new BizException(ExceptionEnum.NOT_FOUND);
         WzObject targetObj = targetNode.getWzObject();
-        switch (targetObj) { // todo 同一设置prop的wzImage
+        switch (targetObj) {
             case WzFile wzFile -> pasteToWzFile(targetNode, wzFile);
             case WzDirectory wzDir -> pasteToWzDir(targetNode, wzDir);
             case WzImage wzImage -> pasteToWzImage(targetNode, targetObj, wzImage);
@@ -554,38 +554,62 @@ public final class WzEditorService {
 
     private void pasteToWzFile(WzNode targetNode, WzFile wzFile) {
         checkClipboardType(WzNodeType.WZ);
+        setWzFileToCP(clipboard, wzFile);
         delRepeatDirFromCb(targetNode, wzFile.getWzDirectory());
         addDirFromCb(targetNode, wzFile.getWzDirectory());
     }
 
     private void pasteToWzDir(WzNode targetNode, WzDirectory wzDir) {
         checkClipboardType(WzNodeType.WZ_DIRECTORY);
+        setWzFileToCP(clipboard, wzDir.getWzFile());
         delRepeatDirFromCb(targetNode, wzDir);
         addDirFromCb(targetNode, wzDir);
     }
 
     private void pasteToWzImage(WzNode targetNode, WzObject targetObj, WzImage wzImage) {
         checkClipboardType(WzNodeType.IMAGE);
+        setWzImageToCP(clipboard, wzImage);
         delRepeatPropFromCb(targetNode, wzImage);
         addPropFromCb(targetNode, targetObj, wzImage);
     }
 
     private void pasteToWzList(WzNode targetNode, WzObject targetObj, WzListProperty property) {
         checkClipboardType(WzNodeType.IMAGE_LIST);
+        setWzImageToCP(clipboard, property.getWzImage());
         delRepeatPropFromCb(targetNode, property);
         addPropFromCb(targetNode, targetObj, property);
     }
 
     private void pasteToWzConvex(WzNode targetNode, WzObject targetObj, WzConvexProperty property) {
         checkClipboardType(WzNodeType.IMAGE_CONVEX);
+        setWzImageToCP(clipboard, property.getWzImage());
         delRepeatPropFromCb(targetNode, property);
         addPropFromCb(targetNode, targetObj, property);
     }
 
     private void pasteToWzCanvas(WzNode targetNode, WzObject targetObj, WzCanvasProperty property) {
         checkClipboardType(WzNodeType.IMAGE_CANVAS);
+        setWzImageToCP(clipboard, property.getWzImage());
         delRepeatPropFromCb(targetNode, property);
         addPropFromCb(targetNode, targetObj, property);
+    }
+
+    private void setWzFileToCP(List<? extends WzObject> clipboard, WzFile wzFile) {
+        for (WzObject wzObject : clipboard) {
+            if (wzObject instanceof WzDirectory directory) {
+                directory.setWzFile(wzFile);
+                setWzFileToCP(directory.getDirectories(), wzFile);
+            }
+        }
+    }
+
+    private void setWzImageToCP(List<? extends WzObject> clipboard, WzImage wzImage) {
+        for (WzObject wzObject : clipboard) {
+            if (wzObject instanceof WzImageProperty property) {
+                property.setWzImage(wzImage);
+                setWzImageToCP(property.getChildren(), wzImage);
+            }
+        }
     }
 
     private void checkClipboardType(WzNodeType type) {
