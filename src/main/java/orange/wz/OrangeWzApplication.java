@@ -17,7 +17,7 @@ public class OrangeWzApplication {
             frame.setVisible(true);
         });
 
-        // SpringApplication.run(OrangeWzApplication.class, args);
+        SpringApplication.run(OrangeWzApplication.class, args);
     }
 
 }

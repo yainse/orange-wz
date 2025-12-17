@@ -17,7 +17,7 @@
             <directory>${project.build.directory}</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
-                <include>*encrypted.jar</include>
+                <include>${project.build.finalName}.jar</include>
             </includes>
             <excludes>
                 <exclude>*-sources.jar</exclude>

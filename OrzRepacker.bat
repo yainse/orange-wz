@@ -1,4 +1,4 @@
 @echo off
-title OrangeWzRepacker
-jre\bin\java -javaagent:orange-wz-0.0.1-SNAPSHOT-encrypted.jar -jar orange-wz-0.0.1-SNAPSHOT-encrypted.jar
+title OrzRepacker
+jre\bin\java -javaagent:OrzRepacker.jar -jar OrzRepacker.jar
 pause
