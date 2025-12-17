@@ -29,6 +29,15 @@ public class WzDirectory extends WzObject {
         wzFile = file;
     }
 
+    /**
+     * 该方法用于 GUI 判断 dir是代表 wzFile 的 dir 还是 subDir
+     *
+     * @return wzFile != null && wzFile == parent;
+     */
+    public boolean isWzFile() {
+        return wzFile != null && wzFile == parent;
+    }
+
     public void parse(BinaryReader reader) {
         int entryCount = reader.readCompressedInt();
         for (int i = 0; i < entryCount; i++) {

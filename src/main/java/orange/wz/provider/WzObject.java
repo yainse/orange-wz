@@ -7,17 +7,20 @@ import lombok.experimental.SuperBuilder;
 import orange.wz.provider.tools.WzType;
 
 @NoArgsConstructor
-@SuperBuilder
 public abstract class WzObject {
     @Getter
     @Setter
     protected String name;
     @Getter
     protected String path;
+    @Getter
     protected WzType type;
     @Getter
     @Setter
     protected WzObject parent;
+    @Getter
+    @Setter
+    private boolean tempChanged;
 
     protected WzObject(String name, WzType type, WzObject parent) {
         this.name = name;

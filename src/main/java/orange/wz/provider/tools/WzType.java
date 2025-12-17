@@ -1,6 +1,7 @@
 package orange.wz.provider.tools;
 
 public enum WzType {
+    FOLDER,
     WZ_FILE,
     DIRECTORY,
     IMAGE,

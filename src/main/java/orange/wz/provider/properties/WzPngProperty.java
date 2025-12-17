@@ -553,8 +553,13 @@ public class WzPngProperty extends WzImageProperty {
         compressPng(wzMutableKey, pngFormat);
     }
 
-    public void setPng(BufferedImage png, WzMutableKey wzMutableKey) {
-        this.png = png;
+    public void setPng(BufferedImage pngImage, WzPngFormat pngFormat) {
+        png = pngImage;
+        compressPng(wzImage.getReader().getWzMutableKey(), pngFormat);
+    }
+
+    public void setPng(BufferedImage pngImage, WzMutableKey wzMutableKey) {
+        png = pngImage;
         compressPng(wzMutableKey, getPngFormat());
     }
 

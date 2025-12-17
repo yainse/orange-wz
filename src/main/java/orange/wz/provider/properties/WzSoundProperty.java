@@ -25,6 +25,7 @@ public class WzSoundProperty extends WzExtended {
             (byte) 0x81, (byte) 0x9F, 0x58, 0x05, 0x56, (byte) 0xC3, (byte) 0xCE, 0x11, (byte) 0xBF, 0x01, 0x00, (byte) 0xAA, 0x00, 0x55, 0x59, 0x5A
     };
 
+    @Getter
     private byte[] fileBytes;
     @Getter
     private int lenMs;
@@ -36,6 +37,14 @@ public class WzSoundProperty extends WzExtended {
 
     public WzSoundProperty(String name, WzObject parent, WzImage wzImage) {
         super(name, WzType.SOUND_PROPERTY, parent, wzImage);
+    }
+
+    public void setSound(byte[] soundBytes) {
+        Mp3FileReader reader = new Mp3FileReader(soundBytes);
+        waveFormat = reader.getWaveFormat();
+        lenMs = reader.getLenMs();
+        rebuildHeader(wzImage.getReader().getWzMutableKey());
+        fileBytes = soundBytes;
     }
 
     public void setSound(String base64String, WzMutableKey wzMutableKey) {

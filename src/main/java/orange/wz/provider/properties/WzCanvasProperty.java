@@ -1,17 +1,16 @@
 package orange.wz.provider.properties;
 
-import lombok.Getter;
-import lombok.Setter;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;
+import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.BinaryWriter;
+import orange.wz.provider.tools.WzMutableKey;
 import orange.wz.provider.tools.WzType;
 
+import java.awt.image.BufferedImage;
 import java.util.List;
 
-@Setter
-@Getter
 public class WzCanvasProperty extends WzExtended {
     private WzPngProperty png;
 
@@ -19,6 +18,61 @@ public class WzCanvasProperty extends WzExtended {
         super(name, WzType.CANVAS_PROPERTY, parent, wzImage);
     }
 
+    // Png -------------------------------------------------------------------------------------------------------------
+    public String getBase64() {
+        return png.getBase64();
+    }
+
+    public int getWidth() {
+        return png.getWidth();
+    }
+
+    public int getHeight() {
+        return png.getHeight();
+    }
+
+    public WzPngFormat getPngFormat() {
+        return png.getPngFormat();
+    }
+
+    public int getFormat() {
+        return png.getFormat();
+    }
+
+    public int getFormat2() {
+        return png.getFormat2();
+    }
+
+    public BufferedImage getPngImage() {
+        return png.getPng();
+    }
+
+    public void compressPng(WzMutableKey wzMutableKey, WzPngFormat pngFormat) {
+        png.compressPng(wzMutableKey, pngFormat);
+    }
+
+    public void initPngProperty(String name, WzObject parent, WzImage wzImage) {
+        png = new WzPngProperty(name, parent, wzImage);
+    }
+
+    public void initPngProperty(String name, WzObject parent, WzImage wzImage, BinaryReader reader) {
+        png = new WzPngProperty(name, parent, wzImage);
+        png.setData(reader);
+    }
+
+    public void setPng(String base64, WzMutableKey wzMutableKey, WzPngFormat pngFormat) {
+        png.setPng(base64, wzMutableKey, pngFormat);
+    }
+
+    public void setPng(BufferedImage pngImage, WzPngFormat pngFormat) {
+        png.setPng(pngImage, pngFormat);
+    }
+
+    public void setPng(BufferedImage pngImage, WzMutableKey wzMutableKey) {
+        png.setPng(pngImage, wzMutableKey);
+    }
+
+    // Override --------------------------------------------------------------------------------------------------------
     @Override
     public void writeValue(BinaryWriter writer) {
         writer.writeStringBlock(WzExtendedType.CANVAS.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
@@ -48,7 +102,7 @@ public class WzCanvasProperty extends WzExtended {
     @Override
     public WzCanvasProperty deepClone(WzObject parent) {
         WzCanvasProperty clone = new WzCanvasProperty(name, parent, null);
-        clone.setPng(png.deepClone(clone));
+        clone.png = png.deepClone(clone);
         for (WzImageProperty property : children.get()) {
             clone.addChild(property.deepClone(clone));
         }

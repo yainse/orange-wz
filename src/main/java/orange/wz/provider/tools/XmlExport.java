@@ -126,10 +126,10 @@ public final class XmlExport {
             case WzCanvasProperty prop -> {
                 e = doc.createElement("canvas");
                 e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("width", String.valueOf(prop.getPng().getWidth()));
-                e.setAttribute("height", String.valueOf(prop.getPng().getHeight()));
+                e.setAttribute("width", String.valueOf(prop.getWidth()));
+                e.setAttribute("height", String.valueOf(prop.getHeight()));
 
-                if (media) e.setAttribute("png", prop.getPng().getBase64());
+                if (media) e.setAttribute("png", prop.getBase64());
 
                 prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, media));
             }

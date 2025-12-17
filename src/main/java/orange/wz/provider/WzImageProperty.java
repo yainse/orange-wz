@@ -24,7 +24,7 @@ public abstract class WzImageProperty extends WzObject {
         this.wzImage = wzImage;
 
         this.children = switch (type) {
-            case WZ_FILE, DIRECTORY, IMAGE -> throw new RuntimeException("不可使用的属性: " + type);
+            case FOLDER, WZ_FILE, DIRECTORY, IMAGE -> throw new RuntimeException("不可使用的属性: " + type);
             case CANVAS_PROPERTY, CONVEX_PROPERTY, LIST_PROPERTY, RAW_DATA_PROPERTY -> new WzChildrenProperty();
             case DOUBLE_PROPERTY, FLOAT_PROPERTY, INT_PROPERTY, LONG_PROPERTY, NULL_PROPERTY, PNG_PROPERTY,
                  SHORT_PROPERTY, SOUND_PROPERTY, STRING_PROPERTY, UOL_PROPERTY, VECTOR_PROPERTY -> null;
@@ -33,26 +33,32 @@ public abstract class WzImageProperty extends WzObject {
 
     // Children --------------------------------------------------------------------------------------------------------
     public WzImageProperty getChild(String name) {
+        if (children == null) return null;
         return children.get(name);
     }
 
     public List<WzImageProperty> getChildren() {
+        if (children == null) return null;
         return children.get();
     }
 
     public void addChild(WzImageProperty child) {
+        if (children == null) return;
         children.add(child);
     }
 
     public void addChildren(List<WzImageProperty> children) {
+        if (children == null) return;
         this.children.add(children);
     }
 
     public boolean removeChild(String name) {
+        if (children == null) return false;
         return children.remove(name);
     }
 
     public boolean existChild(String name) {
+        if (children == null) return false;
         return children.existChild(name);
     }
 
@@ -146,9 +152,7 @@ public abstract class WzImageProperty extends WzObject {
                         reader.skip(2);
                         canvasProp.addChildren(WzImageProperty.parsePropertyList(offset, reader, canvasProp));
                     }
-                    WzPngProperty png = new WzPngProperty(name, canvasProp, wzImage);
-                    png.setData(reader);
-                    canvasProp.setPng(png);
+                    canvasProp.initPngProperty(name, canvasProp, wzImage, reader);
                     yield canvasProp;
                 }
                 case WzExtendedType.VECTOR -> {

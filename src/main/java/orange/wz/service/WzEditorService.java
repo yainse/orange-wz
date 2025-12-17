@@ -404,12 +404,12 @@ public final class WzEditorService {
             String uol = obj.getValue();
             WzCanvasProperty cav = getUolCanvas(obj.getParent(), uol.split("/"), 0);
             if (cav == null) return new WzNodeValueDto(null, WzNodeType.IMAGE_UOL, uol, null, null, null, null, null);
-            return new WzNodeValueDto(null, WzNodeType.IMAGE_UOL, uol, cav.getPng().getWidth(), cav.getPng().getHeight(), cav.getPng().getBase64(), cav.getPng().getPngFormat(), null);
+            return new WzNodeValueDto(null, WzNodeType.IMAGE_UOL, uol, cav.getWidth(), cav.getHeight(), cav.getBase64(), cav.getPngFormat(), null);
         }
         // 通用处理
         return switch (node.getWzObject()) {
             case WzCanvasProperty obj ->
-                    new WzNodeValueDto(null, WzNodeType.IMAGE_CANVAS, null, obj.getPng().getWidth(), obj.getPng().getHeight(), obj.getPng().getBase64(), obj.getPng().getPngFormat(), null);
+                    new WzNodeValueDto(null, WzNodeType.IMAGE_CANVAS, null, obj.getWidth(), obj.getHeight(), obj.getBase64(), obj.getPngFormat(), null);
             case WzDoubleProperty obj ->
                     new WzNodeValueDto(null, WzNodeType.IMAGE_DOUBLE, String.valueOf(obj.getValue()), null, null, null, null);
             case WzFloatProperty obj ->
@@ -496,7 +496,7 @@ public final class WzEditorService {
 
         switch (node.getWzObject()) {
             case WzCanvasProperty obj ->
-                    obj.getPng().setPng(data.getPng(), parentImg.getReader().getWzMutableKey(), data.getPngFormat());
+                    obj.setPng(data.getPng(), parentImg.getReader().getWzMutableKey(), data.getPngFormat());
             case WzDoubleProperty obj -> obj.setValue(Double.parseDouble(data.getValue()));
             case WzFloatProperty obj -> obj.setValue(Float.parseFloat(data.getValue()));
             case WzIntProperty obj -> obj.setValue(Integer.parseInt(data.getValue()));
@@ -755,7 +755,7 @@ public final class WzEditorService {
         if (property instanceof WzListProperty list) {
             list.getChildren().forEach(child -> initSpProp(child, wzKey));
         } else if (property instanceof WzCanvasProperty canvas) {
-            canvas.getPng().compressPng(wzKey, Objects.requireNonNull(WzPngFormat.getByValue(canvas.getPng().getFormat() + canvas.getPng().getFormat2())));
+            canvas.compressPng(wzKey, Objects.requireNonNull(WzPngFormat.getByValue(canvas.getFormat() + canvas.getFormat2())));
         } else if (property instanceof WzSoundProperty sound) {
             sound.rebuildHeader(wzKey);
         }
@@ -1137,12 +1137,12 @@ public final class WzEditorService {
 
             if (obj != null) {
                 if (obj instanceof WzCanvasProperty n) {
-                    if (n.getPng().getPng() == null) {
+                    if (n.getPngImage() == null) {
                         log.error("目标canvas的图片为空, 完整路径 {} 文件 {}", outlinkPaths, wzFile.getName());
                         break;
                     }
                     getParentImg(canvas).setChanged(true);
-                    canvas.getPng().setPng(n.getPng().getPng(), wzKey);
+                    canvas.setPng(n.getPngImage(), wzKey);
                     break;
                 }
                 log.warn("找到了节点，但不是 WzCanvas 类型 : {}", outlinkPaths);
@@ -1365,10 +1365,10 @@ public final class WzEditorService {
             if (sub instanceof WzListProperty subList) {
                 searchAllCanvas(result, subList, path + subList.getName() + "/");
             } else if (sub instanceof WzCanvasProperty subCav) {
-                int w = subCav.getPng().getWidth();
-                int h = subCav.getPng().getHeight();
-                String b = subCav.getPng().getBase64();
-                WzPngFormat f = subCav.getPng().getPngFormat();
+                int w = subCav.getWidth();
+                int h = subCav.getHeight();
+                String b = subCav.getBase64();
+                WzPngFormat f = subCav.getPngFormat();
                 String p = path + subCav.getName();
                 result.add(new WzNodeValueDto(null, WzNodeType.IMAGE_CANVAS, p, w, h, b, f, null));
             }
@@ -1407,9 +1407,8 @@ public final class WzEditorService {
     private WzImageProperty genNewImageProperty(WzImage img, WzObject parent, WzNodeValueDto data) {
         if (data.getType() == WzNodeType.IMAGE_CANVAS) {
             WzCanvasProperty canvasProp = new WzCanvasProperty(data.getName(), parent, img);
-            WzPngProperty png = new WzPngProperty(data.getName(), canvasProp, img);
-            png.setPng(data.getPng(), img.getReader().getWzMutableKey(), data.getPngFormat());
-            canvasProp.setPng(png);
+            canvasProp.initPngProperty(data.getName(), canvasProp, img);
+            canvasProp.setPng(data.getPng(), img.getReader().getWzMutableKey(), data.getPngFormat());
             return canvasProp;
         } else if (data.getType() == WzNodeType.IMAGE_CONVEX) {
             return new WzConvexProperty(data.getName(), parent, img);

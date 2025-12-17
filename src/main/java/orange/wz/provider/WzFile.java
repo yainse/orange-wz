@@ -18,7 +18,7 @@ import java.util.Map;
 @Slf4j
 public class WzFile extends WzObject {
     private final String filePath;
-    private WzDirectory wzDirectory;
+    private final WzDirectory wzDirectory;
     private WzHeader header;
     private byte[] wzIv;
     private byte[] userKey;
@@ -32,12 +32,12 @@ public class WzFile extends WzObject {
         header = new WzHeader(fileVersion);
         wzIv = iv;
         userKey = key;
+        wzDirectory = new WzDirectory(name, this, this);
     }
 
     public static WzFile createNewFile(String filePath, short fileVersion, byte[] iv, byte[] key) {
         WzFile wzFile = new WzFile(filePath, fileVersion, iv, key);
 
-        wzFile.wzDirectory = new WzDirectory(wzFile.getName(), wzFile, wzFile);
         wzFile.header = WzHeader.getDefault(fileVersion);
         wzFile.load = true;
         return wzFile;
@@ -71,7 +71,6 @@ public class WzFile extends WzObject {
         header.setEncVersion(reader.getShort());
         header.verifiedFileVersion();
 
-        wzDirectory = new WzDirectory(getName(), this, this);
         wzDirectory.parse(reader);
         load = true;
     }
