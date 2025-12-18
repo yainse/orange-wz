@@ -30,31 +30,14 @@ public final class WzHeader {
         return header;
     }
 
-    public void verifiedFileVersion() {
-        boolean verified = false;
-        if (fileVersion == -1) {
-            for (fileVersion = 0; fileVersion < 2000; fileVersion++) {
-                verified = verifiedFileVersion(fileVersion);
-                if (verified) break;
-            }
-        } else {
-            verified = verifiedFileVersion(fileVersion);
-        }
-
-        if (!verified) {
-            throw new RuntimeException("文件版本错误");
-        }
-    }
-
-    private boolean verifiedFileVersion(short fileVersion) {
+    public int checkAndGetVersionHash(short checkEncVersion, short fileVersion) {
         int versionHash = calcVersionHash(fileVersion);
         int encVersion = encryptVersionHash(versionHash);
 
-        if (this.encVersion == encVersion) {
-            this.versionHash = versionHash;
-            return true;
+        if (checkEncVersion == encVersion) {
+            return versionHash;
         } else {
-            return false;
+            return 0;
         }
     }
 

@@ -68,11 +68,35 @@ public class WzFile extends WzObject {
         header.setDataStartPos(reader.getInt());
         header.setCopyright(reader.readNullTerminatedString());
         reader.setPosition(header.getDataStartPos());
-        header.setEncVersion(reader.getShort());
-        header.verifiedFileVersion();
+        short encVersion = reader.getShort();
+        header.setEncVersion(encVersion);
 
-        wzDirectory.parse(reader);
-        load = true;
+        if (header.getFileVersion() == -1) {
+            short TEST_VERSION_MAX = 2000;
+            boolean checked = false;
+            for (short testVersion = 0; testVersion < TEST_VERSION_MAX; testVersion++) {
+                if (tryDecode(encVersion, testVersion)) {
+                    // tryDecode 只会设置 versionHash 用于解密，这里的 wzDir 对象已经绑定到 JTree 里，不能在 tryDecode 重设，只能在这重解析
+                    header.setFileVersion(testVersion);
+                    wzDirectory.parse(reader);
+                    load = true;
+                    checked = true;
+                    break;
+                }
+            }
+
+            if (!checked) {
+                throw new RuntimeException("文件版本错误");
+            }
+        } else {
+            int versionHash = header.checkAndGetVersionHash(encVersion, header.getFileVersion());
+            if (versionHash == 0) {
+                throw new RuntimeException("文件版本错误");
+            }
+            header.setVersionHash(versionHash);
+            wzDirectory.parse(reader);
+            load = true;
+        }
     }
 
     public void save() {
@@ -132,5 +156,61 @@ public class WzFile extends WzObject {
         userKey = key;
         reader.setWzMutableKey(new WzMutableKey(wzIv, userKey));
         header.setFileVersion(gameVersion);
+    }
+
+    private boolean tryDecode(short encVersion, short fileVersion) {
+        int versionHash = header.checkAndGetVersionHash(encVersion, fileVersion);
+        if (versionHash == 0) return false;
+
+        /*
+        Hash 计算通过也不代表版本号是对的，还要靠计算出来的Hash去解码文件才能确认
+        比如 95 计算出来的 encVer 和 16 计算出来的是一样的，但是 Hash 依然对不上，导致无法解码文件内容
+        因此有了下面的二次确认
+         */
+
+        int originalHash = header.getVersionHash();
+        int originalPosition = reader.getPosition();
+        WzDirectory testDirectory = new WzDirectory(name, this, this);
+
+        header.setVersionHash(versionHash);
+
+        try {
+            testDirectory.parse(reader);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            header.setVersionHash(originalHash);
+            reader.setPosition(originalPosition);
+            return false;
+        }
+
+        WzImage testImage = testDirectory.getImages().getFirst();
+        if (testImage == null) { // todo 还有特别版本的需要处理
+            reader.setPosition(originalPosition);
+            return true;
+        }
+        try {
+            reader.setPosition(testImage.getOffset());
+            byte checkByte = reader.getByte();
+            reader.setPosition(originalPosition);
+
+            switch (checkByte) {
+                case (byte) 0x73:
+                case (byte) 0x1B:
+                    reader.setPosition(originalPosition);
+                    return true;
+                case (byte) 0x30:
+                case (byte) 0x6C:
+                case (byte) 0xBC:
+                default:
+                    log.warn("发现新的 image 类型. checkByte = {}. 文件名 = {}", checkByte, name);
+            }
+        } catch (Exception e) {
+            header.setVersionHash(originalHash);
+            reader.setPosition(originalPosition);
+            return false;
+        }
+
+        reader.setPosition(originalPosition);
+        return false;
     }
 }

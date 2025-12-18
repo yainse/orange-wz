@@ -32,7 +32,7 @@ public class WzDirectory extends WzObject {
     /**
      * 该方法用于 GUI 判断 dir是代表 wzFile 的 dir 还是 subDir
      *
-     * @return wzFile != null && wzFile == parent;
+     * @return 该对象是 WzFile 的参数 WzDirectory 的值
      */
     public boolean isWzFile() {
         return wzFile != null && wzFile == parent;
@@ -68,7 +68,7 @@ public class WzDirectory extends WzObject {
                     break;
                 case null:
                 default:
-                    throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "[WzDirectory] 未知类型 = " + type);
+                    throw new RuntimeException("[WzDirectory] 未知类型 = " + type);
             }
             reader.setPosition(rememberPos);
             fSize = reader.readCompressedInt();
