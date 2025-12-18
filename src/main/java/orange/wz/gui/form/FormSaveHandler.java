@@ -2,6 +2,7 @@ package orange.wz.gui.form;
 
 import orange.wz.gui.MainFrame;
 import orange.wz.gui.form.data.*;
+import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.provider.WzDirectory;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzObject;
@@ -40,7 +41,7 @@ public class FormSaveHandler {
         tree.updateUI();
 
         if (!res) {
-            JOptionPane.showMessageDialog(mainFrame.getRootPane(), "什么都没有保存");
+            JMessageUtil.warn("什么都没有保存");
         }
     }
 
@@ -53,7 +54,7 @@ public class FormSaveHandler {
                 directory.setName(newName);
                 directory.getWzFile().setName(newName);
             } else {
-                JOptionPane.showMessageDialog(mainFrame.getRootPane(), "不是 .wz 结尾 ");
+                JMessageUtil.error("不是 .wz 结尾");
                 return false;
             }
         } else {
@@ -70,7 +71,7 @@ public class FormSaveHandler {
         if (newName.endsWith(".img")) {
             image.setName(newName);
         } else {
-            JOptionPane.showMessageDialog(mainFrame.getRootPane(), "不是 .img 结尾 ");
+            JMessageUtil.error("不是 .img 结尾");
             return false;
         }
 

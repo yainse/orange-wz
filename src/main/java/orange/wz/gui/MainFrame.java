@@ -5,6 +5,8 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.form.impl.*;
+import orange.wz.gui.menu.WzFileMenu;
+import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.model.WzKey;
 import orange.wz.model.WzKeyStorage;
 import orange.wz.provider.*;
@@ -116,14 +118,14 @@ public class MainFrame extends JFrame {
 
         JMenuItem openFiles = new JMenuItem("文件 wz/img", fcFileIcon);
         openFiles.addActionListener(e -> {
-            List<File> files = NativeFileDialogUtil.chooseFile(new String[]{"wz", "img"});
+            List<File> files = FileDialog.chooseOpenFiles(new String[]{"wz", "img"});
             open(files);
         });
         openItem.add(openFiles);
 
         JMenuItem openFolders = new JMenuItem("文件夹...", fcFolderIcon);
         openFolders.addActionListener(e -> {
-            List<File> files = NativeFileDialogUtil.chooseFolder();
+            List<File> files = FileDialog.chooseOpenFolders();
             open(files);
         });
         openItem.add(openFolders);
@@ -194,12 +196,7 @@ public class MainFrame extends JFrame {
 
         // 禁止跨区域多选
         SameLevelTreeSelectionModel selectionModel = new SameLevelTreeSelectionModel();
-        selectionModel.onReject(() -> JOptionPane.showMessageDialog(
-                instance,
-                "不允许跨区域多选",
-                "操作提示",
-                JOptionPane.WARNING_MESSAGE
-        ));
+        selectionModel.onReject(() -> JMessageUtil.warn("操作提示", "不允许跨区域多选"));
         tree.setSelectionModel(selectionModel);
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
 
@@ -213,12 +210,7 @@ public class MainFrame extends JFrame {
         });
 
         // 右键菜单
-        JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem addItem = new JMenuItem("新增");
-        JMenuItem removeItem = new JMenuItem("删除");
-        popupMenu.add(addItem);
-        popupMenu.add(removeItem);
-
+        JPopupMenu wzFilePopupMenu = WzFileMenu.create();
         tree.addMouseListener(new MouseAdapter() {
             private void showPopup(MouseEvent e) {
                 if (!e.isPopupTrigger()) return;
@@ -232,7 +224,12 @@ public class MainFrame extends JFrame {
                 }
 
                 // 显示菜单
-                popupMenu.show(tree, e.getX(), e.getY());
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                WzObject wzObject = (WzObject) node.getUserObject();
+
+                if (wzObject instanceof WzDirectory directory && directory.isWzFile()) {
+                    wzFilePopupMenu.show(tree, e.getX(), e.getY());
+                }
             }
 
             @Override
@@ -350,7 +347,7 @@ public class MainFrame extends JFrame {
         return statusBar;
     }
 
-    private void open(List<File> files) {
+    public void open(List<File> files) {
         WzKey key = wzKeyStorage.findByName("GMS");
 
         files.forEach(f -> {
@@ -497,7 +494,12 @@ public class MainFrame extends JFrame {
 
             @Override
             protected void done() {
-                setStatusText("%s 加载完毕", wzObject.getName());
+                try {
+                    get();
+                    setStatusText("%s 加载完毕", wzObject.getName());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         }.execute();
     }
@@ -523,10 +525,14 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private DefaultMutableTreeNode insertNodeToTree(DefaultMutableTreeNode parentNode, WzObject object, boolean expand) {
+    public DefaultMutableTreeNode insertNodeToTree(DefaultMutableTreeNode parentNode, WzObject object, boolean expand) {
+        return insertNodeToTree(parentNode, object, expand, -1);
+    }
+
+    public DefaultMutableTreeNode insertNodeToTree(DefaultMutableTreeNode parentNode, WzObject object, boolean expand, int index) {
         DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
         DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(object);
-        model.insertNodeInto(newNode, parentNode, parentNode.getChildCount());
+        model.insertNodeInto(newNode, parentNode, index == -1 ? parentNode.getChildCount() : index);
 
         if (expand) {
             tree.expandPath(new TreePath(parentNode.getPath()));

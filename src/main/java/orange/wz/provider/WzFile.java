@@ -104,6 +104,7 @@ public class WzFile extends WzObject {
     }
 
     public void save(String path) {
+        if (!load) return;
         log.info("保存 {} 开始", getName());
         String saveFile = Path.of(path).toString();
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(saveFile, "rw")) {
@@ -177,7 +178,7 @@ public class WzFile extends WzObject {
         try {
             testDirectory.parse(reader);
         } catch (Exception e) {
-            log.error(e.getMessage());
+            // log.error(e.getMessage());
             header.setVersionHash(originalHash);
             reader.setPosition(originalPosition);
             return false;

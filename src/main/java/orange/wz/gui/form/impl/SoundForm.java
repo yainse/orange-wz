@@ -1,8 +1,10 @@
 package orange.wz.gui.form.impl;
 
 import com.formdev.flatlaf.util.SystemFileChooser;
-import orange.wz.gui.NativeFileDialogUtil;
+import lombok.extern.slf4j.Slf4j;
+import orange.wz.gui.FileDialog;
 import orange.wz.gui.form.data.SoundFormData;
+import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.provider.audio.Mp3FileReader;
 
 import javax.sound.sampled.*;
@@ -13,8 +15,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collections;
 
+@Slf4j
 public class SoundForm extends AbstractValueForm {
     private byte[] soundBytes;
     private int totalMs;
@@ -42,12 +44,7 @@ public class SoundForm extends AbstractValueForm {
 
         downloadBtn.addActionListener(e -> {
             if (soundBytes == null || soundBytes.length == 0) {
-                JOptionPane.showMessageDialog(
-                        panel,
-                        "没有可保存的音频数据",
-                        "提示",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                JMessageUtil.error("没有可保存的音频数据");
                 return;
             }
 
@@ -72,41 +69,24 @@ public class SoundForm extends AbstractValueForm {
 
             try (FileOutputStream fos = new FileOutputStream(file)) {
                 fos.write(soundBytes);
-
-                JOptionPane.showMessageDialog(
-                        panel,
-                        "保存成功：\n" + file.getAbsolutePath(),
-                        "完成",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                JMessageUtil.info("保存成功：\n" + file.getAbsolutePath());
             } catch (IOException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        panel,
-                        "保存失败：" + ex.getMessage(),
-                        "错误",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                log.error(ex.getMessage());
+                JMessageUtil.error("保存失败：" + ex.getMessage());
             }
         });
 
         uploadBtn.addActionListener(e -> {
-            File file = NativeFileDialogUtil.chooseSingleFile(new String[]{"mp3"});
+            File file = FileDialog.chooseOpenFile(new String[]{"mp3"});
             if (file == null) {
                 return;
             }
 
             try {
                 setData(Files.readAllBytes(file.toPath()));
-
             } catch (IOException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        null,
-                        "读取文件失败：" + ex.getMessage(),
-                        "错误",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                log.error(ex.getMessage());
+                JMessageUtil.error("读取文件失败：" + ex.getMessage());
             }
         });
 
@@ -257,8 +237,8 @@ public class SoundForm extends AbstractValueForm {
             btnLoop.setEnabled(true);
             slider.setEnabled(true);
         } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(panel, "无法加载音频: " + e.getMessage());
+            log.error(e.getMessage());
+            JMessageUtil.error("无法加载音频: " + e.getMessage());
         }
     }
 

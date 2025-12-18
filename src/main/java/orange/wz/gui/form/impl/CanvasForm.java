@@ -2,9 +2,10 @@ package orange.wz.gui.form.impl;
 
 import com.formdev.flatlaf.util.SystemFileChooser;
 import lombok.Setter;
-import orange.wz.gui.NativeFileDialogUtil;
+import orange.wz.gui.FileDialog;
 import orange.wz.gui.form.base.DisabledItemComboBox;
 import orange.wz.gui.form.data.CanvasFormData;
+import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.provider.properties.WzPngFormat;
 
 import javax.imageio.ImageIO;
@@ -47,12 +48,7 @@ public class CanvasForm extends AbstractValueForm {
             }
 
             if (imageBytes.length == 0) {
-                JOptionPane.showMessageDialog(
-                        panel,
-                        "没有可保存的图片数据",
-                        "提示",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                JMessageUtil.warn("没有可保存的图片数据");
                 return;
             }
 
@@ -78,25 +74,15 @@ public class CanvasForm extends AbstractValueForm {
             try (FileOutputStream fos = new FileOutputStream(file)) {
                 fos.write(imageBytes);
 
-                JOptionPane.showMessageDialog(
-                        panel,
-                        "保存成功：\n" + file.getAbsolutePath(),
-                        "完成",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                JMessageUtil.info("保存成功：\n" + file.getAbsolutePath());
             } catch (IOException ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        panel,
-                        "保存失败：" + ex.getMessage(),
-                        "错误",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                JMessageUtil.error("保存失败: " + ex.getMessage());
             }
         });
 
         uploadBtn.addActionListener(e -> {
-            File file = NativeFileDialogUtil.chooseSingleFile(new String[]{"png"});
+            File file = FileDialog.chooseOpenFile(new String[]{"png"});
             if (file == null) {
                 return;
             }
@@ -106,12 +92,7 @@ public class CanvasForm extends AbstractValueForm {
 
             } catch (IOException ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(
-                        null,
-                        "读取文件失败：" + ex.getMessage(),
-                        "错误",
-                        JOptionPane.ERROR_MESSAGE
-                );
+                JMessageUtil.error("读取文件失败: " + ex.getMessage());
             }
         });
 
