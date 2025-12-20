@@ -375,6 +375,20 @@ public class MainFrame extends JFrame {
         versionLabel.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
         statusBar.add(versionLabel, BorderLayout.EAST);
 
+        Timer timer = new Timer(1000, e -> {
+            Runtime rt = Runtime.getRuntime();
+
+            long used = rt.totalMemory() - rt.freeMemory();
+            long max = rt.maxMemory();
+
+            versionLabel.setText(String.format(
+                    "%.1f MB / %.1f MB    OrzRepacker" + ServerManager.getVersion(),
+                    used / 1024.0 / 1024.0,
+                    max / 1024.0 / 1024.0
+            ));
+        });
+        timer.start();
+
         return statusBar;
     }
 
