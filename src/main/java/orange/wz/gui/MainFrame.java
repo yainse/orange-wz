@@ -9,6 +9,7 @@ import orange.wz.gui.key.KeyBox;
 import orange.wz.gui.key.KeyManager;
 import orange.wz.gui.menu.WzFileMenu;
 import orange.wz.gui.utils.JMessageUtil;
+import orange.wz.gui.utils.UrlUtil;
 import orange.wz.manager.ServerManager;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
@@ -158,7 +159,14 @@ public class MainFrame extends JFrame {
         });
 
         fileMenu.add(openItem);
+
+        JMenu help = new JMenu("帮助");
+        JMenuItem bbs = new JMenuItem("论坛");
+        bbs.addActionListener(e -> UrlUtil.open("https://moguwuyu.com/"));
+        help.add(bbs);
+
         menuBar.add(fileMenu);
+        menuBar.add(help);
         menuBar.add(Box.createHorizontalStrut(2));
         menuBar.add(keyBox);
         menuBar.add(Box.createHorizontalStrut(2));
