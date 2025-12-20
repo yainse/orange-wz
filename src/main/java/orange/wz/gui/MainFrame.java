@@ -8,6 +8,7 @@ import orange.wz.gui.form.impl.*;
 import orange.wz.gui.key.KeyBox;
 import orange.wz.gui.key.KeyManager;
 import orange.wz.gui.menu.WzFileMenu;
+import orange.wz.gui.menu.WzFolderMenu;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.gui.utils.UrlUtil;
 import orange.wz.manager.ServerManager;
@@ -122,7 +123,7 @@ public class MainFrame extends JFrame {
         // 文件菜单
         JMenu fileMenu = new JMenu("文件");
 
-        JMenu openItem = new JMenu("打开");
+        JMenu openItem = new JMenu("加载");
         openItem.setIcon(fcFolderIcon);
 
         JMenuItem openFiles = new JMenuItem("文件 wz/img", fcFileIcon);
@@ -250,6 +251,7 @@ public class MainFrame extends JFrame {
 
         // 右键菜单
         JPopupMenu wzFilePopupMenu = WzFileMenu.create();
+        JPopupMenu wzFolderPopupMenu = WzFolderMenu.create();
         tree.addMouseListener(new MouseAdapter() {
             private void showPopup(MouseEvent e) {
                 if (!e.isPopupTrigger()) return;
@@ -268,6 +270,8 @@ public class MainFrame extends JFrame {
 
                 if (wzObject instanceof WzDirectory directory && directory.isWzFile()) {
                     wzFilePopupMenu.show(tree, e.getX(), e.getY());
+                } else if (wzObject instanceof WzFolder) {
+                    wzFolderPopupMenu.show(tree, e.getX(), e.getY());
                 }
             }
 

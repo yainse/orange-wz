@@ -25,7 +25,7 @@ public class WzFileMenu {
         JPopupMenu popupMenu = new JPopupMenu();
 
         JMenuItem saveBtn = new JMenuItem("保存", MainFrame.getSVG("AiOutlineSave.svg", 16, 16));
-        JMenuItem unloadBtn = new JMenuItem("关闭", MainFrame.getSVG("AiOutlineClose.svg", 16, 16));
+        JMenuItem unloadBtn = new JMenuItem("卸载", MainFrame.getSVG("AiOutlineClose.svg", 16, 16));
         JMenuItem reloadItem = new JMenuItem("重载", MainFrame.getSVG("AiOutlineReload.svg", 16, 16));
 
         saveBtnAction(saveBtn);
