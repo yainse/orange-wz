@@ -337,6 +337,7 @@ public final class WzFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            newDir.setTempChanged(true);
             editPane.insertNodeToTree(node, newDir, true, 0);
         });
     }
@@ -383,6 +384,7 @@ public final class WzFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            newImg.setTempChanged(true);
             editPane.insertNodeToTree(node, newImg, true, 0);
         });
     }

@@ -356,6 +356,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             prop.setPng(data.getValue(), data.getFormat());
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -394,6 +395,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -432,6 +434,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -470,6 +473,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -508,6 +512,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -546,6 +551,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -584,6 +590,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -622,6 +629,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -660,6 +668,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -699,6 +708,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -737,6 +747,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -775,6 +786,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
@@ -813,6 +825,7 @@ public final class WzImageFileMenu extends JPopupMenu {
             }
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
         });
     }
