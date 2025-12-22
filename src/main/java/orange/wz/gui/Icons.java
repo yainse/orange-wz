@@ -37,6 +37,7 @@ public final class Icons {
     public static final FlatSVGIcon AiOutlineDelete = getSVG("AiOutlineDelete.svg", 16, 16);
     public static final FlatSVGIcon AiOutlineCopy = getSVG("AiOutlineCopy.svg", 16, 16);
     public static final FlatSVGIcon MdOutlineContentPaste = getSVG("MdOutlineContentPaste.svg", 16, 16);
+    public static final FlatSVGIcon AiOutlineKey = getSVG("AiOutlineKey.svg", 16, 16);
 
     private static FlatSVGIcon getSVG(String filename, int width, int height) {
         return getSVG(filename, width, height, null);

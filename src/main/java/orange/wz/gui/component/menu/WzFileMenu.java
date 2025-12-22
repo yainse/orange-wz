@@ -5,9 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.Clipboard;
 import orange.wz.gui.MainFrame;
 import orange.wz.gui.component.FileDialog;
+import orange.wz.gui.component.dialog.ChangeKeyDialog;
 import orange.wz.gui.component.dialog.NodeDialog;
 import orange.wz.gui.component.dialog.OverwriteChoice;
 import orange.wz.gui.component.dialog.OverwriteDialog;
+import orange.wz.gui.component.form.data.KeyData;
 import orange.wz.gui.component.form.data.NodeFormData;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.JMessageUtil;
@@ -48,6 +50,7 @@ public final class WzFileMenu extends JPopupMenu {
         JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
         JMenuItem moveBtn = new JMenuItem("切换视图", AiOutlineEye);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
+        JMenuItem keyBtn = new JMenuItem("修改密钥", AiOutlineKey);
 
         addDirBtnAction(addDirBtn);
         addImgBtnAction(addImgBtn);
@@ -56,6 +59,7 @@ public final class WzFileMenu extends JPopupMenu {
         reloadBtnAction(reloadBtn);
         moveBtnAction(moveBtn);
         addPasteBtnAction(pasteBtn);
+        addKeyBtnAction(keyBtn);
 
         add(addBtn);
         add(saveBtn);
@@ -63,6 +67,7 @@ public final class WzFileMenu extends JPopupMenu {
         add(reloadBtn);
         add(moveBtn);
         add(pasteBtn);
+        add(keyBtn);
     }
 
     private void saveBtnAction(JMenuItem item) {
@@ -390,6 +395,23 @@ public final class WzFileMenu extends JPopupMenu {
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
             newImg.setTempChanged(true);
             editPane.insertNodeToTree(node, newImg, true, 0);
+        });
+    }
+
+    private void addKeyBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            ChangeKeyDialog dialog = new ChangeKeyDialog(editPane, true);
+            KeyData keyData = dialog.getData();
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
+                WzFile wzFile = wzDirectory.getWzFile();
+                wzFile.changeKey(keyData.getVersion(), keyData.getIv(), keyData.getKey());
+            }
         });
     }
 }

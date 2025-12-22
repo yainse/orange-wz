@@ -72,6 +72,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         JMenuItem moveBtn = new JMenuItem("切换视图", AiOutlineEye);
         copyBtn = new JMenuItem("复制", AiOutlineCopy);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
+        JMenuItem keyBtn = new JMenuItem("修改密钥", AiOutlineKey);
 
 
         addCanvasBtnItem(addCanvasBtn);
@@ -93,6 +94,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         moveBtnAction(moveBtn);
         addCopyBtnAction(copyBtn);
         addPasteBtnAction(pasteBtn);
+        addKeyBtnAction(keyBtn);
 
         add(addBtn);
         add(saveBtn);
@@ -101,6 +103,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         add(moveBtn);
         add(copyBtn);
         add(pasteBtn);
+        add(keyBtn);
     }
 
     private void saveBtnAction(JMenuItem item) {
@@ -301,6 +304,22 @@ public final class WzImageFileMenu extends JPopupMenu {
 
             clipboard.clear();
             clipboard.unlock();
+        });
+    }
+
+    private void addKeyBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            ChangeKeyDialog dialog = new ChangeKeyDialog(editPane, false);
+            KeyData keyData = dialog.getData();
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
+                wzImageFile.changeKey(keyData.getIv(), keyData.getKey());
+            }
         });
     }
 
