@@ -293,12 +293,12 @@ public class WzDirectory extends WzObject {
         return children.getAllChildren();
     }
 
-    public void addChild(WzDirectory directory) {
-        children.add(directory);
+    public boolean addChild(WzDirectory directory) {
+        return children.add(directory);
     }
 
-    public void addChild(WzImage image) {
-        children.add(image);
+    public boolean addChild(WzImage image) {
+        return children.add(image);
     }
 
     public boolean removeDirectoryChild(String name) {

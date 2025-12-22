@@ -27,8 +27,14 @@ public class WzChildrenProperty {
         }
     }
 
-    public void add(WzImageProperty child) {
-        properties.add(child);
+    public boolean add(WzImageProperty child) {
+        synchronized (properties) {
+            for (WzImageProperty property : properties) {
+                if (property.getName().equalsIgnoreCase(child.getName())) return false;
+            }
+            properties.add(child);
+            return true;
+        }
     }
 
     public void add(List<WzImageProperty> children) {

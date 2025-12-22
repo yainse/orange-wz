@@ -56,12 +56,24 @@ public class WzChildrenDirectory {
         return directories.size() + images.size();
     }
 
-    public void add(WzDirectory directory) {
-        directories.add(directory);
+    public boolean add(WzDirectory directory) {
+        synchronized (directories) {
+            for (WzDirectory dir : directories) {
+                if (dir.getName().equalsIgnoreCase(directory.getName())) return false;
+            }
+            directories.add(directory);
+            return true;
+        }
     }
 
-    public void add(WzImage image) {
-        images.add(image);
+    public boolean add(WzImage image) {
+        synchronized (images) {
+            for (WzImage img : images) {
+                if (img.getName().equalsIgnoreCase(image.getName())) return false;
+            }
+            images.add(image);
+            return true;
+        }
     }
 
     public boolean removeDirectory(String name) {

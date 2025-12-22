@@ -10,7 +10,6 @@ import orange.wz.provider.*;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
-
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;

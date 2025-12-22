@@ -3,9 +3,7 @@ package orange.wz.gui.component.panel;
 import lombok.Getter;
 import orange.wz.gui.MainFrame;
 import orange.wz.gui.component.form.impl.*;
-import orange.wz.gui.component.menu.WzFileMenu;
-import orange.wz.gui.component.menu.WzFolderMenu;
-import orange.wz.gui.component.menu.WzImageFileMenu;
+import orange.wz.gui.component.menu.*;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
@@ -134,6 +132,10 @@ public final class EditPane extends JSplitPane {
         JPopupMenu wzFilePopupMenu = new WzFileMenu(this, tree);
         JPopupMenu wzFolderPopupMenu = new WzFolderMenu(this, tree);
         JPopupMenu wzImageFilePopupMenu = new WzImageFileMenu(this, tree);
+        JPopupMenu wzDirectoryPopupMenu = new WzDirectoryMenu(this, tree);
+        JPopupMenu wzImagePopupMenu = new WzImageMenu(this, tree);
+        JPopupMenu wzListPropertyPopupMenu = new WzListPropertyMenu(this, tree);
+        JPopupMenu wzValuePropertyPopupMenu = new WzValuePropertyMenu(this, tree);
         tree.addMouseListener(new MouseAdapter() {
             private void showPopup(MouseEvent e) {
                 if (!e.isPopupTrigger()) return;
@@ -149,13 +151,24 @@ public final class EditPane extends JSplitPane {
                 // 显示菜单
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                 WzObject wzObject = (WzObject) node.getUserObject();
-
-                if (wzObject instanceof WzDirectory directory && directory.isWzFile()) {
-                    wzFilePopupMenu.show(tree, e.getX(), e.getY());
-                } else if (wzObject instanceof WzFolder) {
+                if (wzObject instanceof WzFolder) {
                     wzFolderPopupMenu.show(tree, e.getX(), e.getY());
+                } else if (wzObject instanceof WzDirectory directory) {
+                    if (directory.isWzFile()) {
+                        wzFilePopupMenu.show(tree, e.getX(), e.getY());
+                    } else {
+                        wzDirectoryPopupMenu.show(tree, e.getX(), e.getY());
+                    }
                 } else if (wzObject instanceof WzImageFile) {
                     wzImageFilePopupMenu.show(tree, e.getX(), e.getY());
+                } else if (wzObject instanceof WzImage) {
+                    wzImagePopupMenu.show(tree, e.getX(), e.getY());
+                } else if (wzObject instanceof WzImageProperty prop) {
+                    if (prop.isListProperty()) {
+                        wzListPropertyPopupMenu.show(tree, e.getX(), e.getY());
+                    } else {
+                        wzValuePropertyPopupMenu.show(tree, e.getX(), e.getY());
+                    }
                 }
             }
 

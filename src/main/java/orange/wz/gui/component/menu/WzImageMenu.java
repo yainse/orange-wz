@@ -1,32 +1,28 @@
 package orange.wz.gui.component.menu;
 
 import lombok.extern.slf4j.Slf4j;
-import orange.wz.gui.MainFrame;
-import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.dialog.*;
 import orange.wz.gui.component.form.data.*;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.JMessageUtil;
-import orange.wz.provider.WzImageFile;
+import orange.wz.provider.WzDirectory;
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzObject;
 import orange.wz.provider.properties.*;
-import orange.wz.utils.wzkey.WzKey;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
-import java.io.File;
-import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
 
-import static orange.wz.gui.Icons.*;
+import static orange.wz.gui.Icons.AiOutlineDelete;
+import static orange.wz.gui.Icons.AiOutlinePlus;
 
 @Slf4j
-public final class WzImageFileMenu extends JPopupMenu {
+public final class WzImageMenu extends JPopupMenu {
     private final EditPane editPane;
     private final JTree tree;
 
-    public WzImageFileMenu(EditPane editPane, JTree tree) {
+    public WzImageMenu(EditPane editPane, JTree tree) {
         super();
         this.editPane = editPane;
         this.tree = tree;
@@ -59,11 +55,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         addBtn.add(addStringBtn);
         addBtn.add(addUOLBtn);
         addBtn.add(addVectorBtn);
-        JMenuItem saveBtn = new JMenuItem("保存", AiOutlineSaveIcon);
-        JMenuItem unloadBtn = new JMenuItem("卸载", AiOutlineCloseIcon);
-        JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
-        JMenuItem moveBtn = new JMenuItem("切换视图", AiOutlineEye);
-
+        JMenuItem deleteBtn = new JMenuItem("删除节点", AiOutlineDelete);
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -78,137 +70,27 @@ public final class WzImageFileMenu extends JPopupMenu {
         addStringBtnItem(addStringBtn);
         addUOLBtnItem(addUOLBtn);
         addVectorBtnItem(addVectorBtn);
-        saveBtnAction(saveBtn);
-        unloadBtnAction(unloadBtn);
-        reloadBtnAction(reloadBtn);
-        moveBtnAction(moveBtn);
+        deleteBtnAction(deleteBtn);
 
         add(addBtn);
-        add(saveBtn);
-        add(unloadBtn);
-        add(reloadBtn);
-        add(moveBtn);
+        add(deleteBtn);
     }
 
-    private void saveBtnAction(JMenuItem item) {
+    private void deleteBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
-            if (selectedPaths.length == 1) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                int index = pNode.getIndex(node);
-                WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-                byte[] iv = wzImageFile.getIv();
-                byte[] key = wzImageFile.getKey();
-                if (!wzImageFile.isLoad()) {
-                    log.warn("未加载的文件 {} 无需保存", wzImageFile.getName());
-                    return;
-                }
-
-                File oldFile = new File(wzImageFile.getFilePath());
-                File newFile = new File(oldFile.getParent(), wzImageFile.getName());
-
-                File saveFile = FileDialog.chooseSaveFile(MainFrame.getInstance(), "保存 " + wzImageFile.getName(), newFile, new String[]{"img"});
-                if (saveFile == null) {
-                    return;
-                }
-                Path filePath = Path.of(saveFile.getAbsolutePath());
-                wzImageFile.save(filePath);
-                editPane.removeNodeFromTree(node);
-                String filename = filePath.getFileName().toString();
-                wzImageFile = new WzImageFile(filename, filePath.toString(), iv, key);
-                editPane.insertNodeToTree(pNode, wzImageFile, true, index);
-            } else {
-                // 批量保存的时候判断文件名是否发生改变，如果发生改变，跳过并提示。
-                Set<String> failed = new HashSet<>();
-                for (TreePath treePath : selectedPaths) {
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                    DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                    int index = pNode.getIndex(node);
-                    WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-                    byte[] iv = wzImageFile.getIv();
-                    byte[] key = wzImageFile.getKey();
-                    if (!wzImageFile.isLoad()) {
-                        log.warn("未加载的文件 {} 无需保存", wzImageFile.getName());
-                        continue;
-                    }
-
-                    Path filePath = Path.of(wzImageFile.getFilePath());
-                    if (!filePath.getFileName().toString().equals(wzImageFile.getName())) {
-                        failed.add(wzImageFile.getName());
-                        log.error("批量保存无法用于文件改名 {} : {}", wzImageFile.getName(), wzImageFile.getFilePath());
-                        continue;
-                    }
-
-                    wzImageFile.save(filePath);
-                    String filename = filePath.getFileName().toString();
-                    editPane.removeNodeFromTree(node);
-                    wzImageFile = new WzImageFile(filename, filePath.toString(), iv, key);
-                    editPane.insertNodeToTree(pNode, wzImageFile, true, index);
-                }
-
-                if (!failed.isEmpty()) {
-                    JMessageUtil.warn("批量保存无法用于文件改名, 这些文件请手动保存: " + String.join(", ", failed));
-                }
-            }
-
-            System.gc();
-        });
-    }
-
-    private void unloadBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
-            }
-
-            System.gc();
-        });
-    }
-
-    private void reloadBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
             for (TreePath treePath : selectedPaths) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                int index = pNode.getIndex(node);
-                WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-                Path filePath = Path.of(wzImageFile.getFilePath());
-                String filename = filePath.getFileName().toString();
+                WzObject wzObject = (WzObject) node.getUserObject();
+                WzObject pWzObject = wzObject.getParent();
 
-                editPane.removeNodeFromTree(node);
-                wzImageFile = new WzImageFile(filename, filePath.toString(), key.getIv(), key.getUserKey());
-                editPane.insertNodeToTree(pNode, wzImageFile, true, index);
-            }
-
-            System.gc();
-        });
-    }
-
-    private void moveBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            if (!MainFrame.getInstance().getCenterPane().isRightShowing()) {
-                MainFrame.getInstance().getCenterPane().showRightEditPane(true);
-            }
-
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            EditPane targetPane = MainFrame.getInstance().getCenterPane().getAnotherPane(editPane);
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-                targetPane.insertNodeToTree(targetPane.getTreeRoot(), wzImageFile, true);
-                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
+                if (pWzObject instanceof WzDirectory directory && directory.removeImageChild(wzObject.getName())) {
+                    editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
+                } else {
+                    log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
+                }
             }
         });
     }
@@ -237,15 +119,15 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzCanvasProperty prop = new WzCanvasProperty(name, wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzCanvasProperty prop = new WzCanvasProperty(name, wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
-            prop.initPngProperty(name, prop, wzImageFile);
+            prop.initPngProperty(name, prop, wzImage);
             prop.setPng(data.getValue(), data.getFormat());
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
@@ -277,11 +159,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzConvexProperty prop = new WzConvexProperty(name, wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzConvexProperty prop = new WzConvexProperty(name, wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -315,11 +197,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzDoubleProperty prop = new WzDoubleProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzDoubleProperty prop = new WzDoubleProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -353,11 +235,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzFloatProperty prop = new WzFloatProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzFloatProperty prop = new WzFloatProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -391,11 +273,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzIntProperty prop = new WzIntProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzIntProperty prop = new WzIntProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -429,11 +311,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzListProperty prop = new WzListProperty(name, wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzListProperty prop = new WzListProperty(name, wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -467,11 +349,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzLongProperty prop = new WzLongProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzLongProperty prop = new WzLongProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -505,11 +387,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzNullProperty prop = new WzNullProperty(name, wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzNullProperty prop = new WzNullProperty(name, wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -543,11 +425,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzShortProperty prop = new WzShortProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzShortProperty prop = new WzShortProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -581,12 +463,12 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzSoundProperty prop = new WzSoundProperty(name, wzImageFile, wzImageFile);
+            WzSoundProperty prop = new WzSoundProperty(name, wzImage, wzImage);
             prop.setSound(data.getSoundBytes());
-            if (!wzImageFile.addChild(prop)) {
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -620,11 +502,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzStringProperty prop = new WzStringProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzStringProperty prop = new WzStringProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -658,11 +540,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzUOLProperty prop = new WzUOLProperty(name, data.getValue(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzUOLProperty prop = new WzUOLProperty(name, data.getValue(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -696,11 +578,11 @@ public final class WzImageFileMenu extends JPopupMenu {
                 return;
             }
 
-            WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
-            wzImageFile.parse();
+            WzImage wzImage = (WzImage) node.getUserObject();
+            wzImage.parse();
 
-            WzVectorProperty prop = new WzVectorProperty(name, data.getX(), data.getY(), wzImageFile, wzImageFile);
-            if (!wzImageFile.addChild(prop)) {
+            WzVectorProperty prop = new WzVectorProperty(name, data.getX(), data.getY(), wzImage, wzImage);
+            if (!wzImage.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }

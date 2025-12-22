@@ -168,8 +168,8 @@ public class WzImage extends WzObject {
         return children.get();
     }
 
-    public void addChild(WzImageProperty child) {
-        children.add(child);
+    public boolean addChild(WzImageProperty child) {
+        return children.add(child);
     }
 
     public void addChildren(List<WzImageProperty> children) {

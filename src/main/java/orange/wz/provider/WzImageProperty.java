@@ -42,9 +42,9 @@ public abstract class WzImageProperty extends WzObject {
         return children.get();
     }
 
-    public void addChild(WzImageProperty child) {
-        if (children == null) return;
-        children.add(child);
+    public boolean addChild(WzImageProperty child) {
+        if (children == null) return false;
+        return children.add(child);
     }
 
     public void addChildren(List<WzImageProperty> children) {
@@ -60,6 +60,14 @@ public abstract class WzImageProperty extends WzObject {
     public boolean existChild(String name) {
         if (children == null) return false;
         return children.existChild(name);
+    }
+
+    /**
+     * 判断是否是 List 节点: 指的是 children 对象不为 null 的节点，即可拥有子节点的对象。
+     * @return children != null
+     */
+    public boolean isListProperty() {
+        return children != null;
     }
 
     // 解析 -------------------------------------------------------------------------------------------------------------

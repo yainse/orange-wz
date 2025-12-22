@@ -3,10 +3,13 @@ package orange.wz.gui.component.menu;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.MainFrame;
 import orange.wz.gui.component.FileDialog;
+import orange.wz.gui.component.dialog.NodeDialog;
+import orange.wz.gui.component.form.data.NodeFormData;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.provider.WzDirectory;
 import orange.wz.provider.WzFile;
+import orange.wz.provider.WzImage;
 import orange.wz.utils.wzkey.WzKey;
 
 import javax.swing.*;
@@ -29,20 +32,29 @@ public final class WzFileMenu extends JPopupMenu {
         this.editPane = editPane;
         this.tree = tree;
 
+        JMenu addBtn = new JMenu("子节点");
+        addBtn.setIcon(AiOutlinePlus);
+        JMenuItem addDirBtn = new JMenuItem("Directory");
+        JMenuItem addImgBtn = new JMenuItem("Image");
+        addBtn.add(addDirBtn);
+        addBtn.add(addImgBtn);
         JMenuItem saveBtn = new JMenuItem("保存", AiOutlineSaveIcon);
         JMenuItem unloadBtn = new JMenuItem("卸载", AiOutlineCloseIcon);
-        JMenuItem reloadItem = new JMenuItem("重载", AiOutlineReloadIcon);
-        JMenuItem moveItem = new JMenuItem("切换视图", AiOutlineEye);
+        JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
+        JMenuItem moveBtn = new JMenuItem("切换视图", AiOutlineEye);
 
+        addDirBtnAction(addDirBtn);
+        addImgBtnAction(addImgBtn);
         saveBtnAction(saveBtn);
         unloadBtnAction(unloadBtn);
-        reloadItemAction(reloadItem);
-        moveItemAction(moveItem);
+        reloadBtnAction(reloadBtn);
+        moveBtnAction(moveBtn);
 
+        add(addBtn);
         add(saveBtn);
         add(unloadBtn);
-        add(reloadItem);
-        add(moveItem);
+        add(reloadBtn);
+        add(moveBtn);
     }
 
     private void saveBtnAction(JMenuItem item) {
@@ -126,7 +138,7 @@ public final class WzFileMenu extends JPopupMenu {
         });
     }
 
-    private void reloadItemAction(JMenuItem item) {
+    private void reloadBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
@@ -149,7 +161,7 @@ public final class WzFileMenu extends JPopupMenu {
         });
     }
 
-    private void moveItemAction(JMenuItem item) {
+    private void moveBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
             if (!MainFrame.getInstance().getCenterPane().isRightShowing()) {
                 MainFrame.getInstance().getCenterPane().showRightEditPane(true);
@@ -165,6 +177,91 @@ public final class WzFileMenu extends JPopupMenu {
                 targetPane.insertNodeToTree(targetPane.getTreeRoot(), wzDirectory, true);
                 editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
             }
+        });
+    }
+
+    private void addDirBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            if (selectedPaths.length != 1) {
+                JMessageUtil.error("不要多选");
+                return;
+            }
+
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
+
+            NodeDialog nodeDialog = new NodeDialog("新增 Directory", editPane);
+            NodeFormData data = nodeDialog.getData();
+
+            if (data == null) return;
+
+            String name = data.getName();
+
+            if (name.isEmpty()) {
+                JMessageUtil.error("名称不能为空");
+                return;
+            }
+
+            WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
+            WzFile wzFile = wzDirectory.getWzFile();
+            wzFile.load();
+
+            WzDirectory newDir = new WzDirectory(name, wzDirectory, wzFile);
+            if (!wzDirectory.addChild(newDir)) {
+                JMessageUtil.error("名称已存在");
+                return;
+            }
+
+            if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            editPane.insertNodeToTree(node, newDir, true, 0);
+        });
+    }
+
+    private void addImgBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            if (selectedPaths.length != 1) {
+                JMessageUtil.error("不要多选");
+                return;
+            }
+
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
+
+            NodeDialog nodeDialog = new NodeDialog("新增 Image", editPane);
+            NodeFormData data = nodeDialog.getData();
+
+            if (data == null) return;
+
+            String name = data.getName();
+
+            if (name.isEmpty()) {
+                JMessageUtil.error("名称不能为空");
+                return;
+            }
+
+            if (!name.endsWith(".img")) {
+                JMessageUtil.error("Image 名称需要以.img结尾");
+                return;
+            }
+
+            WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
+            WzFile wzFile = wzDirectory.getWzFile();
+            wzFile.load();
+
+            WzImage newImg = new WzImage(name, wzFile.getReader(), wzDirectory);
+            newImg.setParsed(true);
+            newImg.setChanged(true);
+            if (!wzDirectory.addChild(newImg)) {
+                JMessageUtil.error("名称已存在");
+                return;
+            }
+
+            if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
+            editPane.insertNodeToTree(node, newImg, true, 0);
         });
     }
 }

@@ -1,7 +1,7 @@
 package orange.wz.gui.component.key;
 
-import orange.wz.gui.filter.HexFilter;
 import orange.wz.gui.MainFrame;
+import orange.wz.gui.filter.HexFilter;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.utils.wzkey.WzKey;
 
