@@ -15,7 +15,6 @@ public abstract class WzObject {
     @Getter
     protected WzType type;
     @Getter
-    @Setter
     protected WzObject parent;
     @Getter
     @Setter
@@ -32,5 +31,15 @@ public abstract class WzObject {
         }
 
         this.type = type;
+    }
+
+    public void setParent(WzObject parent) {
+        this.parent = parent;
+
+        if (parent == null || name.equals(parent.getName()) && name.endsWith(".wz")) {
+            this.path = name;
+        } else {
+            this.path = parent.getPath() + "/" + name;
+        }
     }
 }

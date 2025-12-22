@@ -172,9 +172,16 @@ public final class WzImageMenu extends JPopupMenu {
         });
     }
 
-    private void setPasteParent(List<WzObject> objects, WzObject parent) {
+    private void setPasteParent(List<? extends WzObject> objects, WzObject parent) {
         for (WzObject obj : objects) {
             obj.setParent(parent);
+            if (obj instanceof WzDirectory directory) {
+                setPasteParent(directory.getChildren(), directory);
+            } else if (obj instanceof WzImage image) {
+                setPasteParent(image.getChildren(), image);
+            } else if (obj instanceof WzImageProperty prop && prop.isListProperty()) {
+                setPasteParent(prop.getChildren(), prop);
+            }
         }
     }
 

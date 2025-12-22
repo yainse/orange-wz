@@ -11,10 +11,7 @@ import orange.wz.gui.component.dialog.OverwriteDialog;
 import orange.wz.gui.component.form.data.NodeFormData;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.JMessageUtil;
-import orange.wz.provider.WzDirectory;
-import orange.wz.provider.WzFile;
-import orange.wz.provider.WzImage;
-import orange.wz.provider.WzObject;
+import orange.wz.provider.*;
 import orange.wz.utils.wzkey.WzKey;
 
 import javax.swing.*;
@@ -277,9 +274,16 @@ public final class WzFileMenu extends JPopupMenu {
         });
     }
 
-    private void setPasteParent(List<WzObject> objects, WzObject parent) {
+    private void setPasteParent(List<? extends WzObject> objects, WzObject parent) {
         for (WzObject obj : objects) {
             obj.setParent(parent);
+            if (obj instanceof WzDirectory directory) {
+                setPasteParent(directory.getChildren(), directory);
+            } else if (obj instanceof WzImage image) {
+                setPasteParent(image.getChildren(), image);
+            } else if (obj instanceof WzImageProperty prop && prop.isListProperty()) {
+                setPasteParent(prop.getChildren(), prop);
+            }
         }
     }
 
