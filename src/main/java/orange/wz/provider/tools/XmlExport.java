@@ -85,7 +85,7 @@ public final class XmlExport {
         return sb.toString();
     }
 
-    public static void export(WzImage image, Path filePath, boolean indent, boolean media) {
+    public static void export(WzImage image, Path filePath, int indent, boolean media) {
         try {
             // 创建 Document
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -105,11 +105,11 @@ public final class XmlExport {
             // 写入文件
             TransformerFactory tf = TransformerFactory.newInstance();
             Transformer transformer = tf.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, indent ? "yes" : "no");
+            transformer.setOutputProperty(OutputKeys.INDENT, indent > 0 ? "yes" : "no");
             transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
             transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
-            if (indent) {
-                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+            if (indent > 0) {
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", String.valueOf(indent));
             }
 
             DOMSource source = new DOMSource(doc);

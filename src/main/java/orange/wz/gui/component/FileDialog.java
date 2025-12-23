@@ -77,6 +77,12 @@ public class FileDialog {
         return chooseOpenFiles(null, "请选择文件", true, filters);
     }
 
+    public static File chooseOpenFolder(String title) {
+        List<File> selected = chooseOpenFolders(null, title, false);
+        if (selected.isEmpty()) return null;
+        return selected.getFirst();
+    }
+
     public static File chooseOpenFile(String[] filters) {
         List<File> files = chooseOpenFiles(null, "请选择文件", false, filters);
         if (files.isEmpty()) {

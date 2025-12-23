@@ -4,20 +4,20 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.Clipboard;
 import orange.wz.gui.MainFrame;
+import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.dialog.*;
 import orange.wz.gui.component.form.data.*;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.JMessageUtil;
-import orange.wz.provider.WzDirectory;
-import orange.wz.provider.WzImage;
-import orange.wz.provider.WzImageProperty;
-import orange.wz.provider.WzObject;
+import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 
 import static orange.wz.gui.Icons.*;
@@ -70,6 +70,11 @@ public final class WzImageMenu extends JPopupMenu {
         copyBtn = new JMenuItem("复制", AiOutlineCopy);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
         deleteBtn = new JMenuItem("删除节点", AiOutlineDelete);
+        JMenu exportBtn = new JMenu("导出");
+        JMenuItem exportImgBtn = new JMenuItem("Img");
+        JMenuItem exportXmlBtn = new JMenuItem("Xml");
+        exportBtn.add(exportImgBtn);
+        exportBtn.add(exportXmlBtn);
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -87,11 +92,14 @@ public final class WzImageMenu extends JPopupMenu {
         addCopyBtnAction(copyBtn);
         addPasteBtnAction(pasteBtn);
         deleteBtnAction(deleteBtn);
+        addExportImgBtnAction(exportImgBtn);
+        addExportXmlBtnAction(exportXmlBtn);
 
         add(addBtn);
         add(copyBtn);
         add(pasteBtn);
         add(deleteBtn);
+        add(exportBtn);
     }
 
     private void addCopyBtnAction(JMenuItem item) {
@@ -210,6 +218,46 @@ public final class WzImageMenu extends JPopupMenu {
                 } else {
                     log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
                 }
+            }
+        });
+    }
+
+    private void addExportImgBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
+            if (folder == null) {
+                log.info("用户取消了操作");
+                return;
+            }
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzImage wzImage = (WzImage) node.getUserObject();
+
+                wzImage.parse();
+                wzImage.save(folder.toPath().resolve(wzImage.getName()));
+            }
+        });
+    }
+
+    private void addExportXmlBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            ExportXmlDialog dialog = new ExportXmlDialog(editPane, true);
+            ExportXmlData data = dialog.getData();
+            if (data == null) return;
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzImage wzImage = (WzImage) node.getUserObject();
+
+                wzImage.parse();
+                wzImage.exportToXml(Path.of(data.getExportPath()), data.getIndent(), data.isExportMedia());
             }
         });
     }

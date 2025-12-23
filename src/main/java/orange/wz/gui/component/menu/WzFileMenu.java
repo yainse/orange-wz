@@ -5,10 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.Clipboard;
 import orange.wz.gui.MainFrame;
 import orange.wz.gui.component.FileDialog;
-import orange.wz.gui.component.dialog.ChangeKeyDialog;
-import orange.wz.gui.component.dialog.NodeDialog;
-import orange.wz.gui.component.dialog.OverwriteChoice;
-import orange.wz.gui.component.dialog.OverwriteDialog;
+import orange.wz.gui.component.dialog.*;
+import orange.wz.gui.component.form.data.ExportXmlData;
 import orange.wz.gui.component.form.data.KeyData;
 import orange.wz.gui.component.form.data.NodeFormData;
 import orange.wz.gui.component.panel.EditPane;
@@ -51,6 +49,12 @@ public final class WzFileMenu extends JPopupMenu {
         JMenuItem moveBtn = new JMenuItem("切换视图", AiOutlineEye);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
         JMenuItem keyBtn = new JMenuItem("修改密钥", AiOutlineKey);
+        JMenu exportBtn = new JMenu("导出");
+        JMenuItem exportImgBtn = new JMenuItem("Img");
+        JMenuItem exportXmlBtn = new JMenuItem("Xml");
+        exportBtn.add(exportImgBtn);
+        exportBtn.add(exportXmlBtn);
+
 
         addDirBtnAction(addDirBtn);
         addImgBtnAction(addImgBtn);
@@ -60,6 +64,8 @@ public final class WzFileMenu extends JPopupMenu {
         moveBtnAction(moveBtn);
         addPasteBtnAction(pasteBtn);
         addKeyBtnAction(keyBtn);
+        addExportImgBtnAction(exportImgBtn);
+        addExportXmlBtnAction(exportXmlBtn);
 
         add(addBtn);
         add(saveBtn);
@@ -68,6 +74,7 @@ public final class WzFileMenu extends JPopupMenu {
         add(moveBtn);
         add(pasteBtn);
         add(keyBtn);
+        add(exportBtn);
     }
 
     private void saveBtnAction(JMenuItem item) {
@@ -411,6 +418,50 @@ public final class WzFileMenu extends JPopupMenu {
                 WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
                 WzFile wzFile = wzDirectory.getWzFile();
                 wzFile.changeKey(keyData.getVersion(), keyData.getIv(), keyData.getKey());
+            }
+        });
+    }
+
+    private void addExportImgBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
+            if (folder == null) {
+                log.info("用户取消了操作");
+                return;
+            }
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
+                WzFile wzFile = wzDirectory.getWzFile();
+                if (wzFile.getName().equalsIgnoreCase("List.wz")) return;
+
+                wzFile.load();
+                wzFile.exportFileToImg(folder.toPath());
+            }
+        });
+    }
+
+    private void addExportXmlBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            ExportXmlDialog dialog = new ExportXmlDialog(editPane, true);
+            ExportXmlData data = dialog.getData();
+            if (data == null) return;
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
+                WzFile wzFile = wzDirectory.getWzFile();
+                if (wzFile.getName().equalsIgnoreCase("List.wz")) return;
+
+                wzFile.load();
+                wzFile.exportFileToXml(Path.of(data.getExportPath()), data.getIndent(), data.isExportMedia());
             }
         });
     }

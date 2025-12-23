@@ -91,10 +91,10 @@ public class WzImage extends WzObject {
         }
     }
 
-    public void exportToXml(Path path, boolean indent) {
+    public void exportToXml(Path path, int indent, boolean exportMedia) {
         boolean parseStatus = parsed;
         if (!parseStatus) parse();
-        XmlExport.export(this, path, indent, false);
+        XmlExport.export(this, path, indent, exportMedia);
         if (!parseStatus) unparse();
     }
 

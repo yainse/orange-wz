@@ -1021,9 +1021,9 @@ public final class WzEditorService {
             if (file.getName().equalsIgnoreCase("List.wz")) return;
             file.load();
 
-            file.exportFileToXml(basePath, indent);
+            file.exportFileToXml(basePath, indent ? 2 : 0, false);
         } else if (obj instanceof WzImage image) {
-            image.exportToXml(basePath.resolve(image.getName() + ".xml"), indent);
+            image.exportToXml(basePath.resolve(image.getName() + ".xml"), indent ? 2 : 0, false);
         }
     }
 

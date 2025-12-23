@@ -61,12 +61,11 @@ public final class WzFolderMenu extends JPopupMenu {
                 }
             }
 
-            List<File> folders = FileDialog.chooseOpenFolders(null, "请选择输出目录", false);
-            if (folders.size() != 1) {
-                JMessageUtil.error("一个奇怪的问题导致程序无法继续");
+            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
+            if (folder == null) {
+                log.info("用户取消了操作");
                 return;
             }
-            File folder = folders.getFirst();
 
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
             WzFolder wzFolder = (WzFolder) node.getUserObject();

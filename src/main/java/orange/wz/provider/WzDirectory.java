@@ -236,7 +236,7 @@ public class WzDirectory extends WzObject {
         children.getImages().forEach(image -> image.save(p.resolve(image.getName())));
     }
 
-    public void exportToXml(Path parentPath, boolean indent) {
+    public void exportToXml(Path parentPath, int indent, boolean exportMedia) {
         Path p = parentPath.resolve(getName());
         try {
             FileUtils.createNewDirectory(p);
@@ -244,8 +244,8 @@ public class WzDirectory extends WzObject {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }
 
-        children.getDirectories().forEach(directory -> directory.exportToXml(p, indent));
-        children.getImages().forEach(image -> image.exportToXml(p.resolve(image.getName() + ".xml"), indent));
+        children.getDirectories().forEach(directory -> directory.exportToXml(p, indent, exportMedia));
+        children.getImages().forEach(image -> image.exportToXml(p.resolve(image.getName() + ".xml"), indent, exportMedia));
     }
 
     public void parseAllImages() {

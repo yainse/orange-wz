@@ -73,6 +73,9 @@ public final class WzImageFileMenu extends JPopupMenu {
         copyBtn = new JMenuItem("复制", AiOutlineCopy);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
         JMenuItem keyBtn = new JMenuItem("修改密钥", AiOutlineKey);
+        JMenu exportBtn = new JMenu("导出");
+        JMenuItem exportXmlBtn = new JMenuItem("Xml");
+        exportBtn.add(exportXmlBtn);
 
 
         addCanvasBtnItem(addCanvasBtn);
@@ -95,6 +98,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         addCopyBtnAction(copyBtn);
         addPasteBtnAction(pasteBtn);
         addKeyBtnAction(keyBtn);
+        addExportXmlBtnAction(exportXmlBtn);
 
         add(addBtn);
         add(saveBtn);
@@ -104,6 +108,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         add(copyBtn);
         add(pasteBtn);
         add(keyBtn);
+        add(exportBtn);
     }
 
     private void saveBtnAction(JMenuItem item) {
@@ -319,6 +324,25 @@ public final class WzImageFileMenu extends JPopupMenu {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
                 WzImageFile wzImageFile = (WzImageFile) node.getUserObject();
                 wzImageFile.changeKey(keyData.getIv(), keyData.getKey());
+            }
+        });
+    }
+
+    private void addExportXmlBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            ExportXmlDialog dialog = new ExportXmlDialog(editPane, true);
+            ExportXmlData data = dialog.getData();
+            if (data == null) return;
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzImage wzImage = (WzImage) node.getUserObject();
+
+                wzImage.parse();
+                wzImage.exportToXml(Path.of(data.getExportPath()), data.getIndent(), data.isExportMedia());
             }
         });
     }
