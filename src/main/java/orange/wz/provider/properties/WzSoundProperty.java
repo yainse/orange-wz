@@ -25,8 +25,7 @@ public class WzSoundProperty extends WzExtended {
             (byte) 0x81, (byte) 0x9F, 0x58, 0x05, 0x56, (byte) 0xC3, (byte) 0xCE, 0x11, (byte) 0xBF, 0x01, 0x00, (byte) 0xAA, 0x00, 0x55, 0x59, 0x5A
     };
 
-    @Getter
-    private byte[] fileBytes;
+    private byte[] soundBytes;
     @Getter
     private int lenMs;
     private byte[] header;
@@ -44,7 +43,7 @@ public class WzSoundProperty extends WzExtended {
         waveFormat = reader.getWaveFormat();
         lenMs = reader.getLenMs();
         rebuildHeader(wzImage.getReader().getWzMutableKey());
-        fileBytes = soundBytes;
+        this.soundBytes = soundBytes;
     }
 
     public void setSound(String base64String, WzMutableKey wzMutableKey) {
@@ -57,7 +56,7 @@ public class WzSoundProperty extends WzExtended {
         waveFormat = reader.getWaveFormat();
         lenMs = reader.getLenMs();
         rebuildHeader(wzMutableKey);
-        fileBytes = soundBytes;
+        this.soundBytes = soundBytes;
     }
 
     public void setData(BinaryReader reader) {
@@ -79,7 +78,35 @@ public class WzSoundProperty extends WzExtended {
         parseWzSoundPropertyHeader(reader.getWzMutableKey(), waveFormatBytes);
 
         offset = reader.getPosition();
-        fileBytes = reader.getBytes(soundDataLen);
+        soundBytes = reader.getBytes(soundDataLen);
+    }
+
+    public byte[] getHeader() {
+        if (header == null) {
+            rebuildHeader(wzImage.getReader().getWzMutableKey());
+        }
+
+        return header;
+    }
+
+    public byte[] getSoundBytes() {
+        return getSoundBytes(true);
+    }
+
+    public byte[] getSoundBytes(boolean saveInMem) {
+        byte[] soundBytes = this.soundBytes;
+        if (soundBytes == null) {
+            BinaryReader reader = wzImage.getReader();
+            int curOffset = reader.getPosition();
+            reader.setPosition(offset);
+            soundBytes = reader.getBytes(soundDataLen);
+            reader.setPosition(curOffset);
+            if (saveInMem) {
+                this.soundBytes = soundBytes;
+            }
+        }
+
+        return soundBytes;
     }
 
     private void parseWzSoundPropertyHeader(WzMutableKey wzMutableKey, byte[] waveFormatBytes) {
@@ -177,33 +204,37 @@ public class WzSoundProperty extends WzExtended {
     }
 
     public String getBase64() {
-        if (fileBytes == null) return "";
-        return Base64.getEncoder().encodeToString(fileBytes);
+        byte[] soundBytes = getSoundBytes(false);
+        if (soundBytes == null) return "";
+        return Base64.getEncoder().encodeToString(soundBytes);
     }
 
     public String getHeaderBase64() {
+        byte[] header = getHeader();
         if (header == null) return "";
         return Base64.getEncoder().encodeToString(header);
     }
 
     @Override
     public void writeValue(BinaryWriter writer) {
+        byte[] soundBytes = getSoundBytes(false);
         writer.writeStringBlock(WzExtendedType.SOUND.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
         writer.putByte((byte) 0);
-        writer.writeCompressedInt(fileBytes.length);
+        writer.writeCompressedInt(soundBytes.length);
         writer.writeCompressedInt(lenMs);
-        writer.putBytes(header);
-        writer.putBytes(fileBytes);
+        writer.putBytes(getHeader());
+        writer.putBytes(soundBytes);
     }
 
     @Override
     public WzSoundProperty deepClone(WzObject parent) {
         WzSoundProperty clone = new WzSoundProperty(name, parent, null);
-        clone.fileBytes = Arrays.copyOf(fileBytes, fileBytes.length);
+        byte[] soundBytes = getSoundBytes(false);
+        clone.soundBytes = Arrays.copyOf(soundBytes, soundBytes.length);
         clone.lenMs = lenMs;
-        clone.header = Arrays.copyOf(header, header.length);
+        // clone.header = Arrays.copyOf(header, header.length); // header 需要用key 重新生成
         clone.headerEncrypted = headerEncrypted;
-        clone.offset = offset;
+        // clone.offset = offset;
         clone.soundDataLen = soundDataLen;
         clone.waveFormat = waveFormat.deepCopy();
         return clone;

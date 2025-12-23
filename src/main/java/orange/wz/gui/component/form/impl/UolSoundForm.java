@@ -24,7 +24,7 @@ public class UolSoundForm extends SoundForm {
         if (sound == null) {
             log.warn("sound is null");
         } else {
-            bytes = sound.getFileBytes();
+            bytes = sound.getSoundBytes();
         }
 
         setData(name, type, bytes, wzObject, editPane);
