@@ -35,6 +35,30 @@ public class WzFolder extends WzObject {
         return children.getAllChildren();
     }
 
+    public void add(WzFolder folder) {
+        children.add(folder);
+    }
+
+    public void add(WzDirectory wzFile) {
+        children.add(wzFile);
+    }
+
+    public void add(WzImageFile wzImage) {
+        children.add(wzImage);
+    }
+
+    public boolean remove(WzObject wzObject) {
+        if (wzObject instanceof WzFolder) {
+            return children.removeFolder(wzObject.getName());
+        } else if (wzObject instanceof WzDirectory) {
+            return children.removeWzFile(wzObject.getName());
+        } else if (wzObject instanceof WzImageFile) {
+            return children.removeWzImageFile(wzObject.getName());
+        }
+
+        return false;
+    }
+
     public void loadFolder() {
         Path folderPath = Path.of(filePath);
         log.debug("加载目录: {}", folderPath);

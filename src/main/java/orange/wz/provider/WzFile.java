@@ -185,11 +185,11 @@ public class WzFile extends WzObject {
             return false;
         }
 
-        WzImage testImage = testDirectory.getImages().getFirst();
-        if (testImage == null) { // todo 还有特别版本的需要处理
+        if (testDirectory.getImages().isEmpty()) { // todo 还有特别版本的需要处理
             reader.setPosition(originalPosition);
             return true;
         }
+        WzImage testImage = testDirectory.getImages().getFirst();
         try {
             reader.setPosition(testImage.getOffset());
             byte checkByte = reader.getByte();

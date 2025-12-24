@@ -163,6 +163,7 @@ public final class WzDirectoryMenu extends JPopupMenu {
                 JMessageUtil.error("Directory 只能粘贴 Directory 或者 Image");
             }
 
+            editPane.resetValueForm();
             clipboard.clear();
             clipboard.unlock();
         });
@@ -216,6 +217,8 @@ public final class WzDirectoryMenu extends JPopupMenu {
                     log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
                 }
             }
+
+            editPane.resetValueForm();
         });
     }
 

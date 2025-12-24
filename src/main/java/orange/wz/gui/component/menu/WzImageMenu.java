@@ -190,6 +190,7 @@ public final class WzImageMenu extends JPopupMenu {
                 JMessageUtil.error("Image 只能粘贴 Property");
             }
 
+            editPane.resetValueForm();
             clipboard.clear();
             clipboard.unlock();
         });
@@ -234,6 +235,7 @@ public final class WzImageMenu extends JPopupMenu {
                     log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
                 }
             }
+            editPane.resetValueForm();
         });
     }
 

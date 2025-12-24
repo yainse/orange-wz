@@ -179,6 +179,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
                 JMessageUtil.error("Property 只能粘贴 Property");
             }
 
+            editPane.resetValueForm();
             clipboard.clear();
             clipboard.unlock();
         });
@@ -225,6 +226,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
                     log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
                 }
             }
+            editPane.resetValueForm();
         });
     }
 

@@ -52,4 +52,22 @@ public class WzChildrenFolder {
     public void add(WzImageFile wzImage) {
         wzImages.add(wzImage);
     }
+
+    public boolean removeFolder(String name) {
+        synchronized (folders) {
+            return folders.removeIf(item -> item.getName().equalsIgnoreCase(name));
+        }
+    }
+
+    public boolean removeWzFile(String name) {
+        synchronized (wzFiles) {
+            return wzFiles.removeIf(item -> item.getName().equalsIgnoreCase(name));
+        }
+    }
+
+    public boolean removeWzImageFile(String name) {
+        synchronized (wzImages) {
+            return wzImages.removeIf(item -> item.getName().equalsIgnoreCase(name));
+        }
+    }
 }

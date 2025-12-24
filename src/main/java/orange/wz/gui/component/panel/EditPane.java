@@ -17,6 +17,7 @@ import java.awt.event.*;
 import java.io.File;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static orange.wz.gui.Icons.*;
@@ -27,18 +28,6 @@ public final class EditPane extends JSplitPane {
     private DefaultMutableTreeNode treeRoot;
 
     private JPanel formCards;
-    private NodeForm nodeForm;
-    private CanvasForm canvasForm;
-    private DoubleForm doubleForm;
-    private FloatForm floatForm;
-    private IntForm intForm;
-    private LongForm longForm;
-    private ShortForm shortForm;
-    private SoundForm soundForm;
-    private StringForm stringForm;
-    private UolCanvasForm uolCanvasForm;
-    private UolSoundForm uolSoundForm;
-    private VectorForm vectorForm;
 
     private WzFileMenu wzFilePopupMenu;
     private WzFolderMenu wzFolderPopupMenu;
@@ -47,6 +36,70 @@ public final class EditPane extends JSplitPane {
     private WzImageMenu wzImagePopupMenu;
     private WzListPropertyMenu wzListPropertyPopupMenu;
     private WzValuePropertyMenu wzValuePropertyPopupMenu;
+
+    private String currentFormName;
+    private final Map<String, AbstractValueForm> nodeForms = Map.ofEntries(
+            Map.entry("node", new NodeForm()),
+            Map.entry("canvas", new CanvasForm()),
+            Map.entry("double", new DoubleForm()),
+            Map.entry("float", new FloatForm()),
+            Map.entry("int", new IntForm()),
+            Map.entry("long", new LongForm()),
+            Map.entry("short", new ShortForm()),
+            Map.entry("sound", new SoundForm()),
+            Map.entry("string", new StringForm()),
+            Map.entry("uolCanvas", new UolCanvasForm()),
+            Map.entry("uolSound", new UolSoundForm()),
+            Map.entry("vector", new VectorForm())
+    );
+
+    public NodeForm getNodeForm() {
+        return (NodeForm) nodeForms.get("node");
+    }
+
+    public CanvasForm getCanvasForm() {
+        return (CanvasForm) nodeForms.get("canvas");
+    }
+
+    public DoubleForm getDoubleForm() {
+        return (DoubleForm) nodeForms.get("double");
+    }
+
+    public FloatForm getFloatForm() {
+        return (FloatForm) nodeForms.get("float");
+    }
+
+    public IntForm getIntForm() {
+        return (IntForm) nodeForms.get("int");
+    }
+
+    public LongForm getLongForm() {
+        return (LongForm) nodeForms.get("long");
+    }
+
+    public ShortForm getShortForm() {
+        return (ShortForm) nodeForms.get("short");
+    }
+
+    public SoundForm getSoundForm() {
+        return (SoundForm) nodeForms.get("sound");
+    }
+
+    public StringForm getStringForm() {
+        return (StringForm) nodeForms.get("string");
+    }
+
+    public UolCanvasForm getUolCanvasForm() {
+        return (UolCanvasForm) nodeForms.get("uolCanvas");
+    }
+
+    public UolSoundForm getUolSoundForm() {
+        return (UolSoundForm) nodeForms.get("uolSound");
+    }
+
+    public VectorForm getVectorForm() {
+        return (VectorForm) nodeForms.get("vector");
+    }
 
     public EditPane(boolean oneTouchExpandable) {
         super();
@@ -242,33 +295,9 @@ public final class EditPane extends JSplitPane {
         formCards.setMinimumSize(new Dimension(0, 0));
         formCards.setPreferredSize(new Dimension(0, 0));
 
-        // 初始化表单
-        nodeForm = new NodeForm();
-        canvasForm = new CanvasForm();
-        doubleForm = new DoubleForm();
-        floatForm = new FloatForm();
-        intForm = new IntForm();
-        longForm = new LongForm();
-        shortForm = new ShortForm();
-        soundForm = new SoundForm();
-        stringForm = new StringForm();
-        uolCanvasForm = new UolCanvasForm();
-        uolSoundForm = new UolSoundForm();
-        vectorForm = new VectorForm();
-
-        // 包一层 BoxLayout，让控件贴顶部
-        formCards.add(nodeForm.getValuePane(), "node");
-        formCards.add(canvasForm.getValuePane(), "canvas");
-        formCards.add(doubleForm.getValuePane(), "double");
-        formCards.add(floatForm.getValuePane(), "float");
-        formCards.add(intForm.getValuePane(), "int");
-        formCards.add(longForm.getValuePane(), "long");
-        formCards.add(shortForm.getValuePane(), "short");
-        formCards.add(soundForm.getValuePane(), "sound");
-        formCards.add(stringForm.getValuePane(), "string");
-        formCards.add(uolCanvasForm.getValuePane(), "uolCanvas");
-        formCards.add(uolSoundForm.getValuePane(), "uolSound");
-        formCards.add(vectorForm.getValuePane(), "vector");
+        for (var obj : nodeForms.entrySet()) {
+            formCards.add(obj.getValue().getValuePane(), obj.getKey());
+        }
 
         // 默认显示 node 表单
         ((CardLayout) formCards.getLayout()).show(formCards, "node");
@@ -279,82 +308,87 @@ public final class EditPane extends JSplitPane {
     private void switchForm(String formName) {
         CardLayout cl = (CardLayout) (formCards.getLayout());
         cl.show(formCards, formName);
+
+        if (currentFormName != null && !currentFormName.equals(formName)) {
+            nodeForms.get(currentFormName).onHide();
+        }
+        currentFormName = formName;
     }
 
     private void handleTreeClick(WzObject wzObject) {
         switch (wzObject) {
             case WzFolder obj -> {
-                nodeForm.setData(obj.getName(), WzType.FOLDER.name(), wzObject, this);
+                getNodeForm().setData(obj.getName(), WzType.FOLDER.name(), wzObject, this);
                 switchForm("node");
             }
             case WzDirectory obj -> {
                 if (obj.isWzFile()) {
-                    nodeForm.setData(obj.getName(), WzType.WZ_FILE.name(), wzObject, this);
+                    getNodeForm().setData(obj.getName(), WzType.WZ_FILE.name(), wzObject, this);
                 } else {
-                    nodeForm.setData(obj.getName(), WzType.DIRECTORY.name(), wzObject, this);
+                    getNodeForm().setData(obj.getName(), WzType.DIRECTORY.name(), wzObject, this);
                 }
                 switchForm("node");
             }
             case WzImage obj -> {
-                nodeForm.setData(obj.getName(), WzType.IMAGE.name(), wzObject, this);
+                getNodeForm().setData(obj.getName(), WzType.IMAGE.name(), wzObject, this);
                 switchForm("node");
             }
             case WzCanvasProperty obj -> {
-                canvasForm.setData(obj.getName(), WzType.CANVAS_PROPERTY.name(), obj.getPngImage(true), obj.getWidth(), obj.getHeight(), obj.getPngFormat(), wzObject, this);
+                getCanvasForm().setData(obj.getName(), WzType.CANVAS_PROPERTY.name(), obj.getPngImage(true), obj.getWidth(), obj.getHeight(), obj.getPngFormat(), wzObject, this);
                 switchForm("canvas");
             }
             case WzConvexProperty obj -> {
-                nodeForm.setData(obj.getName(), WzType.CONVEX_PROPERTY.name(), wzObject, this);
+                getNodeForm().setData(obj.getName(), WzType.CONVEX_PROPERTY.name(), wzObject, this);
                 switchForm("node");
             }
             case WzDoubleProperty obj -> {
-                doubleForm.setData(obj.getName(), WzType.DOUBLE_PROPERTY.name(), obj.getValue(), wzObject, this);
+                getDoubleForm().setData(obj.getName(), WzType.DOUBLE_PROPERTY.name(), obj.getValue(), wzObject, this);
                 switchForm("double");
             }
             case WzFloatProperty obj -> {
-                floatForm.setData(obj.getName(), WzType.FLOAT_PROPERTY.name(), obj.getValue(), wzObject, this);
+                getFloatForm().setData(obj.getName(), WzType.FLOAT_PROPERTY.name(), obj.getValue(), wzObject, this);
                 switchForm("float");
             }
             case WzIntProperty obj -> {
-                intForm.setData(obj.getName(), WzType.INT_PROPERTY.name(), obj.getValue(), wzObject, this);
+                getIntForm().setData(obj.getName(), WzType.INT_PROPERTY.name(), obj.getValue(), wzObject, this);
                 switchForm("int");
             }
             case WzListProperty obj -> {
-                nodeForm.setData(obj.getName(), WzType.LIST_PROPERTY.name(), wzObject, this);
+                getNodeForm().setData(obj.getName(), WzType.LIST_PROPERTY.name(), wzObject, this);
                 switchForm("node");
             }
             case WzLongProperty obj -> {
-                longForm.setData(obj.getName(), WzType.LONG_PROPERTY.name(), obj.getValue(), wzObject, this);
+                getLongForm().setData(obj.getName(), WzType.LONG_PROPERTY.name(), obj.getValue(), wzObject, this);
                 switchForm("long");
             }
             case WzNullProperty obj -> {
-                nodeForm.setData(obj.getName(), WzType.NULL_PROPERTY.name(), wzObject, this);
+                getNodeForm().setData(obj.getName(), WzType.NULL_PROPERTY.name(), wzObject, this);
                 switchForm("node");
             }
             case WzShortProperty obj -> {
-                shortForm.setData(obj.getName(), WzType.SHORT_PROPERTY.name(), obj.getValue(), wzObject, this);
+                getShortForm().setData(obj.getName(), WzType.SHORT_PROPERTY.name(), obj.getValue(), wzObject, this);
                 switchForm("short");
             }
             case WzSoundProperty obj -> {
-                soundForm.setData(obj.getName(), WzType.SOUND_PROPERTY.name(), obj.getSoundBytes(), wzObject, this);
+                getSoundForm().setData(obj.getName(), WzType.SOUND_PROPERTY.name(), obj.getSoundBytes(), wzObject, this);
                 switchForm("sound");
             }
             case WzStringProperty obj -> {
-                stringForm.setData(obj.getName(), WzType.STRING_PROPERTY.name(), obj.getValue(), wzObject, this);
+                getStringForm().setData(obj.getName(), WzType.STRING_PROPERTY.name(), obj.getValue(), wzObject, this);
                 switchForm("string");
             }
             case WzUOLProperty obj -> {
                 WzObject target = obj.getUolTarget();
                 if (target instanceof WzCanvasProperty cav) {
-                    uolCanvasForm.setData(obj.getName(), WzType.UOL_PROPERTY.name(), obj.getValue(), cav, wzObject, this);
+                    getUolCanvasForm().setData(obj.getName(), WzType.UOL_PROPERTY.name(), obj.getValue(), cav, wzObject, this);
                     switchForm("uolCanvas");
                 } else if (target instanceof WzSoundProperty sound) {
-                    uolSoundForm.setData(obj.getName(), WzType.UOL_PROPERTY.name(), obj.getValue(), sound, wzObject, this);
+                    getUolSoundForm().setData(obj.getName(), WzType.UOL_PROPERTY.name(), obj.getValue(), sound, wzObject, this);
                     switchForm("uolSound");
                 }
             }
             case WzVectorProperty obj -> {
-                vectorForm.setData(obj.getName(), WzType.VECTOR_PROPERTY.name(), obj.getX(), obj.getY(), wzObject, this);
+                getVectorForm().setData(obj.getName(), WzType.VECTOR_PROPERTY.name(), obj.getX(), obj.getY(), wzObject, this);
                 switchForm("vector");
             }
             default -> {
@@ -560,6 +594,12 @@ public final class EditPane extends JSplitPane {
         if (node.getParent() == null) return;
 
         model.removeNodeFromParent(node);
+    }
+
+    public void resetValueForm() {
+        // 重置编辑框，否则卸载文件后，编辑框占用着 wzObject 无法释放内存
+        getNodeForm().setData("", "", null, this);
+        switchForm("node");
     }
 
     public void syncTreeClick(WzObject object) {

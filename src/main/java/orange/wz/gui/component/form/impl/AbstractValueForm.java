@@ -88,6 +88,10 @@ public abstract class AbstractValueForm {
         this.editPane = editPane;
     }
 
+    public void onHide() {
+        curWzObject = null;
+    }
+
     public abstract NodeFormData getData();
 }
 

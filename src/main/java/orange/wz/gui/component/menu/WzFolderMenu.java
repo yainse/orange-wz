@@ -119,8 +119,16 @@ public final class WzFolderMenu extends JPopupMenu {
 
             for (TreePath treePath : selectedPaths) {
                 editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
+
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzFolder folder = (WzFolder) node.getUserObject();
+                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                if (pNode.getUserObject() instanceof WzFolder pFolder) {
+                    pFolder.remove(folder);
+                }
             }
 
+            editPane.resetValueForm();
             System.gc();
         });
     }

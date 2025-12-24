@@ -81,6 +81,7 @@ public final class WzValuePropertyMenu extends JPopupMenu {
                     log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
                 }
             }
+            editPane.resetValueForm();
         });
     }
 

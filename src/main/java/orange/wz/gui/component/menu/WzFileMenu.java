@@ -147,6 +147,7 @@ public final class WzFileMenu extends JPopupMenu {
                 }
             }
 
+            editPane.resetValueForm();
             System.gc();
         });
     }
@@ -158,8 +159,16 @@ public final class WzFileMenu extends JPopupMenu {
 
             for (TreePath treePath : selectedPaths) {
                 editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
+
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzDirectory wzFile = (WzDirectory) node.getUserObject();
+                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
+                    wzFolder.remove(wzFile);
+                }
             }
 
+            editPane.resetValueForm();
             System.gc();
         });
     }
@@ -174,15 +183,23 @@ public final class WzFileMenu extends JPopupMenu {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
                 DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
                 int index = pNode.getIndex(node);
-                WzFile wzFile = ((WzDirectory) node.getUserObject()).getWzFile();
-                String filePath = wzFile.getFilePath();
-                short version = wzFile.getHeader().getFileVersion();
+                WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
+                WzFile wzFileOld = wzDirectory.getWzFile();
+                String filePath = wzFileOld.getFilePath();
+                short version = wzFileOld.getHeader().getFileVersion();
 
                 editPane.removeNodeFromTree(node);
-                wzFile = new WzFile(filePath, version, key.getIv(), key.getUserKey());
-                editPane.insertNodeToTree(pNode, wzFile.getWzDirectory(), true, index);
+
+                WzFile wzFileNew = new WzFile(filePath, version, key.getIv(), key.getUserKey());
+                editPane.insertNodeToTree(pNode, wzFileNew.getWzDirectory(), true, index);
+
+                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
+                    wzFolder.remove(wzFileOld.getWzDirectory());
+                    wzFolder.add(wzFileNew.getWzDirectory());
+                }
             }
 
+            editPane.resetValueForm();
             System.gc();
         });
     }
@@ -203,6 +220,7 @@ public final class WzFileMenu extends JPopupMenu {
                 targetPane.insertNodeToTree(targetPane.getTreeRoot(), wzDirectory, true);
                 editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
             }
+            editPane.resetValueForm();
         });
     }
 
@@ -287,6 +305,7 @@ public final class WzFileMenu extends JPopupMenu {
                 JMessageUtil.error("WzFile 只能粘贴 Directory 或者 Image");
             }
 
+            editPane.resetValueForm();
             clipboard.clear();
             clipboard.unlock();
         });
