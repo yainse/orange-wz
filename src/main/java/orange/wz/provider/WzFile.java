@@ -25,6 +25,9 @@ public class WzFile extends WzObject {
     private BinaryReader reader;
     private boolean load = false;
 
+    private boolean withEncVerHeader = true;  // KMS update after Q4 2021, ver 1.2.357 does not contain any wz enc header information
+    public static final short verHeader64BitStart = 770;
+
     // 初始化 -----------------------------------------------------------------------------------------------------------
     public WzFile(String filePath, short fileVersion, byte[] iv, byte[] key) {
         super(Path.of(filePath).getFileName().toString(), WzType.WZ_FILE, null);
@@ -42,6 +45,10 @@ public class WzFile extends WzObject {
         wzFile.reader = new BinaryReader(iv, key);
         wzFile.load = true;
         return wzFile;
+    }
+
+    public boolean is64BitWzFile() {
+        return !withEncVerHeader;
     }
 
     public WzMutableKey getWzMutableKey() {
@@ -68,13 +75,29 @@ public class WzFile extends WzObject {
         header.setFileSize(reader.getLong());
         header.setDataStartPos(reader.getInt());
         header.setCopyright(reader.readNullTerminatedString());
+
+        withEncVerHeader = check64BitClient();
         reader.setPosition(header.getDataStartPos());
-        short encVersion = reader.getShort();
+
+        // the value of wzVersionHeader is less important. It is used for reading/writing from/to WzFile Header, and calculating the versionHash.
+        // it can be any number if the client is 64-bit. Assigning 777 is just for convenience when calculating the versionHash.
+        short encVersion = withEncVerHeader ? reader.getShort() : verHeader64BitStart;
         header.setEncVersion(encVersion);
 
         if (header.getFileVersion() == -1) {
-            short TEST_VERSION_MAX = 2000;
+            if (is64BitWzFile()) {
+                for (short testVersion = verHeader64BitStart; testVersion < verHeader64BitStart + 10; testVersion++) { // 770 ~ 780
+                    if (tryDecode(encVersion, testVersion)) {
+                        header.setFileVersion(testVersion);
+                        wzDirectory.parse(reader);
+                        load = true;
+                        return;
+                    }
+                }
+            }
+
             boolean checked = false;
+            short TEST_VERSION_MAX = 2000;
             for (short testVersion = 0; testVersion < TEST_VERSION_MAX; testVersion++) {
                 if (tryDecode(encVersion, testVersion)) {
                     // tryDecode 只会设置 versionHash 用于解密，这里的 wzDir 对象已经绑定到 JTree 里，不能在 tryDecode 重设，只能在这重解析
@@ -100,6 +123,36 @@ public class WzFile extends WzObject {
         }
     }
 
+    private boolean check64BitClient() {
+        boolean withEncVerHeader = true;
+        if (header.getFileSize() >= 2) {
+            reader.setPosition(header.getDataStartPos());
+            int encVersion = reader.getShort();
+            if (encVersion > 0xff) {  // encVersion 永远低于 256
+                withEncVerHeader = false;
+            } else if (encVersion == 0x80) {
+                // there's an exceptional case that the first field of data part is a compressed int which determined property count,
+                // if the value greater than 127 and also to be a multiple of 256, the first 5 bytes will become to
+                //   80 00 xx xx xx
+                // so we additional check the int value, at most time the child node count in a wz won't greater than 65536.
+                if (header.getFileSize() >= 5) {
+                    reader.setPosition(header.getDataStartPos());
+                    int propCount = reader.getInt();
+                    if (propCount > 0 && (propCount & 0xff) == 0 && propCount <= 0xffff) {
+                        withEncVerHeader = false;
+                    }
+                }
+            } else {
+                // old wz file with header version
+            }
+        } else {
+            // Obviously, if data part have only 1 byte, encver must be deleted.
+            withEncVerHeader = false;
+        }
+
+        return withEncVerHeader;
+    }
+
     public void save() {
         save(filePath);
     }
@@ -114,7 +167,7 @@ public class WzFile extends WzObject {
             log.info("保存 {} Generate Data File 1/4", getName());
             wzDirectory.generateDataFile(tempWriter, tempStringCache);
             tempStringCache.clear();
-            int totalLen = wzDirectory.getImgOffsets(wzDirectory.getOffsets(header.getDataStartPos() + 2));
+            int totalLen = wzDirectory.getImgOffsets(wzDirectory.getOffsets(header.getDataStartPos() + (is64BitWzFile() ? 0 : 2)));
             BinaryWriter writer = new BinaryWriter(true);
             writer.setWzMutableKey(getWzMutableKey());
             header.setFileSize(totalLen - header.getDataStartPos());
@@ -128,7 +181,9 @@ public class WzFile extends WzObject {
             if (extraHeaderLength > 0) {
                 writer.putBytes(new byte[(int) extraHeaderLength]);
             }
-            writer.putShort(header.getEncVersion());
+            if (!is64BitWzFile()) {
+                writer.putShort(header.getEncVersion());
+            }
             log.info("保存 {} Wz Dirs 2/4", getName());
             wzDirectory.saveDirectory(writer);
             writer.getStringCache().clear();
@@ -185,9 +240,15 @@ public class WzFile extends WzObject {
             return false;
         }
 
-        if (testDirectory.getImages().isEmpty()) { // todo 还有特别版本的需要处理
-            reader.setPosition(originalPosition);
-            return true;
+        if (testDirectory.getImages().isEmpty()) {
+            if (is64BitWzFile() && fileVersion == 113) {
+                header.setVersionHash(originalHash);
+                reader.setPosition(originalPosition);
+                return false;
+            } else {
+                reader.setPosition(originalPosition);
+                return true;
+            }
         }
         WzImage testImage = testDirectory.getImages().getFirst();
         try {

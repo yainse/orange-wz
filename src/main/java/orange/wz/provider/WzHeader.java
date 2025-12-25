@@ -32,6 +32,9 @@ public final class WzHeader {
 
     public int checkAndGetVersionHash(short checkEncVersion, short fileVersion) {
         int versionHash = calcVersionHash(fileVersion);
+
+        if (checkEncVersion == WzFile.verHeader64BitStart) return versionHash; // 永远是 59192
+
         int encVersion = encryptVersionHash(versionHash);
 
         if (checkEncVersion == encVersion) {
