@@ -1,5 +1,6 @@
 package orange.wz.gui.utils;
 
+import orange.wz.gui.MainFrame;
 import orange.wz.provider.WzDirectory;
 import orange.wz.provider.WzFile;
 import orange.wz.provider.WzImage;
@@ -12,8 +13,11 @@ public final class ChineseUtil {
         if (from == null || to == null) return;
 
         if (to instanceof WzFile toFile && from instanceof WzFile fromFile) {
-            toFile.load();
-            fromFile.load();
+            if (!toFile.parse() || !fromFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 或 文件 %s 解析失败", toFile.getName(), fromFile.getName());
+                throw new RuntimeException();
+            }
+
             toFile.getWzDirectory().getDirectories().forEach(toDir -> chinese(fromFile.getWzDirectory().getDirectory(toDir.getName()), toDir));
             toFile.getWzDirectory().getImages().forEach(toImage -> chinese(fromFile.getWzDirectory().getImage(toImage.getName()), toImage));
         } else if (to instanceof WzDirectory toDirectory && from instanceof WzDirectory fromDirectory) {

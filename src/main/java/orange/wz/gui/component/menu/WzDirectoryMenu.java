@@ -248,7 +248,10 @@ public final class WzDirectoryMenu extends JPopupMenu {
 
             WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
             WzFile wzFile = wzDirectory.getWzFile();
-            wzFile.load();
+            if (!wzFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                throw new RuntimeException();
+            }
 
             WzDirectory newDir = new WzDirectory(name, wzDirectory, wzFile);
             if (!wzDirectory.addChild(newDir)) {
@@ -293,7 +296,10 @@ public final class WzDirectoryMenu extends JPopupMenu {
 
             WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
             WzFile wzFile = wzDirectory.getWzFile();
-            wzFile.load();
+            if (!wzFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                throw new RuntimeException();
+            }
 
             WzImage newImg = new WzImage(name, wzFile.getReader(), wzDirectory);
             newImg.setParsed(true);

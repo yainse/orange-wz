@@ -415,8 +415,9 @@ public final class EditPane extends JSplitPane {
                         }
                     }
                     case WzDirectory wzDir -> {
-                        if (wzDir.isWzFile()) {
-                            wzDir.getWzFile().load();
+                        if (wzDir.isWzFile() && !wzDir.getWzFile().parse()) {
+                            MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzDir.getName(), wzDir.getWzFile().getStatus().getMessage());
+                            throw new RuntimeException();
                         }
                         addChildrenRecursively(node, wzDir, true);
                     }

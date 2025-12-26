@@ -2,10 +2,7 @@ package orange.wz.provider;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import orange.wz.provider.tools.BinaryReader;
-import orange.wz.provider.tools.BinaryWriter;
-import orange.wz.provider.tools.WzMutableKey;
-import orange.wz.provider.tools.WzType;
+import orange.wz.provider.tools.*;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -23,7 +20,7 @@ public class WzFile extends WzObject {
     private byte[] wzIv;
     private byte[] userKey;
     private BinaryReader reader;
-    private boolean load = false;
+    private WzFileStatus status = WzFileStatus.UNPARSE;
 
     private boolean withEncVerHeader = true;  // KMS update after Q4 2021, ver 1.2.357 does not contain any wz enc header information
     public static final short verHeader64BitStart = 770;
@@ -43,7 +40,7 @@ public class WzFile extends WzObject {
 
         wzFile.header = WzHeader.getDefault(fileVersion);
         wzFile.reader = new BinaryReader(iv, key);
-        wzFile.load = true;
+        wzFile.status = WzFileStatus.PARSE_SUCCESS;
         return wzFile;
     }
 
@@ -55,19 +52,21 @@ public class WzFile extends WzObject {
         return reader.getWzMutableKey();
     }
 
-    public void load() {
-        if (load) return;
+    public boolean parse() {
+        if (status == WzFileStatus.PARSE_SUCCESS) return true;
 
         if (filePath == null || !filePath.endsWith(".wz")) {
             log.error("路径为空或者不是wz文件");
-            return;
+            status = WzFileStatus.ERROR_PATH;
+            return false;
         }
 
         Path wzPath = Path.of(filePath);
 
         if (!Files.exists(wzPath) || !Files.isRegularFile(wzPath)) {
             log.error("wz 文件不存在: {}", wzPath);
-            return;
+            status = WzFileStatus.ERROR_PATH;
+            return false;
         }
 
         reader = new BinaryReader(wzPath.toString(), wzIv, userKey);
@@ -90,36 +89,37 @@ public class WzFile extends WzObject {
                     if (tryDecode(encVersion, testVersion)) {
                         header.setFileVersion(testVersion);
                         wzDirectory.parse(reader);
-                        load = true;
-                        return;
+                        status = WzFileStatus.PARSE_SUCCESS;
+                        return true;
                     }
                 }
             }
 
-            boolean checked = false;
             short TEST_VERSION_MAX = 2000;
             for (short testVersion = 0; testVersion < TEST_VERSION_MAX; testVersion++) {
                 if (tryDecode(encVersion, testVersion)) {
                     // tryDecode 只会设置 versionHash 用于解密，这里的 wzDir 对象已经绑定到 JTree 里，不能在 tryDecode 重设，只能在这重解析
                     header.setFileVersion(testVersion);
                     wzDirectory.parse(reader);
-                    load = true;
-                    checked = true;
-                    break;
+                    status = WzFileStatus.PARSE_SUCCESS;
+                    return true;
                 }
             }
 
-            if (!checked) {
-                throw new RuntimeException("文件版本错误");
-            }
+            status = WzFileStatus.ERROR_FILE_VERSION;
+            log.error(status.getMessage());
+            return false;
         } else {
             int versionHash = header.checkAndGetVersionHash(encVersion, header.getFileVersion());
             if (versionHash == 0) {
-                throw new RuntimeException("文件版本错误");
+                status = WzFileStatus.ERROR_FILE_VERSION;
+                log.error(status.getMessage());
+                return false;
             }
             header.setVersionHash(versionHash);
             wzDirectory.parse(reader);
-            load = true;
+            status = WzFileStatus.PARSE_SUCCESS;
+            return true;
         }
     }
 
@@ -142,11 +142,10 @@ public class WzFile extends WzObject {
                         withEncVerHeader = false;
                     }
                 }
-            } else {
-                // old wz file with header version
             }
+            // old wz file with header version
         } else {
-            // Obviously, if data part have only 1 byte, encver must be deleted.
+            // Obviously, if data part have only 1 byte, encVersion must be deleted.
             withEncVerHeader = false;
         }
 
@@ -158,7 +157,7 @@ public class WzFile extends WzObject {
     }
 
     public void save(String path) {
-        if (!load) return;
+        if (status != WzFileStatus.PARSE_SUCCESS) return;
         log.info("保存 {} 开始", getName());
         String saveFile = Path.of(path).toString();
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(saveFile, "rw")) {
@@ -207,7 +206,9 @@ public class WzFile extends WzObject {
     }
 
     public void changeKey(short gameVersion, byte[] iv, byte[] key) {
-        load(); // 先解析把原有内容解码出来缓存在内存里
+        // 先解析把原有内容解码出来缓存在内存里
+        if (!parse()) return;
+
         wzDirectory.parseAllImages();
         wzIv = iv;
         userKey = key;

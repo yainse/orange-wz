@@ -55,7 +55,12 @@ public final class Outlink {
         if (lastCanvasPath != null && lastCanvasPath.equals(canvasPath)) return true;
         resetCache();
 
-        wzFile.load(); // 确保version已经生成
+        // 确保version已经生成
+        if (!wzFile.parse()) {
+            MainFrame.getInstance().setStatusText("文件 %s 解析失败", wzFile.getName());
+            throw new RuntimeException();
+        }
+
         short version = wzFile.getHeader().getFileVersion();
         byte[] iv = wzFile.getWzIv();
         byte[] key = wzFile.getUserKey();
@@ -71,7 +76,10 @@ public final class Outlink {
                 if (!fileName.startsWith("_Canvas_")) continue;
 
                 WzFile canvasWz = new WzFile(path.toString(), version, iv, key);
-                canvasWz.load();
+                if (!canvasWz.parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 解析失败", canvasWz.getName());
+                    throw new RuntimeException();
+                }
                 canvasCache.add(canvasWz.getWzDirectory());
             }
             return true;

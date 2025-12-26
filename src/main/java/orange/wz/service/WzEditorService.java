@@ -259,7 +259,7 @@ public final class WzEditorService {
 
     private void loadWzNode(WzNode node) {
         if (node.getWzObject() instanceof WzFile wz) {
-            wz.load();
+            wz.parse();
             if (node.getChildren().isEmpty()) {
                 List<WzNode> children = new ArrayList<>();
                 wz.getWzDirectory().getDirectories().forEach(dir -> {
@@ -779,7 +779,7 @@ public final class WzEditorService {
         WzNode node;
         switch (pNode.getWzObject()) {
             case WzFile wzFile -> {
-                wzFile.load();
+                wzFile.parse();
                 if (data.getType() == WzNodeType.WZ_DIRECTORY) {
                     if (wzFile.getWzDirectory().existDirectory(data.getName())) {
                         throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "已有相同节点名了");
@@ -987,7 +987,7 @@ public final class WzEditorService {
         WzObject obj = node.getWzObject();
         if (obj instanceof WzFile file) {
             if (file.getName().equalsIgnoreCase("List.wz")) return;
-            file.load();
+            file.parse();
 
             file.exportFileToImg(basePath);
         }
@@ -1019,7 +1019,7 @@ public final class WzEditorService {
         WzObject obj = node.getWzObject();
         if (obj instanceof WzFile file) {
             if (file.getName().equalsIgnoreCase("List.wz")) return;
-            file.load();
+            file.parse();
 
             file.exportFileToXml(basePath, indent ? 2 : 0, false);
         } else if (obj instanceof WzImage image) {
@@ -1113,7 +1113,7 @@ public final class WzEditorService {
 
         cavFiles.forEach(cavFile -> cavWzFiles.add(new WzFile(cavFile.toString(), fileVersion, iv, key)));
         for (WzFile cavWzFile : cavWzFiles) {
-            cavWzFile.load();
+            cavWzFile.parse();
         }
     }
 
@@ -1219,8 +1219,8 @@ public final class WzEditorService {
         if (from == null || to == null) return;
 
         if (to instanceof WzFile toFile && from instanceof WzFile fromFile) {
-            toFile.load();
-            fromFile.load();
+            toFile.parse();
+            fromFile.parse();
             toFile.getWzDirectory().getDirectories().forEach(toDir -> localization(fromFile.getWzDirectory().getDirectory(toDir.getName()), toDir));
             toFile.getWzDirectory().getImages().forEach(toImage -> localization(fromFile.getWzDirectory().getImage(toImage.getName()), toImage));
         } else if (to instanceof WzDirectory toDirectory && from instanceof WzDirectory fromDirectory) {
@@ -1395,7 +1395,7 @@ public final class WzEditorService {
 
     private WzMutableKey getWzKey(WzObject wzObject) {
         if (wzObject instanceof WzFile wzFile) {
-            wzFile.load();
+            wzFile.parse();
             return wzFile.getReader().getWzMutableKey();
         }
 

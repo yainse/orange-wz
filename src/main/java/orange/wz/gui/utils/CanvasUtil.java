@@ -1,5 +1,6 @@
 package orange.wz.gui.utils;
 
+import orange.wz.gui.MainFrame;
 import orange.wz.provider.WzDirectory;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
@@ -22,7 +23,10 @@ public final class CanvasUtil {
             } else if (wzObject instanceof WzImageProperty prop && prop.isListProperty()) {
                 search(result, prop.getChildren());
             } else if (wzObject instanceof WzDirectory wzDir) {
-                if (wzDir.isWzFile()) wzDir.getWzFile().load();
+                if (wzDir.isWzFile() && !wzDir.getWzFile().parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 解析失败", wzDir.getName());
+                    throw new RuntimeException();
+                }
                 search(result, wzDir.getChildren());
             } else if (wzObject instanceof WzImage wzImg) {
                 wzImg.parse();

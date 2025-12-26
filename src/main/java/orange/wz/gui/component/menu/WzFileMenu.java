@@ -14,6 +14,7 @@ import orange.wz.gui.utils.ChineseUtil;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.gui.utils.Outlink;
 import orange.wz.provider.*;
+import orange.wz.provider.tools.WzFileStatus;
 import orange.wz.utils.wzkey.WzKey;
 
 import javax.swing.*;
@@ -101,7 +102,7 @@ public final class WzFileMenu extends JPopupMenu {
                 short version = wzFile.getHeader().getFileVersion();
                 byte[] iv = wzFile.getWzIv();
                 byte[] key = wzFile.getUserKey();
-                if (!wzFile.isLoad()) {
+                if (wzFile.getStatus() != WzFileStatus.PARSE_SUCCESS) {
                     log.warn("未加载的文件 {} 无需保存", wzFile.getName());
                     return;
                 }
@@ -130,7 +131,7 @@ public final class WzFileMenu extends JPopupMenu {
                     short version = wzFile.getHeader().getFileVersion();
                     byte[] iv = wzFile.getWzIv();
                     byte[] key = wzFile.getUserKey();
-                    if (!wzFile.isLoad()) {
+                    if (wzFile.getStatus() != WzFileStatus.PARSE_SUCCESS) {
                         log.warn("未加载的文件 {} 无需保存", wzFile.getName());
                         continue;
                     }
@@ -375,7 +376,10 @@ public final class WzFileMenu extends JPopupMenu {
 
             WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
             WzFile wzFile = wzDirectory.getWzFile();
-            wzFile.load();
+            if (!wzFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                throw new RuntimeException();
+            }
 
             WzDirectory newDir = new WzDirectory(name, wzDirectory, wzFile);
             if (!wzDirectory.addChild(newDir)) {
@@ -420,7 +424,10 @@ public final class WzFileMenu extends JPopupMenu {
 
             WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
             WzFile wzFile = wzDirectory.getWzFile();
-            wzFile.load();
+            if (!wzFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                throw new RuntimeException();
+            }
 
             WzImage newImg = new WzImage(name, wzFile.getReader(), wzDirectory);
             newImg.setParsed(true);
@@ -470,7 +477,10 @@ public final class WzFileMenu extends JPopupMenu {
                 WzFile wzFile = wzDirectory.getWzFile();
                 if (wzFile.getName().equalsIgnoreCase("List.wz")) return;
 
-                wzFile.load();
+                if (!wzFile.parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                    throw new RuntimeException();
+                }
                 wzFile.exportFileToImg(folder.toPath());
             }
         });
@@ -491,7 +501,10 @@ public final class WzFileMenu extends JPopupMenu {
                 WzFile wzFile = wzDirectory.getWzFile();
                 if (wzFile.getName().equalsIgnoreCase("List.wz")) return;
 
-                wzFile.load();
+                if (!wzFile.parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                    throw new RuntimeException();
+                }
                 wzFile.exportFileToXml(Path.of(data.getExportPath()), data.getIndent(), data.isExportMedia());
             }
         });
@@ -509,12 +522,15 @@ public final class WzFileMenu extends JPopupMenu {
                 WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
                 WzFile to = wzDirectory.getWzFile();
                 if (to.getName().equalsIgnoreCase("List.wz")) return;
-                to.load();
 
                 DefaultMutableTreeNode rightNode = MainFrame.getInstance().getCenterPane().getAnotherPane(editPane).findTreeNodeByName(rightTreeRoot, to.getName());
                 if (rightNode == null) continue;
                 WzFile from = ((WzDirectory) rightNode.getUserObject()).getWzFile();
-                from.load();
+
+                if (!to.parse() || !from.parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 或 文件 %s 解析失败", to.getName(), from.getName());
+                    throw new RuntimeException();
+                }
 
                 ChineseUtil.chinese(from, to);
             }
