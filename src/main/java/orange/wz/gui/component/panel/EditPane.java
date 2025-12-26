@@ -163,6 +163,11 @@ public final class EditPane extends JSplitPane {
                     setIcon(icon);
                     setText(obj.getName());
                     if (obj.isTempChanged()) {
+                        setForeground(Color.MAGENTA);
+                    }
+                    if (obj instanceof WzImageFile file && file.isErrorStatus()) {
+                        setForeground(Color.RED);
+                    } else if (obj instanceof WzDirectory dir && dir.isWzFile() && dir.getWzFile().isErrorStatus()) {
                         setForeground(Color.RED);
                     }
                 }

@@ -44,6 +44,10 @@ public class WzFile extends WzObject {
         return wzFile;
     }
 
+    public boolean isErrorStatus() {
+        return status != WzFileStatus.UNPARSE && status != WzFileStatus.PARSE_SUCCESS;
+    }
+
     public boolean is64BitWzFile() {
         return !withEncVerHeader;
     }

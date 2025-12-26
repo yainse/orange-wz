@@ -22,7 +22,7 @@ public class WzImage extends WzObject {
     private BinaryReader reader;
     private final WzChildrenProperty children = new WzChildrenProperty();
 
-    protected WzFileStatus status;
+    protected WzFileStatus status =  WzFileStatus.UNPARSE;
     private boolean changed;
     private int tempFileStart;
     private int tempFileEnd;
@@ -44,6 +44,10 @@ public class WzImage extends WzObject {
     public WzImage(String name, BinaryReader binaryReader, WzObject parent) { // 不要设置parsed 和 changed
         super(name, WzType.IMAGE, parent);
         reader = binaryReader;
+    }
+
+    public boolean isErrorStatus() {
+        return status != WzFileStatus.UNPARSE && status != WzFileStatus.PARSE_SUCCESS;
     }
 
     public boolean parse() {
