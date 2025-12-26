@@ -1,6 +1,7 @@
 package orange.wz.gui.component.panel;
 
 import lombok.Getter;
+import orange.wz.gui.MainFrame;
 
 import javax.swing.*;
 import java.awt.event.ComponentAdapter;
@@ -49,6 +50,7 @@ public final class CenterPane extends JSplitPane {
 
     public void showRightEditPane(boolean show) {
         if (show) {
+            MainFrame.getInstance().getViewShow().setText("隐藏");
             setDividerSize(6);
             if (lastDividerLocation > 0) {
                 setDividerLocation(lastDividerLocation);
@@ -56,6 +58,7 @@ public final class CenterPane extends JSplitPane {
                 setDividerLocation(0.5); // 第一次显示给个合理默认
             }
         } else {
+            MainFrame.getInstance().getViewShow().setText("显示");
             lastDividerLocation = getDividerLocation();
             setDividerLocation(getWidth());
             setDividerSize(0);

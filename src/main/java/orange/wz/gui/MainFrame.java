@@ -29,6 +29,7 @@ public class MainFrame extends JFrame {
 
     private KeyBox keyBox;
     private KeyManager keyManager;
+    private JMenuItem viewShow;
 
     private CenterPane centerPane;
 
@@ -114,15 +115,9 @@ public class MainFrame extends JFrame {
         JMenu view = new JMenu("视图");
         view.setIcon(AiOutlineEye);
 
-        JMenuItem viewShow = new JMenuItem("显示");
+        viewShow = new JMenuItem("显示");
         viewShow.addActionListener(e -> {
-            if (centerPane.isRightShowing()) {
-                centerPane.showRightEditPane(false);
-                viewShow.setText("显示");
-            } else {
-                centerPane.showRightEditPane(true);
-                viewShow.setText("隐藏");
-            }
+            centerPane.showRightEditPane(!centerPane.isRightShowing());
         });
 
         JMenuItem viewSync = new JMenuItem("禁用同步");

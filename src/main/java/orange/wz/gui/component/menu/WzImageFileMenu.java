@@ -77,7 +77,7 @@ public final class WzImageFileMenu extends JPopupMenu {
         JMenuItem saveBtn = new JMenuItem("保存", AiOutlineSaveIcon);
         JMenuItem unloadBtn = new JMenuItem("卸载", AiOutlineCloseIcon);
         JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
-        JMenuItem moveBtn = new JMenuItem("切换视图", AiOutlineEye);
+        JMenuItem moveBtn = new JMenuItem("转移视图", AiOutlineEye);
         copyBtn = new JMenuItem("复制", AiOutlineCopy);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
         JMenuItem keyBtn = new JMenuItem("修改密钥", AiOutlineKey);
