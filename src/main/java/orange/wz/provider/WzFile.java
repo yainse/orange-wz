@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ public class WzFile extends WzObject {
     private final String filePath;
     private final WzDirectory wzDirectory;
     private WzHeader header;
+    private String keyBoxName;
     private byte[] wzIv;
     private byte[] userKey;
     private BinaryReader reader;
@@ -30,17 +32,31 @@ public class WzFile extends WzObject {
         super(Path.of(filePath).getFileName().toString(), WzType.WZ_FILE, null);
         this.filePath = filePath;
         header = new WzHeader(fileVersion);
-        wzIv = iv;
-        userKey = key;
+        wzIv = Arrays.copyOf(iv, iv.length);
+        userKey = Arrays.copyOf(key, key.length);
         wzDirectory = new WzDirectory(name, this, this);
     }
 
+    public WzFile(String filePath, short fileVersion, String keyBoxName, byte[] iv, byte[] key) {
+        this(filePath, fileVersion, iv, key);
+        this.keyBoxName = keyBoxName;
+    }
+
     public static WzFile createNewFile(String filePath, short fileVersion, byte[] iv, byte[] key) {
+        iv = Arrays.copyOf(iv, iv.length);
+        key = Arrays.copyOf(key, key.length);
+
         WzFile wzFile = new WzFile(filePath, fileVersion, iv, key);
 
         wzFile.header = WzHeader.getDefault(fileVersion);
         wzFile.reader = new BinaryReader(iv, key);
         wzFile.status = WzFileStatus.PARSE_SUCCESS;
+        return wzFile;
+    }
+
+    public static WzFile createNewFile(String filePath, short fileVersion, String keyBoxName, byte[] iv, byte[] key) {
+        WzFile wzFile = createNewFile(filePath, fileVersion, iv, key);
+        wzFile.keyBoxName = keyBoxName;
         return wzFile;
     }
 
@@ -214,8 +230,8 @@ public class WzFile extends WzObject {
         if (!parse()) return;
 
         wzDirectory.parseAllImages();
-        wzIv = iv;
-        userKey = key;
+        wzIv = Arrays.copyOf(iv, iv.length);
+        userKey = Arrays.copyOf(key, key.length);
         reader.setWzMutableKey(new WzMutableKey(wzIv, userKey));
         header.setFileVersion(gameVersion);
     }

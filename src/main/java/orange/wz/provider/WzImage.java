@@ -10,6 +10,7 @@ import orange.wz.provider.tools.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 
 @Getter
@@ -22,7 +23,7 @@ public class WzImage extends WzObject {
     private BinaryReader reader;
     private final WzChildrenProperty children = new WzChildrenProperty();
 
-    protected WzFileStatus status =  WzFileStatus.UNPARSE;
+    protected WzFileStatus status = WzFileStatus.UNPARSE;
     private boolean changed;
     private int tempFileStart;
     private int tempFileEnd;
@@ -166,6 +167,8 @@ public class WzImage extends WzObject {
             log.error("文件 {} 解析失败", name);
             return;
         }
+        iv = Arrays.copyOf(iv, iv.length);
+        key = Arrays.copyOf(key, key.length);
         changed = true; // 确保保存的时候重新写入，而不是取原来的
         reader.setWzMutableKey(new WzMutableKey(iv, key));
     }

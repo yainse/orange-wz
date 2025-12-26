@@ -7,20 +7,27 @@ import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.WzFileStatus;
 
 import java.nio.file.Path;
+import java.util.Arrays;
 
 @Getter
 @Setter
 @Slf4j
 public class WzImageFile extends WzImage {
     private String filePath;
+    private String keyBoxName;
     private byte[] iv;
     private byte[] key;
 
     public WzImageFile(String name, String filePath, byte[] iv, byte[] key) {
         super(name, null);
         this.filePath = filePath;
-        this.iv = iv;
-        this.key = key;
+        this.iv = Arrays.copyOf(iv, iv.length);
+        this.key = Arrays.copyOf(key, key.length);
+    }
+
+    public WzImageFile(String name, String filePath, String keyBoxName, byte[] iv, byte[] key) {
+        this(name, filePath, iv, key);
+        this.keyBoxName = keyBoxName;
     }
 
     public boolean parse() {

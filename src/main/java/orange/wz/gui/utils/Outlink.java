@@ -62,6 +62,7 @@ public final class Outlink {
         }
 
         short version = wzFile.getHeader().getFileVersion();
+        String keyBoxName = wzFile.getKeyBoxName();
         byte[] iv = wzFile.getWzIv();
         byte[] key = wzFile.getUserKey();
 
@@ -75,7 +76,7 @@ public final class Outlink {
                 if (!fileName.endsWith(".wz")) continue;
                 if (!fileName.startsWith("_Canvas_")) continue;
 
-                WzFile canvasWz = new WzFile(path.toString(), version, iv, key);
+                WzFile canvasWz = new WzFile(path.toString(), version, keyBoxName, iv, key);
                 if (!canvasWz.parse()) {
                     MainFrame.getInstance().setStatusText("文件 %s 解析失败", canvasWz.getName());
                     throw new RuntimeException();

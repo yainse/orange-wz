@@ -146,7 +146,7 @@ public final class WzFolderMenu extends JPopupMenu {
             }
         }
 
-        WzFile wzFile = WzFile.createNewFile(savePath, fileVersion, wzFolder.getIv(), wzFolder.getKey());
+        WzFile wzFile = WzFile.createNewFile(savePath, fileVersion, wzFolder.getKeyBoxName(), wzFolder.getIv(), wzFolder.getKey());
         directories.forEach(directory -> wzFile.getWzDirectory().addChild(new WzDirectory(directory, wzFile.getWzDirectory(), wzFile)));
         imageFiles.forEach(imageFile -> {
             if (!imageFile.parse(false)) {
@@ -159,7 +159,7 @@ public final class WzFolderMenu extends JPopupMenu {
     }
 
     private void packageFolder(short fileVersion, WzFolder wzFolder, String savePath) {
-        WzFile wzFile = WzFile.createNewFile(savePath, fileVersion, wzFolder.getIv(), wzFolder.getKey());
+        WzFile wzFile = WzFile.createNewFile(savePath, fileVersion, wzFolder.getKeyBoxName(), wzFolder.getIv(), wzFolder.getKey());
         packageSubToWz(wzFolder, wzFile.getWzDirectory());
         wzFile.save();
     }

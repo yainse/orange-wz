@@ -402,7 +402,16 @@ public final class EditPane extends JSplitPane {
             }
         }
 
-        MainFrame.getInstance().setStatusText(wzObject.getPath());
+        // 更新状态栏
+        String text = wzObject.getPath();
+        if (wzObject instanceof WzFolder obj) {
+            text = text + "  /  " + obj.getKeyBoxName();
+        } else if (wzObject instanceof WzDirectory obj && obj.isWzFile()) {
+            text = text + "  /  " + obj.getWzFile().getKeyBoxName() + "  /  版本 " + obj.getWzFile().getHeader().getFileVersion();
+        } else if (wzObject instanceof WzImageFile obj) {
+            text = text + "  /  " + obj.getKeyBoxName();
+        }
+        MainFrame.getInstance().setStatusText(text);
     }
 
     private SwingWorker<Void, Void> handleTreeDoubleClick(DefaultMutableTreeNode node, WzObject wzObject) {
@@ -563,18 +572,22 @@ public final class EditPane extends JSplitPane {
 
     public void open(List<File> files) {
         WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
+        if (key == null) {
+            MainFrame.getInstance().setStatusText("没有选择密钥?");
+            return;
+        }
 
         files.forEach(f -> {
             if (f.isFile()) {
                 if (f.getName().endsWith(".wz")) {
-                    WzFile wzFile = new WzFile(f.getAbsolutePath(), (short) -1, key.getIv(), key.getUserKey());
+                    WzFile wzFile = new WzFile(f.getAbsolutePath(), (short) -1, key.getName(), key.getIv(), key.getUserKey());
                     insertNodeToTree(treeRoot, wzFile.getWzDirectory(), true);
                 } else if (f.getName().endsWith(".img")) {
-                    WzImageFile wzImageFile = new WzImageFile(f.getName(), f.getAbsolutePath(), key.getIv(), key.getUserKey());
+                    WzImageFile wzImageFile = new WzImageFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
                     insertNodeToTree(treeRoot, wzImageFile, true);
                 }
             } else if (f.isDirectory()) {
-                WzFolder folder = new WzFolder(f.getAbsolutePath(), key.getIv(), key.getUserKey());
+                WzFolder folder = new WzFolder(f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
                 insertNodeToTree(treeRoot, folder, true);
             }
         });

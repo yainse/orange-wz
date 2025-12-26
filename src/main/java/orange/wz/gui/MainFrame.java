@@ -178,7 +178,7 @@ public class MainFrame extends JFrame {
             long max = rt.maxMemory();
 
             versionLabel.setText(String.format(
-                    "%.1f MB / %.1f MB    OrzRepacker" + ServerManager.getVersion(),
+                    "内存 %.1f MB / %.1f MB    OrzRepacker" + ServerManager.getVersion(),
                     used / 1024.0 / 1024.0,
                     max / 1024.0 / 1024.0
             ));

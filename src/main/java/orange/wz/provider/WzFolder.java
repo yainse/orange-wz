@@ -15,13 +15,16 @@ public class WzFolder extends WzObject {
     private final String filePath;
     private final WzChildrenFolder children = new WzChildrenFolder();
     @Getter
+    private final String keyBoxName;
+    @Getter
     private final byte[] iv;
     @Getter
     private final byte[] key;
 
-    public WzFolder(String filePath, byte[] iv, byte[] key) {
+    public WzFolder(String filePath, String keyBoxName, byte[] iv, byte[] key) {
         super(Path.of(filePath).getFileName().toString(), WzType.FOLDER, null);
         this.filePath = filePath;
+        this.keyBoxName = keyBoxName;
         this.iv = iv;
         this.key = key;
     }
@@ -71,11 +74,11 @@ public class WzFolder extends WzObject {
                 String filename = path.getFileName().toString();
                 String pathStr = path.toAbsolutePath().toString();
                 if (Files.isDirectory(path)) {
-                    children.add(new WzFolder(pathStr, iv, key));
+                    children.add(new WzFolder(pathStr, keyBoxName, iv, key));
                 } else if (filename.endsWith(".wz")) {
-                    children.add(new WzFile(pathStr, (short) -1, iv, key).getWzDirectory());
+                    children.add(new WzFile(pathStr, (short) -1, keyBoxName, iv, key).getWzDirectory());
                 } else if (filename.endsWith(".img")) {
-                    children.add(new WzImageFile(filename, pathStr, iv, key));
+                    children.add(new WzImageFile(filename, pathStr, keyBoxName, iv, key));
                 }
             });
         } catch (IOException e) {
