@@ -106,7 +106,7 @@ public final class XmlImport {
             case "canvas" -> {
                 int width = 0;
                 int height = 0;
-                int format = 0;
+                int format = 2;
                 int format2 = 0;
                 try {
                     width = Integer.parseInt(e.getAttribute("width"));
@@ -118,14 +118,12 @@ public final class XmlImport {
                 }
 
                 byte[] imageBytes = null;
-                if (image.getMeType() == MediaExportType.BASE64) {
-                    imageBytes = Base64Tool.coverBase64ToBytes(e.getAttribute("png"));
+                if (image.getMeType() == MediaExportType.BASE64 || e.hasAttribute("basedata")) {
+                    imageBytes = Base64Tool.coverBase64ToBytes(e.getAttribute("basedata"));
                 } else if (image.getMeType() == MediaExportType.FILE) {
                     Path mediaPath = Path.of(image.getFilePath()).getParent().resolve("media").resolve(image.getImgName()).resolve(e.getAttribute("file"));
                     imageBytes = FileTool.readFile(mediaPath);
                 }
-                // todo 支持原版写轮眼的basedata
-                // todo 支持新版写轮眼的basedata
 
                 WzCanvasProperty canvas = new WzCanvasProperty(name, width, height, format, format2, imageBytes, parent, image);
                 readChildren(e, canvas, image);
@@ -162,16 +160,14 @@ public final class XmlImport {
                 int length = 0;
                 byte[] header = null;
                 byte[] mp3 = null;
-                // todo 支持原版写轮眼的basedata
-                // todo 支持新版写轮眼的basedata
                 try {
-                    if (image.getMeType() == MediaExportType.BASE64) {
+                    if (image.getMeType() == MediaExportType.BASE64 || e.hasAttribute("basedata")) {
                         length = Integer.parseInt(e.getAttribute("length"));
-                        header = Base64Tool.coverBase64ToBytes(e.getAttribute("header"));
-                        mp3 = Base64Tool.coverBase64ToBytes(e.getAttribute("mp3"));
+                        header = Base64Tool.coverBase64ToBytes(e.getAttribute("basehead"));
+                        mp3 = Base64Tool.coverBase64ToBytes(e.getAttribute("basedata"));
                     } else if (image.getMeType() == MediaExportType.FILE) {
                         length = Integer.parseInt(e.getAttribute("length"));
-                        header = Base64Tool.coverBase64ToBytes(e.getAttribute("header"));
+                        header = Base64Tool.coverBase64ToBytes(e.getAttribute("basehead"));
 
                         Path mediaPath = Path.of(image.getFilePath()).getParent().resolve("media").resolve(image.getImgName()).resolve(e.getAttribute("file"));
                         mp3 = FileTool.readFile(mediaPath);

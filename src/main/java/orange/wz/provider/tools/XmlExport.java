@@ -112,7 +112,7 @@ public final class XmlExport {
                 e.setAttribute("format2", String.valueOf(prop.getFormat2()));
 
                 if (meType == MediaExportType.BASE64)
-                    e.setAttribute("png", Base64Tool.coverBytesToBase64(prop.getImageBytes(false)));
+                    e.setAttribute("basedata", Base64Tool.coverBytesToBase64(prop.getImageBytes(false)));
                 else if (meType == MediaExportType.FILE) {
                     String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".png");
                     Path p = mediaPath.resolve(filename);
@@ -166,11 +166,11 @@ public final class XmlExport {
 
                 if (meType == MediaExportType.BASE64) {
                     e.setAttribute("length", String.valueOf(prop.getLenMs()));
-                    e.setAttribute("header", Base64Tool.coverBytesToBase64(prop.getHeader()));
-                    e.setAttribute("mp3", Base64Tool.coverBytesToBase64(prop.getSoundBytes(false)));
+                    e.setAttribute("basehead", Base64Tool.coverBytesToBase64(prop.getHeader()));
+                    e.setAttribute("basedata", Base64Tool.coverBytesToBase64(prop.getSoundBytes(false)));
                 } else if (meType == MediaExportType.FILE) {
                     e.setAttribute("length", String.valueOf(prop.getLenMs()));
-                    e.setAttribute("header", Base64Tool.coverBytesToBase64(prop.getHeader()));
+                    e.setAttribute("basehead", Base64Tool.coverBytesToBase64(prop.getHeader()));
 
                     String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".mp3");
                     Path p = mediaPath.resolve(filename);
