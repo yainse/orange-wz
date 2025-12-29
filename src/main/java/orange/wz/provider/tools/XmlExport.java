@@ -7,7 +7,6 @@ import orange.wz.provider.properties.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -17,7 +16,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.file.Path;
 
@@ -81,7 +79,7 @@ public final class XmlExport {
             }
 
             doc.appendChild(root);
-            image.getChildren().forEach(prop -> writeProperties(doc, root, prop, meType, prop.getName(), mediaFolder));
+            image.getChildren().forEach(prop -> writeProperties(doc, root, prop, meType, "", mediaFolder));
 
 
             // 写入文件
@@ -116,17 +114,17 @@ public final class XmlExport {
                 if (meType == MediaExportType.BASE64)
                     e.setAttribute("png", Base64Tool.coverBytesToBase64(prop.getImageBytes(false)));
                 else if (meType == MediaExportType.FILE) {
-                    String filename = FileTool.safeFileName(mediaFileName + "." + prop.getName() + ".png");
+                    String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".png");
                     Path p = mediaPath.resolve(filename);
                     FileTool.saveFile(p, prop.getImageBytes(false));
                     e.setAttribute("file", filename);
                 }
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + "." + prop.getName(), mediaPath));
+                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
             }
             case WzConvexProperty prop -> {
                 e = doc.createElement("extended");
                 e.setAttribute("name", escapeText(prop.getName()));
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + "." + prop.getName(), mediaPath));
+                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
             }
             case WzDoubleProperty prop -> {
                 e = doc.createElement("double");
@@ -146,7 +144,7 @@ public final class XmlExport {
             case WzListProperty prop -> {
                 e = doc.createElement("imgdir");
                 e.setAttribute("name", escapeText(prop.getName()));
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + "." + prop.getName(), mediaPath));
+                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
             }
             case WzLongProperty prop -> {
                 e = doc.createElement("long");
@@ -174,7 +172,7 @@ public final class XmlExport {
                     e.setAttribute("length", String.valueOf(prop.getLenMs()));
                     e.setAttribute("header", Base64Tool.coverBytesToBase64(prop.getHeader()));
 
-                    String filename = FileTool.safeFileName(mediaFileName + "." + prop.getName() + ".mp3");
+                    String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".mp3");
                     Path p = mediaPath.resolve(filename);
                     FileTool.saveFile(p, prop.getSoundBytes(false));
                     e.setAttribute("file", filename);
