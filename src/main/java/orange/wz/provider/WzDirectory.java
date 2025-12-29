@@ -20,7 +20,7 @@ public class WzDirectory extends WzObject {
     private final WzChildrenDirectory children = new WzChildrenDirectory();
     private int offset;
     private int dataSize;
-    private int checksum; // reader 所有 bytes 值的和 todo 计算
+    private int checksum; // 所有 bytes 值的和
     private int offsetSize;
     private WzFile wzFile;
 
@@ -95,6 +95,18 @@ public class WzDirectory extends WzObject {
         }
     }
 
+    public void calcCheckSum() {
+        int ck = 0;
+        for (WzDirectory dir : children.getDirectories()) {
+            dir.calcCheckSum();
+            ck += dir.getChecksum();
+        }
+        for (WzImage img : children.getImages()) {
+            ck += img.getChecksum();
+        }
+        checksum = ck;
+    }
+
     public void saveImages(BinaryWriter writer, BinaryWriter tempWriter) {
         for (WzImage img : children.getImages()) {
             if (img.isChanged()) {
@@ -154,6 +166,7 @@ public class WzDirectory extends WzObject {
         }
 
         for (WzDirectory dir : children.getDirectories()) {
+            dir.calcCheckSum();
             int nameLen = WzTool.getWzObjectValueLength(dir.getName(), (byte) 3, tempStringCache);
             dataSize += nameLen;
             dataSize += dir.generateDataFile(tempWriter, tempStringCache);

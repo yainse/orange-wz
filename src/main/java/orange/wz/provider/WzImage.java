@@ -158,7 +158,7 @@ public class WzImage extends WzObject {
     }
 
     public void addChecksum(byte value) {
-        checksum += value;
+        checksum += Byte.toUnsignedInt(value);
     }
 
     public void changeKey(byte[] iv, byte[] key) {
