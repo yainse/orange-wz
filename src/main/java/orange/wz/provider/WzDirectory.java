@@ -227,7 +227,7 @@ public class WzDirectory extends WzObject {
         String name = getName().replaceAll("(?i)\\.wz$", "");
         Path p = parentPath.resolve(name);
         try {
-            FileTool.createNewDirectory(p);
+            FileTool.createDirectory(p);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }
@@ -236,16 +236,16 @@ public class WzDirectory extends WzObject {
         children.getImages().forEach(image -> image.save(p.resolve(image.getName())));
     }
 
-    public void exportToXml(Path parentPath, int indent, boolean exportMedia) {
+    public void exportToXml(Path parentPath, int indent, MediaExportType meType) {
         Path p = parentPath.resolve(getName());
         try {
-            FileTool.createNewDirectory(p);
+            FileTool.createDirectory(p);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }
 
-        children.getDirectories().forEach(directory -> directory.exportToXml(p, indent, exportMedia));
-        children.getImages().forEach(image -> image.exportToXml(p.resolve(image.getName() + ".xml"), indent, exportMedia));
+        children.getDirectories().forEach(directory -> directory.exportToXml(p, indent, meType));
+        children.getImages().forEach(image -> image.exportToXml(p.resolve(image.getName() + ".xml"), indent, meType));
     }
 
     public void parseAllImages() {

@@ -3,6 +3,7 @@ package orange.wz.gui.component.dialog;
 import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.form.data.ExportXmlData;
 import orange.wz.gui.component.panel.EditPane;
+import orange.wz.provider.tools.MediaExportType;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,7 +14,9 @@ public final class ExportXmlDialog extends JOptionPane {
     private int topPanelRow = 0;
     private final JPanel panel = new JPanel(new GridBagLayout());
     private final JTextField indentField = new JTextField(20);
-    private final JCheckBox mediaCheck = new JCheckBox("输出 Base64");
+    private final JRadioButton noneRadio = new JRadioButton("不输出");
+    private final JRadioButton base64Radio = new JRadioButton("Base64");
+    private final JRadioButton fileRadio = new JRadioButton("文件");
     private final JTextField pathField = new JTextField(20);
 
     public ExportXmlDialog(EditPane editPane, boolean wzFile) {
@@ -32,7 +35,18 @@ public final class ExportXmlDialog extends JOptionPane {
         pathField.setEditable(false);
 
         addRow("缩进数量", indentField);
-        addRow("图片音频", mediaCheck);
+        // 创建互斥单选集合
+        ButtonGroup mediaGroup = new ButtonGroup();
+        mediaGroup.add(noneRadio);
+        mediaGroup.add(base64Radio);
+        mediaGroup.add(fileRadio);
+        noneRadio.setSelected(true);
+
+        JPanel mediaPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        mediaPanel.add(noneRadio);
+        mediaPanel.add(base64Radio);
+        mediaPanel.add(fileRadio);
+        addRow("图片音频", mediaPanel);
         addRow("导出路径", pathField, selectBtn);
     }
 
@@ -58,7 +72,13 @@ public final class ExportXmlDialog extends JOptionPane {
             indent = 0;
         }
 
-        return new ExportXmlData(indent, mediaCheck.isSelected(), pathField.getText());
+        MediaExportType meType = MediaExportType.NONE;
+        if (base64Radio.isSelected()) {
+            meType = MediaExportType.BASE64;
+        } else if (fileRadio.isSelected()) {
+            meType = MediaExportType.FILE;
+        }
+        return new ExportXmlData(indent, meType, pathField.getText());
     }
 
     private void addRow(String label, JComponent... fields) {

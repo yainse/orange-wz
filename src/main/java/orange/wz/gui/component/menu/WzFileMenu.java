@@ -435,9 +435,7 @@ public final class WzFileMenu extends JPopupMenu {
                 throw new RuntimeException();
             }
 
-            WzImage newImg = new WzImage(name, wzFile.getReader(), wzDirectory);
-            newImg.setStatus(WzFileStatus.PARSE_SUCCESS);
-            newImg.setChanged(true);
+            WzImage newImg = new WzImage(name, wzDirectory, wzFile.getReader());
             if (!wzDirectory.addChild(newImg)) {
                 JMessageUtil.error("名称已存在");
                 return;
@@ -511,7 +509,7 @@ public final class WzFileMenu extends JPopupMenu {
                     MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
                     throw new RuntimeException();
                 }
-                wzFile.exportFileToXml(Path.of(data.getExportPath()), data.getIndent(), data.isExportMedia());
+                wzFile.exportFileToXml(Path.of(data.getExportPath()), data.getIndent(), data.getMeType());
             }
         });
     }

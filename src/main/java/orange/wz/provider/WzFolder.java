@@ -2,13 +2,16 @@ package orange.wz.provider;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.WzChildrenFolder;
 import orange.wz.provider.tools.WzType;
+import orange.wz.provider.tools.XmlImport;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class WzFolder extends WzObject {
@@ -50,6 +53,10 @@ public class WzFolder extends WzObject {
         children.add(wzImage);
     }
 
+    public void add(WzXmlFile wzXmlFile) {
+        children.add(wzXmlFile);
+    }
+
     public boolean remove(WzObject wzObject) {
         if (wzObject instanceof WzFolder) {
             return children.removeFolder(wzObject.getName());
@@ -57,6 +64,8 @@ public class WzFolder extends WzObject {
             return children.removeWzFile(wzObject.getName());
         } else if (wzObject instanceof WzImageFile) {
             return children.removeWzImageFile(wzObject.getName());
+        } else if (wzObject instanceof WzXmlFile) {
+            return children.removeWzXmlFile(wzObject.getName());
         }
 
         return false;
@@ -79,6 +88,8 @@ public class WzFolder extends WzObject {
                     children.add(new WzFile(pathStr, (short) -1, keyBoxName, iv, key).getWzDirectory());
                 } else if (filename.endsWith(".img")) {
                     children.add(new WzImageFile(filename, pathStr, keyBoxName, iv, key));
+                } else if (filename.endsWith(".xml")) {
+                    children.add(new WzXmlFile(filename, pathStr, keyBoxName, iv, key));
                 }
             });
         } catch (IOException e) {

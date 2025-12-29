@@ -9,37 +9,36 @@ import orange.wz.gui.component.canvas.CanvasWall;
 import orange.wz.gui.component.dialog.*;
 import orange.wz.gui.component.form.data.*;
 import orange.wz.gui.component.panel.EditPane;
-import orange.wz.gui.utils.*;
-import orange.wz.provider.WzDirectory;
-import orange.wz.provider.WzImage;
-import orange.wz.provider.WzImageProperty;
-import orange.wz.provider.WzObject;
+import orange.wz.gui.utils.CanvasUtil;
+import orange.wz.gui.utils.CanvasUtilData;
+import orange.wz.gui.utils.JMessageUtil;
+import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
+import orange.wz.provider.tools.WzFileStatus;
+import orange.wz.provider.tools.wzkey.WzKey;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.io.File;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static orange.wz.gui.Icons.*;
 
 @Slf4j
-public final class WzImageMenu extends JPopupMenu {
+public final class WzXmlFileMenu extends JPopupMenu {
     private final EditPane editPane;
     private final JTree tree;
-    @Getter
-    private final JMenuItem deleteBtn;
     @Getter
     private final JMenuItem copyBtn;
     @Getter
     private final JMenuItem pasteBtn;
 
-    public WzImageMenu(EditPane editPane, JTree tree) {
+    public WzXmlFileMenu(EditPane editPane, JTree tree) {
         super();
         this.editPane = editPane;
         this.tree = tree;
@@ -72,18 +71,17 @@ public final class WzImageMenu extends JPopupMenu {
         addBtn.add(addStringBtn);
         addBtn.add(addUOLBtn);
         addBtn.add(addVectorBtn);
-
+        JMenuItem saveBtn = new JMenuItem("保存", AiOutlineSaveIcon);
+        JMenuItem unloadBtn = new JMenuItem("卸载", AiOutlineCloseIcon);
+        JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
+        JMenuItem moveBtn = new JMenuItem("转移视图", AiOutlineEye);
         copyBtn = new JMenuItem("复制", AiOutlineCopy);
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
-        deleteBtn = new JMenuItem("删除节点", AiOutlineDelete);
         JMenu exportBtn = new JMenu("导出");
         JMenuItem exportImgBtn = new JMenuItem("Img");
-        JMenuItem exportXmlBtn = new JMenuItem("Xml");
         exportBtn.add(exportImgBtn);
-        exportBtn.add(exportXmlBtn);
-        JMenuItem chineseBtn = new JMenuItem("汉化");
         JMenuItem imageBtn = new JMenuItem("图片嗅探");
-        JMenuItem outlinkBtn = new JMenuItem("Outlink");
+
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -98,23 +96,171 @@ public final class WzImageMenu extends JPopupMenu {
         addStringBtnItem(addStringBtn);
         addUOLBtnItem(addUOLBtn);
         addVectorBtnItem(addVectorBtn);
+        saveBtnAction(saveBtn);
+        unloadBtnAction(unloadBtn);
+        reloadBtnAction(reloadBtn);
+        moveBtnAction(moveBtn);
         addCopyBtnAction(copyBtn);
         addPasteBtnAction(pasteBtn);
-        deleteBtnAction(deleteBtn);
         addExportImgBtnAction(exportImgBtn);
-        addExportXmlBtnAction(exportXmlBtn);
-        addChineseBtnAction(chineseBtn);
         addImageBtnAction(imageBtn);
-        addOutlinkBtnAction(outlinkBtn);
 
         add(addBtn);
+        add(saveBtn);
+        add(unloadBtn);
+        add(reloadBtn);
+        add(moveBtn);
         add(copyBtn);
         add(pasteBtn);
-        add(deleteBtn);
         add(exportBtn);
-        add(chineseBtn);
         add(imageBtn);
-        add(outlinkBtn);
+    }
+
+    private void saveBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            if (selectedPaths.length == 1) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
+                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                int index = pNode.getIndex(node);
+                WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+                String keyBoxName = wzXmlFile.getKeyBoxName();
+                byte[] iv = wzXmlFile.getIv();
+                byte[] key = wzXmlFile.getKey();
+                if (wzXmlFile.getStatus() != WzFileStatus.PARSE_SUCCESS) {
+                    log.warn("未加载的文件 {} 无需保存", wzXmlFile.getName());
+                    return;
+                }
+
+                File oldFile = new File(wzXmlFile.getFilePath());
+                File newFile = new File(oldFile.getParent(), wzXmlFile.getName());
+
+                File saveFile = FileDialog.chooseSaveFile(MainFrame.getInstance(), "保存 " + wzXmlFile.getName(), newFile, new String[]{"xml"});
+                if (saveFile == null) {
+                    return;
+                }
+                Path filePath = Path.of(saveFile.getAbsolutePath());
+                wzXmlFile.exportToXml(filePath.toAbsolutePath(), wzXmlFile.getIndent(), wzXmlFile.getMeType());
+                editPane.removeNodeFromTree(node);
+                String filename = filePath.getFileName().toString();
+                wzXmlFile = new WzXmlFile(filename, filePath.toString(), keyBoxName, iv, key);
+                editPane.insertNodeToTree(pNode, wzXmlFile, true, index);
+            } else {
+                // 批量保存的时候判断文件名是否发生改变，如果发生改变，跳过并提示。
+                Set<String> failed = new HashSet<>();
+                for (TreePath treePath : selectedPaths) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                    DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                    int index = pNode.getIndex(node);
+                    WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+                    String keyBoxName = wzXmlFile.getKeyBoxName();
+                    byte[] iv = wzXmlFile.getIv();
+                    byte[] key = wzXmlFile.getKey();
+                    if (wzXmlFile.getStatus() != WzFileStatus.PARSE_SUCCESS) {
+                        log.warn("未加载的文件 {} 无需保存", wzXmlFile.getName());
+                        continue;
+                    }
+
+                    Path filePath = Path.of(wzXmlFile.getFilePath());
+                    if (!filePath.getFileName().toString().equals(wzXmlFile.getName())) {
+                        failed.add(wzXmlFile.getName());
+                        log.error("批量保存无法用于文件改名 {} : {}", wzXmlFile.getName(), wzXmlFile.getFilePath());
+                        continue;
+                    }
+
+                    wzXmlFile.exportToXml(filePath.toAbsolutePath(), wzXmlFile.getIndent(), wzXmlFile.getMeType());
+                    String filename = filePath.getFileName().toString();
+                    editPane.removeNodeFromTree(node);
+                    wzXmlFile = new WzXmlFile(filename, filePath.toString(), keyBoxName, iv, key);
+                    editPane.insertNodeToTree(pNode, wzXmlFile, true, index);
+                }
+
+                if (!failed.isEmpty()) {
+                    JMessageUtil.warn("批量保存无法用于文件改名, 这些文件请手动保存: " + String.join(", ", failed));
+                }
+            }
+
+            editPane.resetValueForm();
+            System.gc();
+        });
+    }
+
+    private void unloadBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            for (TreePath treePath : selectedPaths) {
+                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
+
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzXmlFile imageFile = (WzXmlFile) node.getUserObject();
+                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                if (pNode == null) continue;
+                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
+                    wzFolder.remove(imageFile);
+                }
+            }
+
+            editPane.resetValueForm();
+            System.gc();
+        });
+    }
+
+    private void reloadBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
+            if (key == null) {
+                MainFrame.getInstance().setStatusText("没有选择密钥?");
+                return;
+            }
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                int index = pNode.getIndex(node);
+                WzXmlFile wzImageFileOld = (WzXmlFile) node.getUserObject();
+                Path filePath = Path.of(wzImageFileOld.getFilePath());
+                String filename = filePath.getFileName().toString();
+
+                editPane.removeNodeFromTree(node);
+
+                WzXmlFile wzImageFileNew = new WzXmlFile(filename, filePath.toString(), key.getName(), key.getIv(), key.getUserKey());
+                editPane.insertNodeToTree(pNode, wzImageFileNew, true, index);
+
+                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
+                    wzFolder.remove(wzImageFileOld);
+                    wzFolder.add(wzImageFileNew);
+                }
+            }
+
+            editPane.resetValueForm();
+            System.gc();
+        });
+    }
+
+    private void moveBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            if (!MainFrame.getInstance().getCenterPane().isRightShowing()) {
+                MainFrame.getInstance().getCenterPane().showRightEditPane(true);
+            }
+
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            EditPane targetPane = MainFrame.getInstance().getCenterPane().getAnotherPane(editPane);
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+                targetPane.insertNodeToTree(targetPane.getTreeRoot(), wzXmlFile, true);
+                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
+            }
+            editPane.resetValueForm();
+        });
     }
 
     private void addCopyBtnAction(JMenuItem item) {
@@ -127,7 +273,7 @@ public final class WzImageMenu extends JPopupMenu {
             clipboard.clear();
             for (TreePath treePath : selectedPaths) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzImage wzObject = (WzImage) node.getUserObject();
+                WzXmlFile wzObject = (WzXmlFile) node.getUserObject();
                 clipboard.add(wzObject.deepClone(null));
             }
             clipboard.unlock();
@@ -196,6 +342,30 @@ public final class WzImageMenu extends JPopupMenu {
         });
     }
 
+    private void addExportImgBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
+            if (folder == null) {
+                log.info("用户取消了操作");
+                return;
+            }
+
+            for (TreePath treePath : selectedPaths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                WzXmlFile wzImage = (WzXmlFile) node.getUserObject();
+
+                if (!wzImage.parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+                    throw new RuntimeException();
+                }
+                wzImage.save(folder.toPath().resolve(wzImage.getImgName()));
+            }
+        });
+    }
+
     private void setPasteParent(List<? extends WzObject> objects, WzObject parent) {
         for (WzObject obj : objects) {
             obj.setParent(parent);
@@ -217,72 +387,6 @@ public final class WzImageMenu extends JPopupMenu {
                 setPasteWzImage(property.getChildren(), wzImage);
             }
         }
-    }
-
-    private void deleteBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzObject wzObject = (WzObject) node.getUserObject();
-                WzObject pWzObject = wzObject.getParent();
-
-                if (pWzObject instanceof WzDirectory directory && directory.removeImageChild(wzObject.getName())) {
-                    editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
-                } else {
-                    log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
-                }
-            }
-            editPane.resetValueForm();
-        });
-    }
-
-    private void addExportImgBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
-            if (folder == null) {
-                log.info("用户取消了操作");
-                return;
-            }
-
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzImage wzImage = (WzImage) node.getUserObject();
-
-                if (!wzImage.parse()) {
-                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
-                    throw new RuntimeException();
-                }
-                wzImage.save(folder.toPath().resolve(wzImage.getName()));
-            }
-        });
-    }
-
-    private void addExportXmlBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            ExportXmlDialog dialog = new ExportXmlDialog(editPane, true);
-            ExportXmlData data = dialog.getData();
-            if (data == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzImage wzImage = (WzImage) node.getUserObject();
-
-                if (!wzImage.parse()) {
-                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
-                    throw new RuntimeException();
-                }
-                wzImage.exportToXml(Path.of(data.getExportPath()), data.getIndent(), data.getMeType());
-            }
-        });
     }
 
     private void addCanvasBtnItem(JMenuItem item) {
@@ -309,18 +413,18 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzCanvasProperty prop = new WzCanvasProperty(name, wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzCanvasProperty prop = new WzCanvasProperty(name, wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
-            prop.initPngProperty(name, prop, wzImage);
+            prop.initPngProperty(name, prop, wzXmlFile);
             prop.setPng(data.getValue(), data.getFormat());
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
@@ -353,14 +457,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzConvexProperty prop = new WzConvexProperty(name, wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzConvexProperty prop = new WzConvexProperty(name, wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -395,14 +499,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzDoubleProperty prop = new WzDoubleProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzDoubleProperty prop = new WzDoubleProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -437,14 +541,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzFloatProperty prop = new WzFloatProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzFloatProperty prop = new WzFloatProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -479,14 +583,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzIntProperty prop = new WzIntProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzIntProperty prop = new WzIntProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -521,14 +625,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzListProperty prop = new WzListProperty(name, wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzListProperty prop = new WzListProperty(name, wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -563,14 +667,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzLongProperty prop = new WzLongProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzLongProperty prop = new WzLongProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -605,14 +709,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzNullProperty prop = new WzNullProperty(name, wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzNullProperty prop = new WzNullProperty(name, wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -647,14 +751,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzShortProperty prop = new WzShortProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzShortProperty prop = new WzShortProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -689,15 +793,15 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzSoundProperty prop = new WzSoundProperty(name, wzImage, wzImage);
+            WzSoundProperty prop = new WzSoundProperty(name, wzXmlFile, wzXmlFile);
             prop.setSound(data.getSoundBytes());
-            if (!wzImage.addChild(prop)) {
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -732,14 +836,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzStringProperty prop = new WzStringProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzStringProperty prop = new WzStringProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -774,14 +878,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzUOLProperty prop = new WzUOLProperty(name, data.getValue(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzUOLProperty prop = new WzUOLProperty(name, data.getValue(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -816,14 +920,14 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
-            WzImage wzImage = (WzImage) node.getUserObject();
-            if (!wzImage.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+            WzXmlFile wzXmlFile = (WzXmlFile) node.getUserObject();
+            if (!wzXmlFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzXmlFile.getName(), wzXmlFile.getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            WzVectorProperty prop = new WzVectorProperty(name, data.getX(), data.getY(), wzImage, wzImage);
-            if (!wzImage.addChild(prop)) {
+            WzVectorProperty prop = new WzVectorProperty(name, data.getX(), data.getY(), wzXmlFile, wzXmlFile);
+            if (!wzXmlFile.addChild(prop)) {
                 JMessageUtil.error("名称已存在");
                 return;
             }
@@ -831,39 +935,6 @@ public final class WzImageMenu extends JPopupMenu {
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
             prop.setTempChanged(true);
             editPane.insertNodeToTree(node, prop, true, 0);
-        });
-    }
-
-    private void addChineseBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            Instant start = Instant.now();
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzImage to = (WzImage) node.getUserObject();
-                if (!to.parse()) {
-                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", to.getName(), to.getStatus().getMessage());
-                    throw new RuntimeException();
-                }
-
-                WzImage from = (WzImage) MainFrame.getInstance().getCenterPane().getAnotherPane(editPane).findTreeWzObjectByPath(to.getPath());
-                if (from == null) {
-                    log.error("找不到中文版本的 {}", to.getName());
-                    continue;
-                }
-                if (!from.parse()) {
-                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", from.getName(), from.getStatus().getMessage());
-                    throw new RuntimeException();
-                }
-
-                ChineseUtil.chinese(from, to);
-            }
-
-            Instant end = Instant.now();
-            Duration duration = Duration.between(start, end);
-            MainFrame.getInstance().setStatusText("汉化完成! 耗时 %d ms", duration.toMillis());
         });
     }
 
@@ -888,41 +959,6 @@ public final class WzImageMenu extends JPopupMenu {
 
             CanvasWall canvasWall = new CanvasWall(data, wzImage.getPath(), node, editPane);
             canvasWall.setVisible(true);
-        });
-    }
-
-    private void addOutlinkBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            Instant now = Instant.now();
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            List<WzObject> objects = new ArrayList<>();
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzObject wzObject = (WzObject) node.getUserObject();
-                objects.add(wzObject);
-            }
-
-            SwingWorker<Void, Void> worker = new SwingWorker<>() {
-                @Override
-                protected Void doInBackground() {
-                    Outlink.replace(objects);
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        Instant end = Instant.now();
-                        MainFrame.getInstance().setStatusText("Outlink 结束，耗时 %d 秒", Duration.between(now, end).toSeconds());
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            };
-            worker.execute();
         });
     }
 }

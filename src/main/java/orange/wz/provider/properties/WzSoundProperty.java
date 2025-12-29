@@ -38,6 +38,14 @@ public class WzSoundProperty extends WzExtended {
         super(name, WzType.SOUND_PROPERTY, parent, wzImage);
     }
 
+    public WzSoundProperty(String name, int length, byte[] header, byte[] soundBytes, WzObject parent, WzImage wzImage) {
+        this(name, parent, wzImage);
+        this.lenMs = length;
+        this.header = header;
+        // this.soundDataLen = soundBytes.length;
+        this.soundBytes = soundBytes;
+    }
+
     public void setSound(byte[] soundBytes) {
         Mp3FileReader reader = new Mp3FileReader(soundBytes);
         waveFormat = reader.getWaveFormat();
@@ -211,12 +219,6 @@ public class WzSoundProperty extends WzExtended {
         byte[] soundBytes = getSoundBytes(false);
         if (soundBytes == null) return "";
         return Base64.getEncoder().encodeToString(soundBytes);
-    }
-
-    public String getHeaderBase64() {
-        byte[] header = getHeader();
-        if (header == null) return "";
-        return Base64.getEncoder().encodeToString(header);
     }
 
     @Override

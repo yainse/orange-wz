@@ -10,6 +10,7 @@ import orange.wz.model.WzNodeType;
 import orange.wz.model.WzNodeValueDto;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
+import orange.wz.provider.tools.MediaExportType;
 import orange.wz.provider.tools.WzFileStatus;
 import orange.wz.provider.tools.WzMutableKey;
 import orange.wz.provider.tools.FileTool;
@@ -1022,7 +1023,7 @@ public final class WzEditorService {
             if (file.getName().equalsIgnoreCase("List.wz")) return;
             file.parse();
 
-            file.exportFileToXml(basePath, indent ? 2 : 0, false);
+            file.exportFileToXml(basePath, indent ? 2 : 0, MediaExportType.NONE);
         } else if (obj instanceof WzImage image) {
             image.exportToXml(basePath.resolve(image.getName() + ".xml"), indent ? 2 : 0, false);
         }

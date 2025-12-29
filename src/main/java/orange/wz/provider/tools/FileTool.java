@@ -1,10 +1,14 @@
 package orange.wz.provider.tools;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
+@Slf4j
 public final class FileTool {
     /**
      * 确保目录是一个新目录（空）
@@ -36,5 +40,47 @@ public final class FileTool {
         } else {
             Files.createDirectories(p);
         }
+    }
+
+    public static boolean saveFile(Path path, byte[] bytes) {
+        try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
+            fos.write(bytes);
+            return true;
+        } catch (IOException ex) {
+            log.error("保存文件失败 {} : {}", path, ex.getMessage());
+            return false;
+        }
+    }
+
+    public static byte[] readFile(Path path) {
+        try {
+            return Files.readAllBytes(path);
+        } catch (IOException ex) {
+            log.error("读取文件失败 {} : {}", path, ex.getMessage());
+            return null;
+        }
+    }
+
+    public static String safeFileName(String name) {
+        if (name == null || name.isEmpty()) {
+            return "unnamed";
+        }
+
+        // 替换非法字符为下划线
+        String safe = name.replaceAll("[\\\\/:*?\"<>|]", "_");
+
+        // 去除控制字符
+        safe = safe.replaceAll("[\\p{Cntrl}]", "");
+
+        // 去除结尾的空格和点（Windows 不允许）
+        safe = safe.replaceAll("[\\.\\s]+$", "");
+
+        // 处理 Windows 保留名
+        String upper = safe.toUpperCase();
+        if (upper.matches("CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]")) {
+            safe = "_" + safe;
+        }
+
+        return safe.isEmpty() ? "unnamed" : safe;
     }
 }

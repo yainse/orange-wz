@@ -32,6 +32,7 @@ public final class EditPane extends JSplitPane {
     private WzFileMenu wzFilePopupMenu;
     private WzFolderMenu wzFolderPopupMenu;
     private WzImageFileMenu wzImageFilePopupMenu;
+    private WzXmlFileMenu wzXmlFilePopupMenu;
     private WzDirectoryMenu wzDirectoryPopupMenu;
     private WzImageMenu wzImagePopupMenu;
     private WzListPropertyMenu wzListPropertyPopupMenu;
@@ -198,6 +199,7 @@ public final class EditPane extends JSplitPane {
         wzFilePopupMenu = new WzFileMenu(this, tree);
         wzFolderPopupMenu = new WzFolderMenu(this, tree);
         wzImageFilePopupMenu = new WzImageFileMenu(this, tree);
+        wzXmlFilePopupMenu = new WzXmlFileMenu(this, tree);
         wzDirectoryPopupMenu = new WzDirectoryMenu(this, tree);
         wzImagePopupMenu = new WzImageMenu(this, tree);
         wzListPropertyPopupMenu = new WzListPropertyMenu(this, tree);
@@ -227,6 +229,8 @@ public final class EditPane extends JSplitPane {
                     }
                 } else if (wzObject instanceof WzImageFile) {
                     wzImageFilePopupMenu.show(tree, e.getX(), e.getY());
+                } else if (wzObject instanceof WzXmlFile) {
+                    wzXmlFilePopupMenu.show(tree, e.getX(), e.getY());
                 } else if (wzObject instanceof WzImage) {
                     wzImagePopupMenu.show(tree, e.getX(), e.getY());
                 } else if (wzObject instanceof WzImageProperty prop) {
@@ -794,6 +798,8 @@ public final class EditPane extends JSplitPane {
                     }
                 } else if (wzObject instanceof WzImageFile) {
                     wzImageFilePopupMenu.getCopyBtn().doClick();
+                } else if (wzObject instanceof WzXmlFile) {
+                    wzXmlFilePopupMenu.getCopyBtn().doClick();
                 } else if (wzObject instanceof WzImage) {
                     wzImagePopupMenu.getCopyBtn().doClick();
                 } else if (wzObject instanceof WzImageProperty prop) {
@@ -831,6 +837,8 @@ public final class EditPane extends JSplitPane {
                     }
                 } else if (wzObject instanceof WzImageFile) {
                     wzImageFilePopupMenu.getPasteBtn().doClick();
+                } else if (wzObject instanceof WzXmlFile) {
+                    wzXmlFilePopupMenu.getPasteBtn().doClick();
                 } else if (wzObject instanceof WzImage) {
                     wzImagePopupMenu.getPasteBtn().doClick();
                 } else if (wzObject instanceof WzImageProperty prop) {

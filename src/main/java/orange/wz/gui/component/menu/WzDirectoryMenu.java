@@ -302,9 +302,7 @@ public final class WzDirectoryMenu extends JPopupMenu {
                 throw new RuntimeException();
             }
 
-            WzImage newImg = new WzImage(name, wzFile.getReader(), wzDirectory);
-            newImg.setStatus(WzFileStatus.PARSE_SUCCESS);
-            newImg.setChanged(true);
+            WzImage newImg = new WzImage(name, wzDirectory, wzFile.getReader());
             if (!wzDirectory.addChild(newImg)) {
                 JMessageUtil.error("名称已存在");
                 return;

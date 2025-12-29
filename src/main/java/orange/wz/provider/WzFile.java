@@ -221,8 +221,8 @@ public class WzFile extends WzObject {
         wzDirectory.exportDirectory(basePath);
     }
 
-    public void exportFileToXml(Path basePath, int indent, boolean exportMedia) {
-        wzDirectory.exportToXml(basePath, indent, exportMedia);
+    public void exportFileToXml(Path basePath, int indent, MediaExportType meType) {
+        wzDirectory.exportToXml(basePath, indent, meType);
     }
 
     public void changeKey(short gameVersion, byte[] iv, byte[] key) {

@@ -7,6 +7,7 @@ import orange.wz.provider.properties.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -16,6 +17,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.file.Path;
 
@@ -52,40 +54,7 @@ public final class XmlExport {
         return sb.toString();
     }
 
-    public static String unescapeText(String input) {
-        if (input == null || input.isEmpty()) {
-            return input;
-        }
-        StringBuilder sb = new StringBuilder(input.length());
-        for (int i = 0; i < input.length(); i++) {
-            char c = input.charAt(i);
-            if (c == '&') {
-                if (input.startsWith("&quot;", i)) {
-                    sb.append('"');
-                    i += 5;
-                } else if (input.startsWith("&apos;", i)) {
-                    sb.append('\'');
-                    i += 5;
-                } else if (input.startsWith("&amp;", i)) {
-                    sb.append('&');
-                    i += 4;
-                } else if (input.startsWith("&lt;", i)) {
-                    sb.append('<');
-                    i += 3;
-                } else if (input.startsWith("&gt;", i)) {
-                    sb.append('>');
-                    i += 3;
-                } else {
-                    sb.append('&'); // 不认识的实体，原样保留
-                }
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
-
-    public static void export(WzImage image, Path filePath, int indent, boolean media) {
+    public static void export(WzImage image, Path filePath, int indent, MediaExportType meType) {
         try {
             // 创建 Document
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -96,10 +65,23 @@ public final class XmlExport {
             Element root = doc.createElement("imgdir");
             doc.setXmlStandalone(true);
             root.setAttribute("name", image.getName());
+            if (indent > 0) {
+                root.setAttribute("indent", String.valueOf(indent));
+            }
+            root.setAttribute("media", meType.name());
+
+            Path mediaFolder = filePath.getParent().resolve("media").resolve(image.getName());
+            if (meType == MediaExportType.FILE) {
+                try {
+                    FileTool.createDirectory(mediaFolder);
+                } catch (Exception e) {
+                    log.error("无法创建 media 目录: {} {}", mediaFolder, e.getMessage());
+                    return;
+                }
+            }
+
             doc.appendChild(root);
-            image.getChildren().forEach(prop -> {
-                writeProperties(doc, root, prop, media);
-            });
+            image.getChildren().forEach(prop -> writeProperties(doc, root, prop, meType, prop.getName(), mediaFolder));
 
 
             // 写入文件
@@ -120,7 +102,7 @@ public final class XmlExport {
         }
     }
 
-    private static void writeProperties(Document doc, Element parent, WzImageProperty property, boolean media) {
+    private static void writeProperties(Document doc, Element parent, WzImageProperty property, MediaExportType meType, String mediaFileName, Path mediaPath) {
         Element e;
         switch (property) {
             case WzCanvasProperty prop -> {
@@ -128,15 +110,23 @@ public final class XmlExport {
                 e.setAttribute("name", escapeText(prop.getName()));
                 e.setAttribute("width", String.valueOf(prop.getWidth()));
                 e.setAttribute("height", String.valueOf(prop.getHeight()));
+                e.setAttribute("format", String.valueOf(prop.getFormat()));
+                e.setAttribute("format2", String.valueOf(prop.getFormat2()));
 
-                if (media) e.setAttribute("png", prop.getBase64());
-
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, media));
+                if (meType == MediaExportType.BASE64)
+                    e.setAttribute("png", Base64Tool.coverBytesToBase64(prop.getImageBytes(false)));
+                else if (meType == MediaExportType.FILE) {
+                    String filename = FileTool.safeFileName(mediaFileName + "." + prop.getName() + ".png");
+                    Path p = mediaPath.resolve(filename);
+                    FileTool.saveFile(p, prop.getImageBytes(false));
+                    e.setAttribute("file", filename);
+                }
+                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + "." + prop.getName(), mediaPath));
             }
             case WzConvexProperty prop -> {
                 e = doc.createElement("extended");
                 e.setAttribute("name", escapeText(prop.getName()));
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, media));
+                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + "." + prop.getName(), mediaPath));
             }
             case WzDoubleProperty prop -> {
                 e = doc.createElement("double");
@@ -156,7 +146,7 @@ public final class XmlExport {
             case WzListProperty prop -> {
                 e = doc.createElement("imgdir");
                 e.setAttribute("name", escapeText(prop.getName()));
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, media));
+                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + "." + prop.getName(), mediaPath));
             }
             case WzLongProperty prop -> {
                 e = doc.createElement("long");
@@ -175,10 +165,19 @@ public final class XmlExport {
             case WzSoundProperty prop -> {
                 e = doc.createElement("sound");
                 e.setAttribute("name", escapeText(prop.getName()));
-                if (media) {
+
+                if (meType == MediaExportType.BASE64) {
                     e.setAttribute("length", String.valueOf(prop.getLenMs()));
-                    e.setAttribute("header", prop.getHeaderBase64());
-                    e.setAttribute("mp3", prop.getBase64());
+                    e.setAttribute("header", Base64Tool.coverBytesToBase64(prop.getHeader()));
+                    e.setAttribute("mp3", Base64Tool.coverBytesToBase64(prop.getSoundBytes(false)));
+                } else if (meType == MediaExportType.FILE) {
+                    e.setAttribute("length", String.valueOf(prop.getLenMs()));
+                    e.setAttribute("header", Base64Tool.coverBytesToBase64(prop.getHeader()));
+
+                    String filename = FileTool.safeFileName(mediaFileName + "." + prop.getName() + ".mp3");
+                    Path p = mediaPath.resolve(filename);
+                    FileTool.saveFile(p, prop.getSoundBytes(false));
+                    e.setAttribute("file", filename);
                 }
             }
             case WzStringProperty prop -> {

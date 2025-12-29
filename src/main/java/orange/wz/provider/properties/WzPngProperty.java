@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
@@ -42,6 +41,26 @@ public class WzPngProperty extends WzImageProperty {
 
     public WzPngProperty(String name, WzObject parent, WzImage wzImage) {
         super(name, WzType.PNG_PROPERTY, parent, wzImage);
+    }
+
+    public WzPngProperty(String name, int width, int height, int format, int format2, byte[] imageBytes, WzObject parent, WzImage wzImage) {
+        this(name, parent, wzImage);
+        this.width = width;
+        this.height = height;
+        this.format = format;
+        this.format2 = format2;
+
+        if (imageBytes != null && imageBytes.length > 0) {
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
+                BufferedImage image = ImageIO.read(bis);
+                if (image == null) {
+                    throw new IOException("无法解码图片数据，可能不是支持的图片格式");
+                }
+                this.image = image;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public void setData(BinaryReader reader) {
@@ -219,6 +238,10 @@ public class WzPngProperty extends WzImageProperty {
                 }
             } else if (image != null) {
                 compressPng(getPngFormat());
+                returnBytes = compressedBytes;
+                if (!saveInMem) {
+                    compressedBytes = null;
+                }
             }
             return returnBytes;
         }
@@ -531,6 +554,19 @@ public class WzPngProperty extends WzImageProperty {
                 alphaIndex[i + j] = (flags & mask) >> (3 * j);
             }
         }
+    }
+
+    public byte[] getImageBytes(boolean saveInMem) {
+        BufferedImage image = getImage(saveInMem);
+        if (image == null) return null;
+        try {
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            ImageIO.write(image, "PNG", stream);
+            return stream.toByteArray();
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+        return null;
     }
 
     public String getBase64() {
