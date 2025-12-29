@@ -1,6 +1,6 @@
 package orange.wz.gui.component.key;
 
-import orange.wz.utils.wzkey.WzKey;
+import orange.wz.provider.tools.wzkey.WzKey;
 
 import javax.swing.*;
 import java.awt.*;

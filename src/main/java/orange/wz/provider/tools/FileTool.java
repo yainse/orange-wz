@@ -1,11 +1,11 @@
-package orange.wz.utils;
+package orange.wz.provider.tools;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
-public final class FileUtils {
+public final class FileTool {
     /**
      * 确保目录是一个新目录（空）
      */

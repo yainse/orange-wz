@@ -1,4 +1,4 @@
-package orange.wz.utils.wzkey;
+package orange.wz.provider.tools.wzkey;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

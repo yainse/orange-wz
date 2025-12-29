@@ -12,9 +12,9 @@ import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
 import orange.wz.provider.tools.WzFileStatus;
 import orange.wz.provider.tools.WzMutableKey;
-import orange.wz.utils.FileUtils;
-import orange.wz.utils.wzkey.WzKey;
-import orange.wz.utils.wzkey.WzKeyStorage;
+import orange.wz.provider.tools.FileTool;
+import orange.wz.provider.tools.wzkey.WzKey;
+import orange.wz.provider.tools.wzkey.WzKeyStorage;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -969,7 +969,7 @@ public final class WzEditorService {
         if (basePath == null) basePath = Path.of(ServerConfig.WZ_DIRECTORY, "export");
 
         try {
-            FileUtils.createDirectory(basePath);
+            FileTool.createDirectory(basePath);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, e.getMessage());
         }
@@ -977,7 +977,7 @@ public final class WzEditorService {
         if (node.getType() == WzNodeType.FOLDER) {
             Path p = basePath.resolve(node.getName());
             try {
-                FileUtils.createDirectory(p);
+                FileTool.createDirectory(p);
             } catch (IOException e) {
                 throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, e.getMessage());
             }
@@ -1001,7 +1001,7 @@ public final class WzEditorService {
         if (basePath == null) basePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "xml");
 
         try {
-            FileUtils.createDirectory(basePath);
+            FileTool.createDirectory(basePath);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, e.getMessage());
         }
@@ -1009,7 +1009,7 @@ public final class WzEditorService {
         if (node.getType() == WzNodeType.FOLDER) {
             Path p = basePath.resolve(node.getName());
             try {
-                FileUtils.createDirectory(p);
+                FileTool.createDirectory(p);
             } catch (IOException e) {
                 throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, e.getMessage());
             }
@@ -1254,7 +1254,7 @@ public final class WzEditorService {
 
         try {
             Path basePath = Path.of(ServerConfig.WZ_DIRECTORY, "export", "打包wz");
-            FileUtils.createDirectory(basePath);
+            FileTool.createDirectory(basePath);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, e.getMessage());
         }

@@ -9,8 +9,8 @@ import orange.wz.gui.component.key.KeyManager;
 import orange.wz.gui.component.panel.CenterPane;
 import orange.wz.gui.utils.UrlUtil;
 import orange.wz.manager.ServerManager;
-import orange.wz.utils.wzkey.WzKey;
-import orange.wz.utils.wzkey.WzKeyStorage;
+import orange.wz.provider.tools.wzkey.WzKey;
+import orange.wz.provider.tools.wzkey.WzKeyStorage;
 
 import javax.swing.*;
 import java.awt.*;

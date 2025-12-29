@@ -6,7 +6,7 @@ import orange.wz.gui.component.key.KeyBox;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.filter.IntegerFilter;
 import orange.wz.gui.utils.JMessageUtil;
-import orange.wz.utils.wzkey.WzKey;
+import orange.wz.provider.tools.wzkey.WzKey;
 
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;

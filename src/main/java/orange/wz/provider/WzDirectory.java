@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import orange.wz.exception.BizException;
 import orange.wz.exception.ExceptionEnum;
 import orange.wz.provider.tools.*;
-import orange.wz.utils.FileUtils;
+import orange.wz.provider.tools.FileTool;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -227,7 +227,7 @@ public class WzDirectory extends WzObject {
         String name = getName().replaceAll("(?i)\\.wz$", "");
         Path p = parentPath.resolve(name);
         try {
-            FileUtils.createNewDirectory(p);
+            FileTool.createNewDirectory(p);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }
@@ -239,7 +239,7 @@ public class WzDirectory extends WzObject {
     public void exportToXml(Path parentPath, int indent, boolean exportMedia) {
         Path p = parentPath.resolve(getName());
         try {
-            FileUtils.createNewDirectory(p);
+            FileTool.createNewDirectory(p);
         } catch (IOException e) {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }

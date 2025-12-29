@@ -1,4 +1,4 @@
-package orange.wz.utils.wzkey;
+package orange.wz.provider.tools.wzkey;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
