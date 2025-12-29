@@ -17,9 +17,9 @@ public class WzCanvasProperty extends WzExtended {
         super(name, WzType.CANVAS_PROPERTY, parent, wzImage);
     }
 
-    public WzCanvasProperty(String name, int width, int height, int format, int format2, byte[] imageBytes, WzObject parent, WzImage wzImage) {
+    public WzCanvasProperty(String name, int width, int height, int format, int scale, byte[] imageBytes, WzObject parent, WzImage wzImage) {
         this(name, parent, wzImage);
-        png = new WzPngProperty(name, width, height, format, format2, imageBytes, this, wzImage);
+        png = new WzPngProperty(name, width, height, format, scale, imageBytes, this, wzImage);
     }
 
     // Png -------------------------------------------------------------------------------------------------------------
@@ -43,8 +43,8 @@ public class WzCanvasProperty extends WzExtended {
         return png.getFormat();
     }
 
-    public int getFormat2() {
-        return png.getFormat2();
+    public int getScale() {
+        return png.getScale();
     }
 
     public BufferedImage getPngImage(boolean saveInMem) {
@@ -68,8 +68,8 @@ public class WzCanvasProperty extends WzExtended {
         png.setImage(pngImage);
     }
 
-    public void setFormat(int format, int format2) {
-        png.setFormat(format, format2);
+    public void setFormat(int format, int scale) {
+        png.setFormat(format, scale);
     }
 
     // Override --------------------------------------------------------------------------------------------------------
@@ -89,7 +89,7 @@ public class WzCanvasProperty extends WzExtended {
         writer.writeCompressedInt(png.getWidth());
         writer.writeCompressedInt(png.getHeight());
         writer.writeCompressedInt(png.getFormat());
-        writer.putByte((byte) png.getFormat2());
+        writer.putByte((byte) png.getScale());
         writer.putInt(0);
 
         // Write image

@@ -109,7 +109,7 @@ public final class XmlExport {
                 e.setAttribute("width", String.valueOf(prop.getWidth()));
                 e.setAttribute("height", String.valueOf(prop.getHeight()));
                 e.setAttribute("format", String.valueOf(prop.getFormat()));
-                e.setAttribute("format2", String.valueOf(prop.getFormat2()));
+                e.setAttribute("scale", String.valueOf(prop.getScale()));
 
                 if (meType == MediaExportType.BASE64)
                     e.setAttribute("basedata", Base64Tool.coverBytesToBase64(prop.getImageBytes(false)));

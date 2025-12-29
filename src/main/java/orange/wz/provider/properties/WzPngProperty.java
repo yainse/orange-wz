@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Base64;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
@@ -31,7 +30,7 @@ public class WzPngProperty extends WzImageProperty {
     private int width;
     private int height;
     private int format;
-    private int format2;
+    private int scale;
     private int offset;
     @Getter(AccessLevel.NONE)
     private byte[] compressedBytes;
@@ -43,12 +42,12 @@ public class WzPngProperty extends WzImageProperty {
         super(name, WzType.PNG_PROPERTY, parent, wzImage);
     }
 
-    public WzPngProperty(String name, int width, int height, int format, int format2, byte[] imageBytes, WzObject parent, WzImage wzImage) {
+    public WzPngProperty(String name, int width, int height, int format, int scale, byte[] imageBytes, WzObject parent, WzImage wzImage) {
         this(name, parent, wzImage);
         this.width = width;
         this.height = height;
         this.format = format;
-        this.format2 = format2;
+        this.scale = scale;
 
         if (imageBytes != null && imageBytes.length > 0) {
             try (ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes)) {
@@ -67,7 +66,7 @@ public class WzPngProperty extends WzImageProperty {
         width = reader.readCompressedInt();
         height = reader.readCompressedInt();
         format = reader.readCompressedInt();
-        format2 = reader.getByte();
+        scale = reader.getByte();
         reader.skip(4); // 跳过4个字节
         offset = reader.getPosition();
         // int len = reader.getInt() - 1;
@@ -85,7 +84,7 @@ public class WzPngProperty extends WzImageProperty {
             return;
         }
 
-        WzPngFormat pngFormat = WzPngFormat.getByValue(format + format2);
+        WzPngFormat pngFormat = WzPngFormat.getByValue(format + scale);
 
         byte[] argbByteArr;
         int[] argbIntArr;
@@ -285,7 +284,7 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     private int getDecompressSize() {
-        WzPngFormat pngFormat = WzPngFormat.getByValue(format + format2);
+        WzPngFormat pngFormat = WzPngFormat.getByValue(format + scale);
         return switch (pngFormat) {
             case WzPngFormat.Format1, Format257, Format513 -> width * height * 2;
             case Format2, Format3 -> width * height * 4;
@@ -570,12 +569,12 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     public WzPngFormat getPngFormat() {
-        return WzPngFormat.getByValue(format + format2);
+        return WzPngFormat.getByValue(format + scale);
     }
 
-    public void setFormat(int format, int format2) {
+    public void setFormat(int format, int scale) {
         this.format = format;
-        this.format2 = format2;
+        this.scale = scale;
     }
 
     public void setImage(BufferedImage pngImage) {
@@ -593,7 +592,7 @@ public class WzPngProperty extends WzImageProperty {
         width = image.getWidth();
         height = image.getHeight();
 
-        compressedBytes = compress(image, WzPngFormat.getByValue(format + format2));
+        compressedBytes = compress(image, WzPngFormat.getByValue(format + scale));
         compressedBytes = zlibCompress(compressedBytes);
         if (listWzUsed) {
             BinaryWriter writer = new BinaryWriter(compressedBytes);
@@ -614,11 +613,11 @@ public class WzPngProperty extends WzImageProperty {
     public void compressPng(WzPngFormat pngFormat) {
         WzMutableKey wzMutableKey = wzImage.getReader().getWzMutableKey();
         format = pngFormat.getValue();
-        format2 = 0;
+        scale = 0;
         width = image.getWidth();
         height = image.getHeight();
 
-        compressedBytes = compress(image, WzPngFormat.getByValue(format + format2));
+        compressedBytes = compress(image, WzPngFormat.getByValue(format + scale));
         compressedBytes = zlibCompress(compressedBytes);
         if (listWzUsed) {
             BinaryWriter writer = new BinaryWriter(compressedBytes);
@@ -975,7 +974,7 @@ public class WzPngProperty extends WzImageProperty {
         clone.width = width;
         clone.height = height;
         clone.format = format;
-        clone.format2 = format2;
+        clone.scale = scale;
         clone.listWzUsed = false;
         // clone.compressedBytes = Arrays.copyOf(compressedBytes, compressedBytes.length); // 这个需要用新密钥重新压缩
         clone.image = deepClone(getImage(false));

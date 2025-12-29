@@ -107,12 +107,12 @@ public final class XmlImport {
                 int width = 0;
                 int height = 0;
                 int format = 2;
-                int format2 = 0;
+                int scale = 0;
                 try {
                     width = Integer.parseInt(e.getAttribute("width"));
                     height = Integer.parseInt(e.getAttribute("height"));
                     format = Integer.parseInt(e.getAttribute("format"));
-                    format2 = Integer.parseInt(e.getAttribute("format2"));
+                    scale = Integer.parseInt(e.getAttribute("scale"));
                 } catch (Exception ex) {
                     log.warn("Image: {} CanvasNode: {} Error: {}", image.getName(), name, ex.getMessage());
                 }
@@ -125,7 +125,7 @@ public final class XmlImport {
                     imageBytes = FileTool.readFile(mediaPath);
                 }
 
-                WzCanvasProperty canvas = new WzCanvasProperty(name, width, height, format, format2, imageBytes, parent, image);
+                WzCanvasProperty canvas = new WzCanvasProperty(name, width, height, format, scale, imageBytes, parent, image);
                 readChildren(e, canvas, image);
                 yield canvas;
             }
