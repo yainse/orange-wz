@@ -2,9 +2,14 @@ package orange.wz.gui.component.panel;
 
 import lombok.Getter;
 import orange.wz.gui.MainFrame;
+import orange.wz.gui.component.dialog.SearchDialog;
+import orange.wz.gui.component.dialog.SearchResultDialog;
+import orange.wz.gui.component.form.data.SearchFormData;
+import orange.wz.gui.component.form.data.SearchResult;
 import orange.wz.gui.component.form.impl.*;
 import orange.wz.gui.component.menu.*;
 import orange.wz.gui.utils.JMessageUtil;
+import orange.wz.gui.utils.SearchUtil;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
 import orange.wz.provider.tools.WzType;
@@ -15,6 +20,7 @@ import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +59,9 @@ public final class EditPane extends JSplitPane {
             Map.entry("uolSound", new UolSoundForm()),
             Map.entry("vector", new VectorForm())
     );
+
+    private final SearchDialog searchDialog = new SearchDialog("搜索", this);
+    private final List<SearchResult> searchResults = new ArrayList<>();
 
     public NodeForm getNodeForm() {
         return (NodeForm) nodeForms.get("node");
@@ -141,6 +150,8 @@ public final class EditPane extends JSplitPane {
                         case IMAGE -> {
                             if (obj instanceof WzImageFile) {
                                 yield AiOutlineFileMarkdownIcon;
+                            } else if (obj instanceof WzXmlFile) {
+                                yield AiOutlineFileExcelIcon;
                             } else {
                                 yield ImgIcon;
                             }
@@ -267,7 +278,7 @@ public final class EditPane extends JSplitPane {
                         EditPaneAction finalAction;
                         if (node.isLeaf()) {
                             // 叶子节点：执行业务逻辑
-                            handleTreeDoubleClick(node, wzObject);
+                            handleTreeDoubleClick(node);
                             finalAction = EditPaneAction.ACTION;
                         } else {
                             // 非叶子节点：手动切换展开状态
@@ -418,45 +429,14 @@ public final class EditPane extends JSplitPane {
         MainFrame.getInstance().setStatusText(text);
     }
 
-    private SwingWorker<Void, Void> handleTreeDoubleClick(DefaultMutableTreeNode node, WzObject wzObject) {
+    private SwingWorker<Void, Void> handleTreeDoubleClick(DefaultMutableTreeNode node) {
+        WzObject wzObject = (WzObject) node.getUserObject();
         MainFrame.getInstance().setStatusText("加载 %s...", wzObject.getName());
 
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                switch (wzObject) {
-                    case WzFolder folder -> {
-                        if (node.getChildCount() == 0) {
-                            java.util.List<WzObject> children = folder.getChildren();
-                            sortWzObjects(children);
-                            children.forEach(child -> insertNodeToTree(node, child, true));
-                        }
-                    }
-                    case WzDirectory wzDir -> {
-                        if (wzDir.isWzFile() && !wzDir.getWzFile().parse()) {
-                            MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzDir.getName(), wzDir.getWzFile().getStatus().getMessage());
-                            throw new RuntimeException();
-                        }
-                        addChildrenRecursively(node, wzDir, true);
-                    }
-                    case WzImage wzImg -> {
-                        if (node.getChildCount() == 0) {
-                            if (!wzImg.parse()) {
-                                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImg.getName(), wzImg.getStatus().getMessage());
-                                throw new RuntimeException();
-                            }
-                            java.util.List<WzImageProperty> children = wzImg.getChildren();
-                            sortWzObjects(children);
-                            children.forEach(child -> {
-                                DefaultMutableTreeNode childNode = insertNodeToTree(node, child, true);
-                                addChildrenRecursively(childNode, child, false);
-                            });
-                        }
-                    }
-                    case WzImageProperty prop -> addChildrenRecursively(node, prop, true);
-                    default -> {
-                    }
-                }
+                expandTreeNode(node, true, true, true);
                 return null;
             }
 
@@ -473,6 +453,43 @@ public final class EditPane extends JSplitPane {
 
         worker.execute();
         return worker;
+    }
+
+    public void expandTreeNode(DefaultMutableTreeNode node, boolean parseWz, boolean parseImg, boolean expand) {
+        WzObject wzObject = (WzObject) node.getUserObject();
+        switch (wzObject) {
+            case WzFolder folder -> {
+                if (node.getChildCount() == 0) {
+                    java.util.List<WzObject> children = folder.getChildren();
+                    sortWzObjects(children);
+                    children.forEach(child -> insertNodeToTree(node, child, expand));
+                }
+            }
+            case WzDirectory wzDir -> {
+                if (wzDir.isWzFile() && parseWz && !wzDir.getWzFile().parse()) {
+                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzDir.getName(), wzDir.getWzFile().getStatus().getMessage());
+                    throw new RuntimeException();
+                }
+                addChildrenRecursively(node, wzDir, expand);
+            }
+            case WzImage wzImg -> {
+                if (node.getChildCount() == 0) {
+                    if (parseImg && !wzImg.parse()) {
+                        MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImg.getName(), wzImg.getStatus().getMessage());
+                        throw new RuntimeException();
+                    }
+                    java.util.List<WzImageProperty> children = wzImg.getChildren();
+                    sortWzObjects(children);
+                    children.forEach(child -> {
+                        DefaultMutableTreeNode childNode = insertNodeToTree(node, child, expand);
+                        addChildrenRecursively(childNode, child, false);
+                    });
+                }
+            }
+            case WzImageProperty prop -> addChildrenRecursively(node, prop, expand);
+            default -> {
+            }
+        }
     }
 
     // 递归方法：只插入子节点，不展开
@@ -645,8 +662,7 @@ public final class EditPane extends JSplitPane {
                 tree.setSelectionPath(new TreePath(node.getPath()));
             } else {
                 if (node.isLeaf()) {
-                    WzObject wzObject = (WzObject) node.getUserObject();
-                    handleTreeDoubleClick(node, wzObject);
+                    handleTreeDoubleClick(node);
                 } else {
                     tree.expandPath(new TreePath(node.getPath()));
                 }
@@ -666,8 +682,7 @@ public final class EditPane extends JSplitPane {
 
             if (i == paths.length - 1) {
                 if (finalAction == EditPaneAction.ACTION) {
-                    WzObject wzObject = (WzObject) node.getUserObject();
-                    handleTreeDoubleClick(node, wzObject);
+                    handleTreeDoubleClick(node);
                 } else if (finalAction == EditPaneAction.COLLAPSE) {
                     tree.collapsePath(new TreePath(node.getPath()));
                 } else if (finalAction == EditPaneAction.EXPAND) {
@@ -675,8 +690,7 @@ public final class EditPane extends JSplitPane {
                 }
             } else {
                 if (node.isLeaf()) {
-                    WzObject wzObject = (WzObject) node.getUserObject();
-                    handleTreeDoubleClick(node, wzObject);
+                    handleTreeDoubleClick(node);
                 } else {
                     tree.expandPath(new TreePath(node.getPath()));
                 }
@@ -705,8 +719,7 @@ public final class EditPane extends JSplitPane {
                 return (WzObject) node.getUserObject();
             } else {
                 if (node.isLeaf()) {
-                    WzObject wzObject = (WzObject) node.getUserObject();
-                    handleTreeDoubleClick(node, wzObject);
+                    handleTreeDoubleClick(node);
                 } else {
                     tree.expandPath(new TreePath(node.getPath()));
                 }
@@ -728,8 +741,7 @@ public final class EditPane extends JSplitPane {
                 tree.scrollPathToVisible(path); // 关键，滚动到可见
             } else {
                 if (node.isLeaf()) {
-                    WzObject wzObject = (WzObject) node.getUserObject();
-                    SwingWorker<Void, Void> worker = handleTreeDoubleClick(node, wzObject);
+                    SwingWorker<Void, Void> worker = handleTreeDoubleClick(node);
                     try {
                         worker.get(); // 等待完成
                     } catch (ExecutionException | InterruptedException e) {
@@ -853,5 +865,64 @@ public final class EditPane extends JSplitPane {
                 }
             }
         });
+
+        // Ctrl+F 搜索
+        EditPane editPane = this;
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "search");
+        am.put("search", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SearchFormData option;
+                while (true) {
+                    option = searchDialog.getData();
+                    if (option == null) break;
+
+                    if (!option.nameMod() && !option.valueMod()) {
+                        JMessageUtil.warn("你要搜索名称还是值？");
+                        continue;
+                    }
+
+                    TreePath[] selectedPaths;
+                    if (option.globalMod()) {
+                        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                        int childCount = root.getChildCount();
+                        selectedPaths = new TreePath[childCount];
+                        for (int i = 0; i < childCount; i++) {
+                            DefaultMutableTreeNode child = (DefaultMutableTreeNode) root.getChildAt(i);
+                            selectedPaths[i] = new TreePath(child.getPath());
+                        }
+                    } else {
+                        selectedPaths = tree.getSelectionPaths();
+                    }
+
+                    if (selectedPaths == null || selectedPaths.length == 0) {
+                        JMessageUtil.error("请选择要搜索的目标，或者勾选‘搜全局’");
+                        continue;
+                    }
+
+                    searchResults.clear();
+                    for (TreePath treePath : selectedPaths) {
+                        DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                        SearchUtil.search(
+                                option.search(),
+                                option.nameMod(),
+                                option.valueMod(),
+                                option.equalMod(),
+                                option.lowMod(),
+                                option.parseImgMod(),
+                                searchResults,
+                                node,
+                                editPane
+                        );
+                    }
+
+                    String title = "搜索结果 '" + option.search() + "'";
+                    SearchResultDialog dialog = new SearchResultDialog(null, title, searchResults, editPane);
+                    dialog.setVisible(true);
+                    break;
+                }
+            }
+        });
     }
+
 }

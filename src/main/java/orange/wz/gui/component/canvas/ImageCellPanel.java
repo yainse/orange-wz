@@ -5,6 +5,7 @@ import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.CanvasUtilData;
 import orange.wz.gui.utils.JMessageUtil;
+import orange.wz.gui.utils.TreeNodeUtil;
 import orange.wz.provider.WzObject;
 
 import javax.imageio.ImageIO;
@@ -52,15 +53,9 @@ public final class ImageCellPanel extends JPanel {
 
         // 事件逻辑
         jumpBtn.addActionListener(e -> {
-            TreeNode[] nodePaths = node.getPath();
             String[] wzPaths = data.getPath().split("/");
-            List<String> paths = new ArrayList<>();
-
             // 1. 把 nodePaths 去掉 root 并放入 paths
-            for (int i = 1; i < nodePaths.length; i++) { // 跳过 root
-                DefaultMutableTreeNode n = (DefaultMutableTreeNode) nodePaths[i];
-                paths.add(((WzObject) n.getUserObject()).getName());
-            }
+            List<String> paths = TreeNodeUtil.getNodePathWithoutRoot(node);
 
             // 2. 找到 nodePaths 和 wzPaths 的公共起始点
             int commonStart;

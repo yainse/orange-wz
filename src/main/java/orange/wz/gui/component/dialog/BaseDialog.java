@@ -8,9 +8,9 @@ import java.awt.*;
 
 @Slf4j
 public abstract class BaseDialog<T> extends JOptionPane {
-    private final EditPane editPane;
-    private final JPanel panel = new JPanel(new GridBagLayout());
-    private final String title;
+    protected final EditPane editPane;
+    protected final JPanel panel = new JPanel(new GridBagLayout());
+    protected final String title;
     private int topPanelRow = 0;
 
     public BaseDialog(String title, EditPane editPane) {

@@ -14,6 +14,7 @@ public final class Icons {
     public static final FlatSVGIcon AiOutlineFileWordIcon = getSVG("AiOutlineFileWord.svg", 16, 16);
     public static final FlatSVGIcon AiOutlineFileMarkdownIcon = getSVG("AiOutlineFileMarkdown.svg", 16, 16);
     public static final FlatSVGIcon ImgIcon = getSVG("IMG.svg", 16, 16);
+    public static final FlatSVGIcon AiOutlineFileExcelIcon = getSVG("AiOutlineFileExcel.svg", 16, 16);
     public static final FlatSVGIcon ListIcon = getSVG("LIST.svg", 16, 16);
     public static final FlatSVGIcon StrIcon = getSVG("STR.svg", 16, 16);
     public static final FlatSVGIcon PngIcon = getSVG("PNG.svg", 16, 16);
