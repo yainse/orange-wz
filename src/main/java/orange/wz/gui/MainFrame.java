@@ -75,9 +75,9 @@ public class MainFrame extends JFrame {
         JMenu openItem = new JMenu("加载");
         openItem.setIcon(FcFolderIcon);
 
-        JMenuItem openFiles = new JMenuItem("文件 wz/img", FcFileIcon);
+        JMenuItem openFiles = new JMenuItem("文件 wz/img/xml", FcFileIcon);
         openFiles.addActionListener(e -> {
-            List<File> files = orange.wz.gui.component.FileDialog.chooseOpenFiles(new String[]{"wz", "img"});
+            List<File> files = orange.wz.gui.component.FileDialog.chooseOpenFiles(new String[]{"wz", "img", "xml"});
             centerPane.getLeftEditPane().open(files);
         });
         openItem.add(openFiles);

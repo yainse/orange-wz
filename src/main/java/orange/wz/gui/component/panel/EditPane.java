@@ -589,6 +589,9 @@ public final class EditPane extends JSplitPane {
                 } else if (f.getName().endsWith(".img")) {
                     WzImageFile wzImageFile = new WzImageFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
                     insertNodeToTree(treeRoot, wzImageFile, true);
+                } else if (f.getName().endsWith(".xml")) {
+                    WzXmlFile wzXmlFile = new WzXmlFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
+                    insertNodeToTree(treeRoot, wzXmlFile, true);
                 }
             } else if (f.isDirectory()) {
                 WzFolder folder = new WzFolder(f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
