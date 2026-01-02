@@ -5,7 +5,7 @@ import orange.wz.gui.component.panel.EditPane;
 
 import javax.swing.*;
 
-public class LongDialog extends NodeDialog {
+public final class LongDialog extends NodeDialog {
     private final JTextField valueField = new JTextField(20);
 
     public LongDialog(String title, EditPane editPane) {
@@ -14,16 +14,9 @@ public class LongDialog extends NodeDialog {
         addRow("值", valueField);
     }
 
+    @Override
     public LongFormData getData() {
-        int result = showConfirmDialog(
-                editPane,
-                panel,
-                title,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
+        if (showDialog() != JOptionPane.OK_OPTION) {
             return null;
         }
 

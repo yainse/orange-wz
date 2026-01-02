@@ -15,7 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-public class CanvasDialog extends NodeDialog {
+public final class CanvasDialog extends NodeDialog {
     private final JTextField pathField = new JTextField(20);
     private final DisabledItemComboBox<WzPngFormat> formatField;
     private BufferedImage image;
@@ -50,16 +50,9 @@ public class CanvasDialog extends NodeDialog {
         });
     }
 
+    @Override
     public CanvasFormData getData() {
-        int result = showConfirmDialog(
-                editPane,
-                panel,
-                title,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
+        if (showDialog() != JOptionPane.OK_OPTION) {
             return null;
         }
 

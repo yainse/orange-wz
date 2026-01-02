@@ -5,7 +5,7 @@ import orange.wz.gui.component.panel.EditPane;
 
 import javax.swing.*;
 
-public class VectorDialog extends NodeDialog {
+public final class VectorDialog extends NodeDialog {
     private final JTextField xField = new JTextField(20);
     private final JTextField yField = new JTextField(20);
 
@@ -16,16 +16,9 @@ public class VectorDialog extends NodeDialog {
         addRow("Y", yField);
     }
 
+    @Override
     public VectorFormData getData() {
-        int result = showConfirmDialog(
-                editPane,
-                panel,
-                title,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
+        if (showDialog() != JOptionPane.OK_OPTION) {
             return null;
         }
 

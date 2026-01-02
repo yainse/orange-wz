@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-public class SoundDialog extends NodeDialog {
+public final class SoundDialog extends NodeDialog {
     private final JTextField pathField = new JTextField(20);
     private byte[] soundBytes;
 
@@ -36,16 +36,9 @@ public class SoundDialog extends NodeDialog {
         });
     }
 
+    @Override
     public SoundFormData getData() {
-        int result = showConfirmDialog(
-                editPane,
-                panel,
-                title,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
+        if (showDialog() != JOptionPane.OK_OPTION) {
             return null;
         }
 

@@ -5,7 +5,7 @@ import orange.wz.gui.component.panel.EditPane;
 
 import javax.swing.*;
 
-public class ShortDialog extends NodeDialog {
+public final class ShortDialog extends NodeDialog {
     private final JTextField valueField = new JTextField(20);
 
     public ShortDialog(String title, EditPane editPane) {
@@ -14,16 +14,9 @@ public class ShortDialog extends NodeDialog {
         addRow("值", valueField);
     }
 
+    @Override
     public ShortFormData getData() {
-        int result = showConfirmDialog(
-                editPane,
-                panel,
-                title,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
+        if (showDialog() != JOptionPane.OK_OPTION) {
             return null;
         }
 

@@ -5,9 +5,6 @@ import java.awt.*;
 
 public final class OverwriteDialog {
 
-    private OverwriteDialog() {
-    }
-
     public static OverwriteChoice show(Component parent, String name) {
 
         String[] options = {

@@ -9,19 +9,14 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 
-public final class ExportXmlDialog extends JOptionPane {
-    private final EditPane editPane;
-    private int topPanelRow = 0;
-    private final JPanel panel = new JPanel(new GridBagLayout());
+public final class ExportXmlDialog extends BaseDialog<ExportXmlData> {
     private final JTextField indentField = new JTextField(20);
-    private final JRadioButton noneRadio = new JRadioButton("不输出");
     private final JRadioButton base64Radio = new JRadioButton("Base64");
     private final JRadioButton fileRadio = new JRadioButton("文件");
     private final JTextField pathField = new JTextField(20);
 
-    public ExportXmlDialog(EditPane editPane, boolean wzFile) {
-        super();
-        this.editPane = editPane;
+    public ExportXmlDialog(EditPane editPane) {
+        super("导出 XML", editPane);
 
         indentField.setText("2");
         JButton selectBtn = new JButton("选择");
@@ -37,6 +32,7 @@ public final class ExportXmlDialog extends JOptionPane {
         addRow("缩进数量", indentField);
         // 创建互斥单选集合
         ButtonGroup mediaGroup = new ButtonGroup();
+        JRadioButton noneRadio = new JRadioButton("不输出");
         mediaGroup.add(noneRadio);
         mediaGroup.add(base64Radio);
         mediaGroup.add(fileRadio);
@@ -50,16 +46,9 @@ public final class ExportXmlDialog extends JOptionPane {
         addRow("导出路径", pathField, selectBtn);
     }
 
+    @Override
     public ExportXmlData getData() {
-        int result = showConfirmDialog(
-                editPane,
-                panel,
-                "导出 XML",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
+        if (showDialog() != JOptionPane.OK_OPTION) {
             return null;
         }
 
@@ -81,37 +70,4 @@ public final class ExportXmlDialog extends JOptionPane {
         return new ExportXmlData(indent, meType, pathField.getText());
     }
 
-    private void addRow(String label, JComponent... fields) {
-        // 标签 gbc
-        GridBagConstraints labelGbc = baseGbc();
-        labelGbc.gridx = 0;
-        labelGbc.gridy = topPanelRow;
-        labelGbc.weightx = 0; // 标签不拉伸
-        panel.add(new JLabel(label), labelGbc);
-
-        // 输入组件
-        for (int i = 0; i < fields.length; i++) {
-            GridBagConstraints fieldGbc = baseGbc();
-            fieldGbc.gridx = i + 1;
-            fieldGbc.gridy = topPanelRow;
-
-            // 只有最后一个组件拉伸
-            if (i == fields.length - 1) {
-                fieldGbc.weightx = 1.0;
-                fieldGbc.fill = GridBagConstraints.HORIZONTAL;
-            } else {
-                fieldGbc.weightx = 0;
-            }
-
-            panel.add(fields[i], fieldGbc);
-        }
-
-        topPanelRow++;
-    }
-
-    private GridBagConstraints baseGbc() {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        return gbc;
-    }
 }

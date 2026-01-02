@@ -268,7 +268,7 @@ public final class WzImageMenu extends JPopupMenu {
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
-            ExportXmlDialog dialog = new ExportXmlDialog(editPane, true);
+            ExportXmlDialog dialog = new ExportXmlDialog(editPane);
             ExportXmlData data = dialog.getData();
             if (data == null) return;
 
