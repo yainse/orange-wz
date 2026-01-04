@@ -119,12 +119,7 @@ public final class Outlink {
                 }
                 if (image == null) return;
 
-                List<Data> dataList = collector.get(image);
-                if (dataList == null) {
-                    dataList = new ArrayList<>();
-                    dataList.add(new Data(property, path));
-                    collector.put(image, dataList);
-                }
+                List<Data> dataList = collector.computeIfAbsent(image, k -> new ArrayList<>());
                 dataList.add(new Data(property, path));
             } else if (wzObject instanceof WzDirectory wzDir) {
                 collect(collector, wzDir.getChildren());
