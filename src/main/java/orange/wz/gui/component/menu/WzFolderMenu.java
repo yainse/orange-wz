@@ -197,11 +197,17 @@ public final class WzFolderMenu extends JPopupMenu {
     private void packageFolder(short fileVersion, WzFolder wzFolder, String savePath) {
         WzFile wzFile = WzFile.createNewFile(savePath, fileVersion, wzFolder.getKeyBoxName(), wzFolder.getIv(), wzFolder.getKey());
         packageSubToWz(wzFolder, wzFile.getWzDirectory());
+        MainFrame.getInstance().setStatusText("开始保存 %s", wzFile.getName());
         wzFile.save();
+        MainFrame.getInstance().setStatusText("已保存 %s", wzFile.getName());
     }
 
     private void packageSubToWz(WzFolder wzFolder, WzDirectory parent) {
-        for (WzObject child : wzFolder.getChildren()) {
+        List<WzObject> children = wzFolder.getChildren();
+        int total = children.size();
+        int current = 0;
+        MainFrame.getInstance().setStatusText("正在处理 %s", wzFolder.getName());
+        for (WzObject child : children) {
             if (child instanceof WzFolder subFolder) {
                 WzDirectory wzDirectory = new WzDirectory(child.getName(), parent, parent.getWzFile());
                 packageSubToWz(subFolder, wzDirectory);
@@ -219,6 +225,7 @@ public final class WzFolderMenu extends JPopupMenu {
                 }
                 parent.addChild(xmlFile);
             }
+            MainFrame.getInstance().updateProgress(++current, total);
         }
     }
 }
