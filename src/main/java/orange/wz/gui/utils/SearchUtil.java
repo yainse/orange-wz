@@ -14,6 +14,7 @@ public final class SearchUtil {
         WzObject wzObject = (WzObject) node.getUserObject();
 
         String name = wzObject.getName();
+        if (name.equals("List.wz")) return;
         String value = null;
         if (isValue && wzObject instanceof WzStringProperty property) {
             value = property.getValue();
