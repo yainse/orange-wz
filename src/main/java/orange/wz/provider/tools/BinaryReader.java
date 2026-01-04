@@ -39,7 +39,7 @@ public final class BinaryReader {
      *
      */
     public BinaryReader(byte[] data) {
-        buffer = ByteBuffer.allocate(16);
+        buffer = ByteBuffer.allocate(0);
         putBytes(data);
         buffer.position(0);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
