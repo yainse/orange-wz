@@ -925,4 +925,10 @@ public final class EditPane extends JSplitPane {
         });
     }
 
+    public void unloadAll() {
+        treeRoot.removeAllChildren();
+        DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
+        model.reload(treeRoot);
+        resetValueForm();
+    }
 }

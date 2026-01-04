@@ -89,26 +89,15 @@ public class MainFrame extends JFrame {
         });
         openItem.add(openFolders);
 
-        WzKey[] keys = wzKeyStorage.loadAll().toArray(new WzKey[0]);
-        keyBox = new KeyBox(keys);
-
-        JButton keyManager = new JButton("密钥管理");
-        keyManager.addActionListener(e -> {
-            if (this.keyManager == null) {
-                Window owner = SwingUtilities.getWindowAncestor(keyManager);
-                this.keyManager = new KeyManager(owner);
-
-                this.keyManager.addWindowListener(new WindowAdapter() {
-                    @Override
-                    public void windowClosed(WindowEvent e) {
-                        MainFrame.this.keyManager = null;
-                    }
-                });
-            }
-            this.keyManager.setVisible(true);
+        JMenuItem unloadAll = new JMenuItem("卸载全部", AiOutlineCloseIcon);
+        unloadAll.addActionListener(e -> {
+            centerPane.getLeftEditPane().unloadAll();
+            centerPane.getRightEditPane().unloadAll();
+            System.gc();
         });
 
         fileMenu.add(openItem);
+        fileMenu.add(unloadAll);
 
 
         JMenu tools = new JMenu("工具");
@@ -140,6 +129,26 @@ public class MainFrame extends JFrame {
         JMenuItem bbs = new JMenuItem("论坛");
         bbs.addActionListener(e -> UrlUtil.open("https://moguwuyu.com/"));
         help.add(bbs);
+
+
+        WzKey[] keys = wzKeyStorage.loadAll().toArray(new WzKey[0]);
+        keyBox = new KeyBox(keys);
+
+        JButton keyManager = new JButton("密钥管理");
+        keyManager.addActionListener(e -> {
+            if (this.keyManager == null) {
+                Window owner = SwingUtilities.getWindowAncestor(keyManager);
+                this.keyManager = new KeyManager(owner);
+
+                this.keyManager.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosed(WindowEvent e) {
+                        MainFrame.this.keyManager = null;
+                    }
+                });
+            }
+            this.keyManager.setVisible(true);
+        });
 
         menuBar.add(fileMenu);
         menuBar.add(tools);
