@@ -22,6 +22,8 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -344,6 +346,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
 
     private void addExportImgBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
+            Instant now = Instant.now();
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
@@ -353,6 +356,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
                 return;
             }
 
+            List<WzXmlFile> collector = new ArrayList<>();
             for (TreePath treePath : selectedPaths) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
                 WzXmlFile wzImage = (WzXmlFile) node.getUserObject();
@@ -361,8 +365,33 @@ public final class WzXmlFileMenu extends JPopupMenu {
                     MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
                     throw new RuntimeException();
                 }
-                wzImage.save(folder.toPath().resolve(wzImage.getImgName()));
+                collector.add(wzImage);
             }
+
+            int total = collector.size();
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() {
+                    int finish = 0;
+                    for (WzXmlFile wzXmlFile : collector) {
+                        wzXmlFile.save(folder.toPath().resolve(wzXmlFile.getImgName()));
+                        MainFrame.getInstance().updateProgress(++finish, total);
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        Instant end = Instant.now();
+                        MainFrame.getInstance().setStatusText("导出完成，耗时 %d 秒", Duration.between(now, end).toSeconds());
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            };
+            worker.execute();
         });
     }
 

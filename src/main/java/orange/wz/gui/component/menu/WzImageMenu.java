@@ -10,6 +10,7 @@ import orange.wz.gui.component.dialog.*;
 import orange.wz.gui.component.form.data.*;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.*;
+import orange.wz.model.Pair;
 import orange.wz.provider.WzDirectory;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
@@ -241,6 +242,7 @@ public final class WzImageMenu extends JPopupMenu {
 
     private void addExportImgBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
+            Instant now =  Instant.now();
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
@@ -250,6 +252,7 @@ public final class WzImageMenu extends JPopupMenu {
                 return;
             }
 
+            List<WzImage> collector = new ArrayList<>();
             for (TreePath treePath : selectedPaths) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
                 WzImage wzImage = (WzImage) node.getUserObject();
@@ -258,13 +261,39 @@ public final class WzImageMenu extends JPopupMenu {
                     MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
                     throw new RuntimeException();
                 }
-                wzImage.save(folder.toPath().resolve(wzImage.getName()));
+                collector.add(wzImage);
             }
+
+            int total = collector.size();
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() {
+                    int finish = 0;
+                    for (WzImage wzImage : collector) {
+                        wzImage.save(folder.toPath().resolve(wzImage.getName()));
+                        MainFrame.getInstance().updateProgress(++finish, total);
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        Instant end = Instant.now();
+                        MainFrame.getInstance().setStatusText("导出完成，耗时 %d 秒", Duration.between(now, end).toSeconds());
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            };
+            worker.execute();
         });
     }
 
     private void addExportXmlBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
+            Instant now =  Instant.now();
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
@@ -272,6 +301,7 @@ public final class WzImageMenu extends JPopupMenu {
             ExportXmlData data = dialog.getData();
             if (data == null) return;
 
+            List<WzImage> collector = new ArrayList<>();
             for (TreePath treePath : selectedPaths) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
                 WzImage wzImage = (WzImage) node.getUserObject();
@@ -280,8 +310,33 @@ public final class WzImageMenu extends JPopupMenu {
                     MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
                     throw new RuntimeException();
                 }
-                wzImage.exportToXml(Path.of(data.getExportPath(), wzImage.getName() + ".xml"), data.getIndent(), data.getMeType());
+                collector.add(wzImage);
             }
+
+            int total = collector.size();
+            SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                @Override
+                protected Void doInBackground() {
+                    int finish = 0;
+                    for (WzImage wzImage : collector) {
+                        wzImage.exportToXml(Path.of(data.getExportPath(), wzImage.getName() + ".xml"), data.getIndent(), data.getMeType());
+                        MainFrame.getInstance().updateProgress(++finish, total);
+                    }
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                        Instant end = Instant.now();
+                        MainFrame.getInstance().setStatusText("导出完成，耗时 %d 秒", Duration.between(now, end).toSeconds());
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            };
+            worker.execute();
         });
     }
 

@@ -2,6 +2,7 @@ package orange.wz.provider;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.model.Pair;
 import orange.wz.provider.tools.*;
 
 import java.io.IOException;
@@ -10,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Getter
@@ -217,12 +219,22 @@ public class WzFile extends WzObject {
         }
     }
 
-    public void exportFileToImg(Path basePath) {
-        wzDirectory.exportDirectory(basePath);
+    /**
+     * 导出Img
+     * @param basePath 上级路径
+     * @param collector 只收集需要导出的WzImage 存入 collector
+     */
+    public void exportFileToImg(Path basePath, List<Pair<WzImage, Path>> collector) {
+        wzDirectory.exportDirectory(basePath, collector);
     }
 
-    public void exportFileToXml(Path basePath, int indent, MediaExportType meType) {
-        wzDirectory.exportToXml(basePath, indent, meType);
+    /**
+     * 导出XML
+     * @param basePath 上级路径
+     * @param collector 只收集需要导出的WzImage 存入 collector
+     */
+    public void exportFileToXml(Path basePath, List<Pair<WzImage, Path>> collector) {
+        wzDirectory.exportToXml(basePath, collector);
     }
 
     public void changeKey(short gameVersion, byte[] iv, byte[] key) {

@@ -5,8 +5,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.exception.BizException;
 import orange.wz.exception.ExceptionEnum;
+import orange.wz.model.Pair;
 import orange.wz.provider.tools.*;
-import orange.wz.provider.tools.FileTool;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -236,7 +236,7 @@ public class WzDirectory extends WzObject {
         }
     }
 
-    public void exportDirectory(Path parentPath) {
+    public void exportDirectory(Path parentPath, List<Pair<WzImage, Path>> collector) {
         String name = getName().replaceAll("(?i)\\.wz$", "");
         Path p = parentPath.resolve(name);
         try {
@@ -245,11 +245,11 @@ public class WzDirectory extends WzObject {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }
 
-        children.getDirectories().forEach(directory -> directory.exportDirectory(p));
-        children.getImages().forEach(image -> image.save(p.resolve(image.getName())));
+        children.getDirectories().forEach(directory -> directory.exportDirectory(p, collector));
+        children.getImages().forEach(image -> collector.add(new Pair<>(image, p.resolve(image.getName()))));
     }
 
-    public void exportToXml(Path parentPath, int indent, MediaExportType meType) {
+    public void exportToXml(Path parentPath, List<Pair<WzImage, Path>> collector) {
         Path p = parentPath.resolve(getName());
         try {
             FileTool.createDirectory(p);
@@ -257,8 +257,8 @@ public class WzDirectory extends WzObject {
             throw new BizException(ExceptionEnum.INTERNAL_SERVER_ERROR, "目录操作失败: " + p + ", " + e.getMessage());
         }
 
-        children.getDirectories().forEach(directory -> directory.exportToXml(p, indent, meType));
-        children.getImages().forEach(image -> image.exportToXml(p.resolve(image.getName() + ".xml"), indent, meType));
+        children.getDirectories().forEach(directory -> directory.exportToXml(p, collector));
+        children.getImages().forEach(image -> collector.add(new Pair<>(image, p.resolve(image.getName() + ".xml"))));
     }
 
     public void parseAllImages() {
