@@ -7,8 +7,11 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 public class FileDialog {
+    private static final Preferences prefs = Preferences.userNodeForPackage(FileDialog.class);
+
     /**
      * 文件选择器
      *
@@ -26,6 +29,12 @@ public class FileDialog {
         chooser.setFileSelectionMode(SystemFileChooser.FILES_ONLY);
         chooser.setMultiSelectionEnabled(allowMulti);
 
+        // 恢复上次目录
+        String lastDir = prefs.get("last", null);
+        if (lastDir != null) {
+            chooser.setCurrentDirectory(new File(lastDir));
+        }
+
         // 添加扩展名过滤
         if (filters != null && filters.length > 0) {
             String desc = String.join(", ", filters) + " 文件";
@@ -38,6 +47,10 @@ public class FileDialog {
             if (selected != null) {
                 Collections.addAll(result, selected);
             }
+        }
+
+        if (!result.isEmpty()) {
+            prefs.put("last", result.getFirst().getParent());
         }
 
         return result;
@@ -59,11 +72,21 @@ public class FileDialog {
         chooser.setFileSelectionMode(SystemFileChooser.DIRECTORIES_ONLY);
         chooser.setMultiSelectionEnabled(allowMulti);
 
+        // 恢复上次目录
+        String lastDir = prefs.get("last", null);
+        if (lastDir != null) {
+            chooser.setCurrentDirectory(new File(lastDir));
+        }
+
         if (chooser.showOpenDialog(parent) == SystemFileChooser.APPROVE_OPTION) {
             File[] selected = chooser.getSelectedFiles();
             if (selected != null) {
                 Collections.addAll(result, selected);
             }
+        }
+
+        if (!result.isEmpty()) {
+            prefs.put("last", result.getFirst().getParent());
         }
 
         return result;
