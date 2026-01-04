@@ -70,6 +70,7 @@ public class WzPngProperty extends WzImageProperty {
         this.format = format;
         this.scale = scale;
         this.image = image;
+        compressImage();
     }
 
     private void parse(boolean saveInMem) {
@@ -292,14 +293,14 @@ public class WzPngProperty extends WzImageProperty {
                 if (actualScale != 1) {
                     throw new IllegalArgumentException(WzPngFormat.ARGB1555 + " 不支持 scale");
                 }
-                ImgTool.Argb32.toDXT3(img,writer);
+                ImgTool.Argb32.toDXT3(img, writer);
                 yield writer.output();
             }
             case WzPngFormat.DXT5 -> {
                 if (actualScale != 1) {
                     throw new IllegalArgumentException(WzPngFormat.ARGB1555 + " 不支持 scale");
                 }
-                ImgTool.Argb32.toDXT5(img,writer);
+                ImgTool.Argb32.toDXT5(img, writer);
                 yield writer.output();
             }
         };
