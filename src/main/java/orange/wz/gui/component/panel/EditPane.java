@@ -3,6 +3,7 @@ package orange.wz.gui.component.panel;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.MainFrame;
+import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.dialog.ListEditor;
 import orange.wz.gui.component.dialog.SearchDialog;
 import orange.wz.gui.component.dialog.SearchResultDialog;
@@ -1144,20 +1145,58 @@ public final class EditPane extends JSplitPane {
                 return;
             }
 
-            Path path = Path.of(wz.getFilePath());
-            String fileName = path.getFileName().toString();
+            Path oldPath = Path.of(wz.getFilePath());
+            String fileName = oldPath.getFileName().toString();
             boolean renamed = !fileName.equals(wz.getName());
 
             if (renamed) {
-                Path newPath = path.resolveSibling(wz.getName());
+                Path newPath = oldPath.resolveSibling(wz.getName());
                 wz.setFilePath(newPath.toString());
             }
 
-            if (wz.save() && renamed) {
-                FileTool.deleteFile(path);
+            if (wz.save()) {
+                reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
+                if (renamed) {
+                    FileTool.deleteFile(oldPath);
+                }
+            }
+        }
+    }
+
+    public void saveAs(DefaultMutableTreeNode node) {
+        WzObject wzObject = (WzObject) node.getUserObject();
+        if (wzObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
+            wzObject = wzDir.getWzFile();
+        }
+
+        if (wzObject instanceof WzSavableFile wz) {
+            String keyBoxName = wz.getKeyBoxName();
+            byte[] iv = wz.getIv();
+            byte[] key = wz.getKey();
+
+            if (wz.getStatus() != WzFileStatus.PARSE_SUCCESS) {
+                log.info("未加载文件 {} 不需要保存, 跳过...", wz.getName());
+                return;
             }
 
-            reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
+            File newFile = new File(wz.getFilePath());
+            newFile = new File(newFile.getParent(), wz.getName());
+
+            String[] filter = switch (wzObject) {
+                case WzFile ignored -> new String[]{"wz"};
+                case WzImageFile ignored -> new String[]{"img"};
+                case WzXmlFile ignored -> new String[]{"xml"};
+                default -> null;
+            };
+
+            File saveFile = FileDialog.chooseSaveFile(MainFrame.getInstance(), "保存 " + wz.getName(), newFile, filter);
+            if (saveFile == null) {
+                return;
+            }
+            wz.setFilePath(saveFile.getAbsolutePath());
+            if (wz.save()) {
+                reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
+            }
         }
     }
 }

@@ -47,6 +47,7 @@ public final class WzFileMenu extends JPopupMenu {
         addBtn.add(addDirBtn);
         addBtn.add(addImgBtn);
         JMenuItem saveBtn = new JMenuItem("保存", AiOutlineSaveIcon);
+        JMenuItem saveAsBtn = new JMenuItem("另存为", AiOutlineSaveIcon);
         JMenuItem unloadBtn = new JMenuItem("卸载", AiOutlineCloseIcon);
         JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
         JMenuItem moveBtn = new JMenuItem("转移视图", AiOutlineEye);
@@ -69,6 +70,7 @@ public final class WzFileMenu extends JPopupMenu {
         addDirBtnAction(addDirBtn);
         addImgBtnAction(addImgBtn);
         saveBtnAction(saveBtn);
+        saveAsBtnAction(saveAsBtn);
         unloadBtnAction(unloadBtn);
         reloadBtnAction(reloadBtn);
         moveBtnAction(moveBtn);
@@ -83,6 +85,7 @@ public final class WzFileMenu extends JPopupMenu {
 
         add(addBtn);
         add(saveBtn);
+        add(saveAsBtn);
         add(unloadBtn);
         add(reloadBtn);
         add(moveBtn);
@@ -100,6 +103,20 @@ public final class WzFileMenu extends JPopupMenu {
             if (selectedPaths == null) return;
 
             editPane.saveFiles(selectedPaths);
+        });
+    }
+
+    private void saveAsBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            if (selectedPaths.length != 1) {
+                JMessageUtil.error("该功能不允许多选。");
+                return;
+            }
+
+            editPane.saveAs((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent());
         });
     }
 
