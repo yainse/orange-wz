@@ -186,6 +186,29 @@ public final class BinaryWriter {
         }
     }
 
+    public void writeListString(String context) {
+        char[] chars = encryptListString(context + '\0');
+        putInt(chars.length - 1); // len 不包含末尾的\0, 但是\0要写进去
+        for (char aChar : chars) {
+            putShort((short) aChar);
+        }
+    }
+
+    private char[] encryptListString(String input) {
+        int len = input.length();
+        char[] output = new char[len];
+        char[] inputChars = input.toCharArray();
+
+        for (int i = 0; i < len; i++) {
+            int key = ((wzMutableKey.get(i * 2 + 1) & 0xFF) << 8)
+                    | (wzMutableKey.get(i * 2) & 0xFF);
+
+            output[i] = (char) (inputChars[i] ^ key);
+        }
+
+        return output;
+    }
+
     public void writeStringBlock(String s, int withoutOffset, int withOffset) {
         if (s.length() > 4 && stringCache.containsKey(s)) {
             putByte((byte) withOffset);

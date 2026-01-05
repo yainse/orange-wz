@@ -85,6 +85,8 @@ public class WzFolder extends WzObject {
                 String pathStr = path.toAbsolutePath().toString();
                 if (Files.isDirectory(path)) {
                     children.add(new WzFolder(pathStr, keyBoxName, iv, key));
+                } else if (filename.endsWith("List.wz")) {
+                    log.info("展开目录跳过 List.wz 文件");
                 } else if (filename.endsWith(".wz")) {
                     children.add(new WzFile(pathStr, (short) -1, keyBoxName, iv, key).getWzDirectory());
                 } else if (filename.endsWith(".img")) {

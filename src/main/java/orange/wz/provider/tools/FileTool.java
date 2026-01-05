@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -53,8 +54,8 @@ public final class FileTool {
     }
 
     public static byte[] readFile(Path path) {
-        try {
-            return Files.readAllBytes(path);
+        try (InputStream in = Files.newInputStream(path)) {
+            return in.readAllBytes();
         } catch (IOException ex) {
             log.error("读取文件失败 {} : {}", path, ex.getMessage());
             return null;

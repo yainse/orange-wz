@@ -53,6 +53,18 @@ public final class BinaryReader {
         wzMutableKey = new WzMutableKey(iv, userKey);
     }
 
+    /**
+     * 只做临时使用，不做解析
+     *
+     */
+    public BinaryReader(byte[] data, byte[] iv, byte[] userKey) {
+        buffer = ByteBuffer.allocate(0);
+        putBytes(data);
+        buffer.position(0);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        wzMutableKey = new WzMutableKey(iv, userKey);
+    }
+
     // Put -------------------------------------------------------------------------------------------------------------
     private void expandBuffer(int needSize) {
         int remaining = buffer.capacity() - buffer.position();
@@ -182,6 +194,30 @@ public final class BinaryReader {
         final byte[] data = new byte[length];
         buffer.get(data);
         return new String(data, StandardCharsets.US_ASCII);
+    }
+
+    public String readListString() {
+        int len = getInt();
+        char[] chars = new char[len];
+        for (int i = 0; i < len; i++) {
+            chars[i] = (char) getShort();
+        }
+        getShort(); // 编码后的'\0'
+        return decryptListString(chars);
+    }
+
+    private String decryptListString(char[] input) {
+        int len = input.length;
+        char[] output = new char[len];
+
+        for (int i = 0; i < len; i++) {
+            int key = ((wzMutableKey.get(i * 2 + 1) & 0xFF) << 8)
+                    | (wzMutableKey.get(i * 2) & 0xFF);
+
+            output[i] = (char) (input[i] ^ key);
+        }
+
+        return new String(output);
     }
 
     public int readCompressedInt() {

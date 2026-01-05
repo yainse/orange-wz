@@ -2,6 +2,7 @@ package orange.wz.gui.component.panel;
 
 import lombok.Getter;
 import orange.wz.gui.MainFrame;
+import orange.wz.gui.component.dialog.ListEditor;
 import orange.wz.gui.component.dialog.SearchDialog;
 import orange.wz.gui.component.dialog.SearchResultDialog;
 import orange.wz.gui.component.form.data.SearchFormData;
@@ -600,7 +601,9 @@ public final class EditPane extends JSplitPane {
 
         files.forEach(f -> {
             if (f.isFile()) {
-                if (f.getName().endsWith(".wz")) {
+                if (f.getName().endsWith("List.wz")) {
+                    new ListEditor(f.getAbsolutePath(), key);
+                } else if (f.getName().endsWith(".wz")) {
                     WzFile wzFile = new WzFile(f.getAbsolutePath(), (short) -1, key.getName(), key.getIv(), key.getUserKey());
                     insertNodeToTree(treeRoot, wzFile.getWzDirectory(), true);
                 } else if (f.getName().endsWith(".img")) {
