@@ -13,6 +13,7 @@ import orange.wz.gui.component.form.impl.*;
 import orange.wz.gui.component.menu.*;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.gui.utils.SearchUtil;
+import orange.wz.model.Pair;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
 import orange.wz.provider.tools.FileTool;
@@ -26,6 +27,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -1163,6 +1166,11 @@ public final class EditPane extends JSplitPane {
         }
     }
 
+    /**
+     * 文件另存为
+     *
+     * @param node 要保存的文件节点
+     */
     public void saveAs(DefaultMutableTreeNode node) {
         WzObject wzObject = (WzObject) node.getUserObject();
         if (wzObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
@@ -1198,5 +1206,80 @@ public final class EditPane extends JSplitPane {
                 reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
             }
         }
+    }
+
+    private void collectExportImg(DefaultMutableTreeNode node, Path folder, List<Pair<WzImage, Path>> collector) {
+        WzObject wzObject = (WzObject) node.getUserObject();
+        if (wzObject instanceof WzFolder) {
+            folder = folder.resolve(wzObject.getName());
+            for (int i = 0; i < node.getChildCount(); i++) {
+                DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
+                collectExportImg(child, folder, collector);
+            }
+        } else if (wzObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
+            WzFile wzFile = wzDir.getWzFile();
+
+            if (!wzFile.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
+                throw new RuntimeException();
+            }
+            wzFile.exportFileToImg(folder, collector);
+        } else if (wzObject instanceof WzImage wzImage) {
+            if (!wzImage.parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
+                throw new RuntimeException();
+            }
+
+            Path p;
+            if (wzImage instanceof WzXmlFile wzXmlFile) {
+                p = folder.resolve(wzXmlFile.getImgName());
+            } else {
+                p = folder.resolve(wzImage.getName());
+            }
+
+            collector.add(new Pair<>(wzImage, p));
+        }
+    }
+
+    public void exportImg(TreePath[] selectedPaths) {
+        File folder = FileDialog.chooseOpenFolder("请选择输出目录");
+        if (folder == null) {
+            log.info("用户取消了操作");
+            return;
+        }
+
+        Instant now = Instant.now();
+
+        List<Pair<WzImage, Path>> collector = new ArrayList<>();
+        for (TreePath treePath : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            collectExportImg(node, folder.toPath(), collector);
+        }
+
+        int total = collector.size();
+        new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                int finish = 0;
+                for (Pair<WzImage, Path> pair : collector) {
+                    WzImage wzImage = pair.getLeft();
+                    Path path = pair.getRight();
+                    wzImage.save(path);
+                    MainFrame.getInstance().updateProgress(++finish, total);
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    Instant end = Instant.now();
+                    MainFrame.getInstance().setStatusText("导出完成，耗时 %d 秒", Duration.between(now, end).toSeconds());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }.execute();
     }
 }

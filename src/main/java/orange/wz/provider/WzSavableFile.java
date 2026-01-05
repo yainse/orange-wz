@@ -18,4 +18,6 @@ public interface WzSavableFile {
     WzFileStatus getStatus();
 
     boolean save();
+
+    boolean parse();
 }

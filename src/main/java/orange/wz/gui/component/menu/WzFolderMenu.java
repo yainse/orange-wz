@@ -33,16 +33,21 @@ public final class WzFolderMenu extends JPopupMenu {
         JMenuItem packageBtn = new JMenuItem("打包", FiPackage);
         JMenuItem unloadBtn = new JMenuItem("卸载", AiOutlineCloseIcon);
         JMenuItem reloadBtn = new JMenuItem("重载", AiOutlineReloadIcon);
+        JMenu exportBtn = new JMenu("导出");
+        JMenuItem exportImgBtn = new JMenuItem("Img");
+        exportBtn.add(exportImgBtn);
 
         saveBtnAction(saveBtn);
         packageBtnAction(packageBtn);
         unloadBtnAction(unloadBtn);
         reloadBtnAction(reloadBtn);
+        addExportImgBtnAction(exportImgBtn);
 
         add(saveBtn);
         add(packageBtn);
         add(unloadBtn);
         add(reloadBtn);
+        add(exportBtn);
     }
 
     private void saveBtnAction(JMenuItem item) {
@@ -215,5 +220,14 @@ public final class WzFolderMenu extends JPopupMenu {
             }
             MainFrame.getInstance().updateProgress(++current, total);
         }
+    }
+
+    private void addExportImgBtnAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (selectedPaths == null) return;
+
+            editPane.exportImg(selectedPaths);
+        });
     }
 }

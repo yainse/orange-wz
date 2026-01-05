@@ -401,56 +401,10 @@ public final class WzFileMenu extends JPopupMenu {
 
     private void addExportImgBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
-            Instant now = Instant.now();
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
-            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
-            if (folder == null) {
-                log.info("用户取消了操作");
-                return;
-            }
-
-            List<Pair<WzImage, Path>> collector = new ArrayList<>();
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
-                WzFile wzFile = wzDirectory.getWzFile();
-                if (wzFile.getName().equalsIgnoreCase("List.wz")) return;
-
-                if (!wzFile.parse()) {
-                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzFile.getName(), wzFile.getStatus().getMessage());
-                    throw new RuntimeException();
-                }
-                wzFile.exportFileToImg(folder.toPath(), collector);
-            }
-
-            int total = collector.size();
-            SwingWorker<Void, Void> worker = new SwingWorker<>() {
-                @Override
-                protected Void doInBackground() {
-                    int finish = 0;
-                    for (Pair<WzImage, Path> pair : collector) {
-                        WzImage wzImage = pair.getLeft();
-                        Path path = pair.getRight();
-                        wzImage.save(path);
-                        MainFrame.getInstance().updateProgress(++finish, total);
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        Instant end = Instant.now();
-                        MainFrame.getInstance().setStatusText("导出完成，耗时 %d 秒", Duration.between(now, end).toSeconds());
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            };
-            worker.execute();
+            editPane.exportImg(selectedPaths);
         });
     }
 

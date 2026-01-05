@@ -241,52 +241,10 @@ public final class WzImageMenu extends JPopupMenu {
 
     private void addExportImgBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
-            Instant now =  Instant.now();
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
-            File folder = FileDialog.chooseOpenFolder("请选择输出目录");
-            if (folder == null) {
-                log.info("用户取消了操作");
-                return;
-            }
-
-            List<WzImage> collector = new ArrayList<>();
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzImage wzImage = (WzImage) node.getUserObject();
-
-                if (!wzImage.parse()) {
-                    MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", wzImage.getName(), wzImage.getStatus().getMessage());
-                    throw new RuntimeException();
-                }
-                collector.add(wzImage);
-            }
-
-            int total = collector.size();
-            SwingWorker<Void, Void> worker = new SwingWorker<>() {
-                @Override
-                protected Void doInBackground() {
-                    int finish = 0;
-                    for (WzImage wzImage : collector) {
-                        wzImage.save(folder.toPath().resolve(wzImage.getName()));
-                        MainFrame.getInstance().updateProgress(++finish, total);
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        Instant end = Instant.now();
-                        MainFrame.getInstance().setStatusText("导出完成，耗时 %d 秒", Duration.between(now, end).toSeconds());
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            };
-            worker.execute();
+            editPane.exportImg(selectedPaths);
         });
     }
 
