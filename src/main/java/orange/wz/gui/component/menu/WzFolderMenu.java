@@ -143,30 +143,7 @@ public final class WzFolderMenu extends JPopupMenu {
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
-            WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
-            if (key == null) {
-                MainFrame.getInstance().setStatusText("没有选择密钥?");
-                return;
-            }
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                int index = pNode.getIndex(node);
-                WzFolder folderOld = (WzFolder) node.getUserObject();
-
-                editPane.removeNodeFromTree(node);
-
-                WzFolder folderNew = new WzFolder(folderOld.getFilePath(), key.getName(), key.getIv(), key.getUserKey());
-                editPane.insertNodeToTree(pNode, folderNew, true, index);
-
-                if (pNode.getUserObject() instanceof WzFolder pFolder) {
-                    pFolder.remove(folderOld);
-                    pFolder.add(folderNew);
-                }
-            }
-
-            editPane.resetValueForm();
-            System.gc();
+            editPane.reloadFile(selectedPaths);
         });
     }
 

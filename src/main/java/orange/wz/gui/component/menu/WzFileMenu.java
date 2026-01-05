@@ -196,33 +196,7 @@ public final class WzFileMenu extends JPopupMenu {
             TreePath[] selectedPaths = tree.getSelectionPaths();
             if (selectedPaths == null) return;
 
-            WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
-            if (key == null) {
-                MainFrame.getInstance().setStatusText("没有选择密钥?");
-                return;
-            }
-            for (TreePath treePath : selectedPaths) {
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                int index = pNode.getIndex(node);
-                WzDirectory wzDirectory = (WzDirectory) node.getUserObject();
-                WzFile wzFileOld = wzDirectory.getWzFile();
-                String filePath = wzFileOld.getFilePath();
-                short version = wzFileOld.getHeader().getFileVersion();
-
-                editPane.removeNodeFromTree(node);
-
-                WzFile wzFileNew = new WzFile(filePath, version, key.getName(), key.getIv(), key.getUserKey());
-                editPane.insertNodeToTree(pNode, wzFileNew.getWzDirectory(), true, index);
-
-                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
-                    wzFolder.remove(wzFileOld.getWzDirectory());
-                    wzFolder.add(wzFileNew.getWzDirectory());
-                }
-            }
-
-            editPane.resetValueForm();
-            System.gc();
+            editPane.reloadFile(selectedPaths);
         });
     }
 

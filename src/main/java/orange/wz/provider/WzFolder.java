@@ -42,6 +42,18 @@ public class WzFolder extends WzObject {
         return children.getAllChildren();
     }
 
+    public void add(WzObject wzObject) {
+        if (wzObject instanceof WzFolder wzFolder) {
+            add(wzFolder);
+        } else if (wzObject instanceof WzDirectory wzDirectory) {
+            add(wzDirectory);
+        } else if (wzObject instanceof WzImageFile wzImg) {
+            add(wzImg);
+        } else if (wzObject instanceof WzXmlFile wzXml) {
+            add(wzXml);
+        }
+    }
+
     public void add(WzFolder folder) {
         children.add(folder);
     }
