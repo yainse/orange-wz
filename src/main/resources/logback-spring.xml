@@ -4,6 +4,9 @@
     <!-- 日志根目录 -->
     <property name="LOG_PATH" value="logs"/>
 
+    <!-- 减少无用的启动日志 -->
+    <logger name="orange.wz.OrangeWzApplication" level="WARN"/>
+
     <!-- ================= 控制台 ================= -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
