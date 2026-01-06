@@ -457,7 +457,8 @@ public final class EditPane extends JSplitPane {
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                expandTreeNode(node, true, true, true);
+                expandTreeNode(node, true, true, false);
+                tree.expandPath(new TreePath(node.getPath()));
                 return null;
             }
 
