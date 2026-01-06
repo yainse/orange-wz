@@ -42,6 +42,7 @@ import static orange.wz.gui.Icons.*;
 public final class EditPane extends JSplitPane {
     private JTree tree;
     private DefaultMutableTreeNode treeRoot;
+    private DefaultTreeModel treeModel;
 
     private JPanel formCards;
 
@@ -140,6 +141,7 @@ public final class EditPane extends JSplitPane {
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true); // 隐藏自带的展开/收缩图标
         tree.setToggleClickCount(0);
+        treeModel = (DefaultTreeModel) tree.getModel();
 
         // 节点自定义渲染器
         DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
@@ -758,11 +760,10 @@ public final class EditPane extends JSplitPane {
 
                     TreePath[] selectedPaths;
                     if (option.globalMod()) {
-                        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
-                        int childCount = root.getChildCount();
+                        int childCount = treeRoot.getChildCount();
                         selectedPaths = new TreePath[childCount];
                         for (int i = 0; i < childCount; i++) {
-                            DefaultMutableTreeNode child = (DefaultMutableTreeNode) root.getChildAt(i);
+                            DefaultMutableTreeNode child = (DefaultMutableTreeNode) treeRoot.getChildAt(i);
                             selectedPaths[i] = new TreePath(child.getPath());
                         }
                     } else {
@@ -910,9 +911,8 @@ public final class EditPane extends JSplitPane {
      * @return 插入后生成的新 Node
      */
     public DefaultMutableTreeNode insertNodeToTree(DefaultMutableTreeNode parentNode, WzObject object, boolean expand, int index) {
-        DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
         DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(object);
-        model.insertNodeInto(newNode, parentNode, index == -1 ? parentNode.getChildCount() : index);
+        treeModel.insertNodeInto(newNode, parentNode, index == -1 ? parentNode.getChildCount() : index);
 
         if (expand) {
             tree.expandPath(new TreePath(parentNode.getPath()));
@@ -927,12 +927,10 @@ public final class EditPane extends JSplitPane {
      * @param node 任意节点
      */
     public void removeNodeFromTree(DefaultMutableTreeNode node) {
-        DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
-
         if (node == null) return;
         if (node.getParent() == null) return;
 
-        model.removeNodeFromParent(node);
+        treeModel.removeNodeFromParent(node);
     }
 
     /**
@@ -1083,8 +1081,7 @@ public final class EditPane extends JSplitPane {
      */
     public void unloadAll() {
         treeRoot.removeAllChildren();
-        DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
-        model.reload(treeRoot);
+        treeModel.reload(treeRoot);
         resetValueForm();
     }
 
