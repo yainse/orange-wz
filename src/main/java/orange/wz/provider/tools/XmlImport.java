@@ -82,7 +82,7 @@ public final class XmlImport {
             for (int i = 0; i < children.getLength(); i++) {
                 Node node = children.item(i);
                 if (node instanceof Element element) {
-                    WzImageProperty prop = readProperty(element, wzXmlFile, wzXmlFile);
+                    WzImageProperty prop = readProperty(element, wzXmlFile, wzXmlFile, "");
                     if (prop != null) {
                         wzXmlFile.addChild(prop);
                     }
@@ -95,13 +95,13 @@ public final class XmlImport {
         }
     }
 
-    private static WzImageProperty readProperty(Element e, WzObject parent, WzXmlFile image) {
+    private static WzImageProperty readProperty(Element e, WzObject parent, WzXmlFile image, String mediaFileName) {
         String name = unescapeText(e.getAttribute("name"));
 
         return switch (e.getNodeName()) {
             case "imgdir" -> {
                 WzListProperty list = new WzListProperty(name, parent, image);
-                readChildren(e, list, image);
+                readChildren(e, list, image, mediaFileName + name + ".");
                 yield list;
             }
 
@@ -123,18 +123,18 @@ public final class XmlImport {
                 if (image.getMeType() == MediaExportType.BASE64 || e.hasAttribute("basedata")) {
                     imageBytes = Base64Tool.coverBase64ToBytes(e.getAttribute("basedata"));
                 } else if (image.getMeType() == MediaExportType.FILE) {
-                    Path mediaPath = Path.of(image.getFilePath()).getParent().resolve("media").resolve(image.getImgName()).resolve(e.getAttribute("file"));
+                    Path mediaPath = Path.of(image.getFilePath()).getParent().resolve("media").resolve(image.getImgName()).resolve(FileTool.safeFileName(mediaFileName + name + ".png"));
                     imageBytes = FileTool.readFile(mediaPath);
                 }
 
                 WzCanvasProperty canvas = new WzCanvasProperty(name, width, height, format, scale, imageBytes, parent, image);
-                readChildren(e, canvas, image);
+                readChildren(e, canvas, image, mediaFileName + name + ".");
                 yield canvas;
             }
 
             case "extended" -> {
                 WzConvexProperty convex = new WzConvexProperty(name, parent, image);
-                readChildren(e, convex, image);
+                readChildren(e, convex, image, mediaFileName + name + ".");
                 yield convex;
             }
 
@@ -171,7 +171,7 @@ public final class XmlImport {
                         length = Integer.parseInt(e.getAttribute("length"));
                         header = Base64Tool.coverBase64ToBytes(e.getAttribute("basehead"));
 
-                        Path mediaPath = Path.of(image.getFilePath()).getParent().resolve("media").resolve(image.getImgName()).resolve(e.getAttribute("file"));
+                        Path mediaPath = Path.of(image.getFilePath()).getParent().resolve("media").resolve(image.getImgName()).resolve(FileTool.safeFileName(mediaFileName + name + ".png"));
                         mp3 = FileTool.readFile(mediaPath);
                     }
                 } catch (Exception ex) {
@@ -190,12 +190,12 @@ public final class XmlImport {
         };
     }
 
-    private static void readChildren(Element parentXml, WzImageProperty parentProp, WzXmlFile image) {
+    private static void readChildren(Element parentXml, WzImageProperty parentProp, WzXmlFile image, String mediaFileName) {
         NodeList children = parentXml.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
             if (node instanceof Element element) {
-                WzImageProperty child = readProperty(element, parentProp, image);
+                WzImageProperty child = readProperty(element, parentProp, image, mediaFileName);
                 if (child != null) {
                     parentProp.addChild(child);
                 }

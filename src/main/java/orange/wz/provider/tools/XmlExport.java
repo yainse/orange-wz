@@ -117,7 +117,6 @@ public final class XmlExport {
                     String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".png");
                     Path p = mediaPath.resolve(filename);
                     FileTool.saveFile(p, prop.getImageBytes(false));
-                    e.setAttribute("file", filename);
                 }
                 prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
             }
@@ -175,7 +174,6 @@ public final class XmlExport {
                     String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".mp3");
                     Path p = mediaPath.resolve(filename);
                     FileTool.saveFile(p, prop.getSoundBytes(false));
-                    e.setAttribute("file", filename);
                 }
             }
             case WzStringProperty prop -> {
