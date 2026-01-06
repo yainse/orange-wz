@@ -1214,9 +1214,12 @@ public final class EditPane extends JSplitPane {
         if (wzObject instanceof WzFolder) {
             expandTreeNode(node, false, false, false);
             folder = folder.resolve(wzObject.getName());
+            int total = node.getChildCount();
+            int current = 0;
             for (int i = 0; i < node.getChildCount(); i++) {
                 DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
                 collectExportImg(child, folder, collector);
+                MainFrame.getInstance().updateProgress(++current, total);
             }
         } else if (wzObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
             WzFile wzFile = wzDir.getWzFile();
@@ -1251,18 +1254,22 @@ public final class EditPane extends JSplitPane {
         }
 
         Instant now = Instant.now();
-
-        List<Pair<WzImage, Path>> collector = new ArrayList<>();
-        for (TreePath treePath : selectedPaths) {
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-            collectExportImg(node, folder.toPath(), collector);
-        }
-
-        int total = collector.size();
         new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
+                MainFrame.getInstance().setStatusText("开始收集并解析要导出的文件");
+                int total = selectedPaths.length;
                 int finish = 0;
+                List<Pair<WzImage, Path>> collector = new ArrayList<>();
+                for (TreePath treePath : selectedPaths) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                    collectExportImg(node, folder.toPath(), collector);
+                    MainFrame.getInstance().updateProgress(++finish, total);
+                }
+
+                total = collector.size();
+                finish = 0;
+                MainFrame.getInstance().setStatusText("开始导出文件");
                 for (Pair<WzImage, Path> pair : collector) {
                     WzImage wzImage = pair.getLeft();
                     Path path = pair.getRight();
@@ -1292,9 +1299,12 @@ public final class EditPane extends JSplitPane {
             expandTreeNode(node, false, false, false);
             folder = folder.resolve(wzObject.getName());
 
+            int total = node.getChildCount();
+            int current = 0;
             for (int i = 0; i < node.getChildCount(); i++) {
                 DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
                 collectExportXml(child, folder, collector);
+                MainFrame.getInstance().updateProgress(++current, total);
             }
         } else if (wzObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
             WzFile wzFile = wzDir.getWzFile();
@@ -1327,17 +1337,24 @@ public final class EditPane extends JSplitPane {
 
         Instant now = Instant.now();
 
-        List<Pair<WzImage, Path>> collector = new ArrayList<>();
-        for (TreePath treePath : selectedPaths) {
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-            collectExportXml(node, Path.of(data.getExportPath()), collector);
-        }
 
-        int total = collector.size();
+
         new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
+                int total = selectedPaths.length;
                 int finish = 0;
+                List<Pair<WzImage, Path>> collector = new ArrayList<>();
+                for (TreePath treePath : selectedPaths) {
+                    MainFrame.getInstance().setStatusText("开始收集并解析要导出的文件");
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                    collectExportXml(node, Path.of(data.getExportPath()), collector);
+                    MainFrame.getInstance().updateProgress(++finish, total);
+                }
+
+                total = collector.size();
+                finish = 0;
+                MainFrame.getInstance().setStatusText("开始导出文件");
                 for (Pair<WzImage, Path> pair : collector) {
                     WzImage wzImage = pair.getLeft();
                     Path path = pair.getRight();
