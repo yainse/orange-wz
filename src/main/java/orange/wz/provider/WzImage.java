@@ -10,7 +10,6 @@ import orange.wz.provider.tools.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
 @Getter
@@ -107,7 +106,9 @@ public class WzImage extends WzObject {
             writer.setWzMutableKey(reader.getWzMutableKey());
             save(writer);
 
-            randomAccessFile.write(writer.output());
+            byte[] context = writer.output();
+            randomAccessFile.write(context);
+            randomAccessFile.setLength(context.length);
         } catch (IOException e) {
             log.error("无法保存文件 {}", e.getMessage());
             return false;

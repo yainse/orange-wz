@@ -215,7 +215,9 @@ public final class WzFile extends WzObject implements WzSavableFile {
             wzDirectory.saveImages(writer, tempWriter);
             writer.getStringCache().clear();
             log.info("保存 {} Wz 写入文件 4/4", getName());
-            randomAccessFile.write(writer.output());
+            byte[] context = writer.output();
+            randomAccessFile.write(context);
+            randomAccessFile.setLength(context.length);
             log.info("保存 {} Wz 完成", getName());
             return true;
         } catch (IOException e) {
