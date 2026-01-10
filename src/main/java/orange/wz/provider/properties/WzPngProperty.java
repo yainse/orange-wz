@@ -207,7 +207,8 @@ public class WzPngProperty extends WzImageProperty {
 
         BinaryReader reader = new BinaryReader(compressedBytes);
         int header = reader.getShort() & 0xFFFF;  // 读取无符号短整型
-        listWzUsed = header != 0x9C78 && header != 0xDA78 && header != 0x0178 && header != 0x5E78;
+        // CMS079 header = 0x5E78 是ListWzUsed // acc6.img/folkvillige/moon1/19/0/0
+        listWzUsed = header != 0x9C78 && header != 0xDA78 && header != 0x0178;
         if (!listWzUsed) {
             zlib = new InflaterInputStream(new ByteArrayInputStream(compressedBytes));
         } else {
