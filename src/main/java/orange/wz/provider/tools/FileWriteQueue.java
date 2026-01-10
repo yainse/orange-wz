@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
@@ -20,6 +22,9 @@ public class FileWriteQueue {
 
     // 线程安全队列，存放待写入任务
     private final ConcurrentLinkedQueue<Pair<Path, byte[]>> writeQueue = new ConcurrentLinkedQueue<>();
+    private final AtomicInteger writingCount = new AtomicInteger(0);
+    private final AtomicInteger writingTotal = new AtomicInteger(0);
+    private final AtomicBoolean writing = new AtomicBoolean(false);
 
     /**
      * 向队列添加写入任务
@@ -47,7 +52,17 @@ public class FileWriteQueue {
 
         // 遍历批量任务写入文件
         if (!batch.isEmpty()) {
+            if (writing.get()) {
+                writingTotal.addAndGet(batch.size());
+            } else {
+                writingCount.set(0);
+                writingTotal.set(batch.size());
+                writing.set(true);
+            }
             System.gc();
+        } else {
+            writing.set(false);
+            return;
         }
 
         for (Pair<Path, byte[]> pair : batch) {
@@ -56,18 +71,35 @@ public class FileWriteQueue {
                 byte[] data = pair.getRight();
 
                 // 创建父目录（如果不存在）
-                if (Files.notExists(path.getParent())) {
+                if (path.getParent() != null && Files.notExists(path.getParent())) {
                     Files.createDirectories(path.getParent());
                 }
 
                 // 写入文件
                 Files.write(path, data);
                 log.info("{} 已保存", path);
+                writingCount.incrementAndGet();
             } catch (IOException e) {
                 // 写入失败，重新入队
                 writeQueue.add(pair);
+                writingTotal.decrementAndGet();
                 log.error("无法保存文件 {}", e.getMessage());
             }
         }
+    }
+
+    /**
+     * 判断队列为空，且没有文件正在保存
+     */
+    public boolean isIdle() {
+        return !writing.get();
+    }
+
+    public int getCount() {
+        return writingCount.get();
+    }
+
+    public int getTotal() {
+        return writingTotal.get();
     }
 }

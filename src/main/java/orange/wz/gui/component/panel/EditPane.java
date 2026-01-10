@@ -13,10 +13,12 @@ import orange.wz.gui.component.form.impl.*;
 import orange.wz.gui.component.menu.*;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.gui.utils.SearchUtil;
+import orange.wz.manager.ServerManager;
 import orange.wz.model.Pair;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
 import orange.wz.provider.tools.FileTool;
+import orange.wz.provider.tools.FileWriteQueue;
 import orange.wz.provider.tools.WzFileStatus;
 import orange.wz.provider.tools.WzType;
 import orange.wz.provider.tools.wzkey.WzKey;
@@ -1096,16 +1098,64 @@ public final class EditPane extends JSplitPane {
      * @param treePaths 选中的节点
      */
     public void saveFiles(TreePath[] treePaths) {
-        for (TreePath treePath : treePaths) {
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-            if (node.getUserObject() instanceof WzFolder) {
-                saveWzFolder(node);
-            } else {
-                saveFile(node);
-            }
-        }
+        MainFrame.getInstance().setStatusText("文件保存中");
+        MainFrame.getInstance().updateProgress(0, 0);
+        new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                for (TreePath treePath : treePaths) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                    if (node.getUserObject() instanceof WzFolder) {
+                        saveWzFolder(node);
+                    } else {
+                        saveFile(node);
+                    }
+                }
 
-        clear();
+                clear();
+                return null;
+            }
+        }.execute();
+
+        new SwingWorker<>() {
+            @Override
+            protected Void doInBackground() {
+                FileWriteQueue queue = ServerManager.getBean(FileWriteQueue.class);
+                Instant now = Instant.now();
+                boolean initial = false;
+                while (true) {
+                    if (!initial) {
+                        if (Instant.now().isAfter(now.plusSeconds(600))) {
+                            break; // 超时
+                        }
+                        if (!queue.isIdle()) {
+                            initial = true;
+                        }
+                    }
+
+                    if (initial) {
+                        MainFrame.getInstance().updateProgress(queue.getCount(), queue.getTotal());
+                        if (queue.isIdle() && queue.getCount() == queue.getTotal()) {
+                            MainFrame.getInstance().updateProgress(queue.getCount(), queue.getTotal());
+                            break;
+                        }
+                    }
+                }
+
+                clear();
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    MainFrame.getInstance().setStatusText("文件保存完成");
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }.execute();
     }
 
     /**
@@ -1327,8 +1377,6 @@ public final class EditPane extends JSplitPane {
         if (data == null) return;
 
         Instant now = Instant.now();
-
-
 
         new SwingWorker<>() {
             @Override
