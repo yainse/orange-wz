@@ -3,6 +3,7 @@ package orange.wz.provider;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.manager.ServerManager;
 import orange.wz.provider.properties.WzExtended;
 import orange.wz.provider.properties.WzListProperty;
 import orange.wz.provider.tools.*;
@@ -100,19 +101,13 @@ public class WzImage extends WzObject {
             }
         }
 
-        if(!FileTool.ensureFileExists(path)) return false;
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile(path.toString(), "rw")) {
-            BinaryWriter writer = new BinaryWriter();
-            writer.setWzMutableKey(reader.getWzMutableKey());
-            save(writer);
+        BinaryWriter writer = new BinaryWriter();
+        writer.setWzMutableKey(reader.getWzMutableKey());
+        save(writer);
 
-            byte[] context = writer.output();
-            randomAccessFile.write(context);
-            randomAccessFile.setLength(context.length);
-        } catch (IOException e) {
-            log.error("无法保存文件 {}", e.getMessage());
-            return false;
-        }
+        byte[] context = writer.output();
+        ServerManager.getBean(FileWriteQueue.class).addToQueue(path, context);
+        log.info("保存 {} IMG 的任务已提交", getName());
 
         if (!parseStatus) unparse();
         return true;

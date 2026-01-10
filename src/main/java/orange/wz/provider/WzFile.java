@@ -3,6 +3,7 @@ package orange.wz.provider;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.manager.ServerManager;
 import orange.wz.model.Pair;
 import orange.wz.provider.tools.*;
 
@@ -188,42 +189,35 @@ public final class WzFile extends WzObject implements WzSavableFile {
     private boolean save(String path) {
         if (status != WzFileStatus.PARSE_SUCCESS) return false;
         log.info("保存 {} 开始", getName());
-        if (!FileTool.ensureFileExists(Path.of(path))) return false;
-        try (RandomAccessFile randomAccessFile = new RandomAccessFile(path, "rw")) {
-            Map<String, Integer> tempStringCache = new HashMap<>();
-            BinaryWriter tempWriter = new BinaryWriter();
-            log.info("保存 {} Generate Data File 1/4", getName());
-            wzDirectory.generateDataFile(tempWriter, tempStringCache);
-            tempStringCache.clear();
-            int totalLen = wzDirectory.getImgOffsets(wzDirectory.getOffsets(header.getDataStartPos() + (is64BitWzFile() ? 0 : 2)));
-            BinaryWriter writer = new BinaryWriter(true);
-            writer.setWzMutableKey(getWzMutableKey());
-            header.setFileSize(totalLen - header.getHeaderSize());
-            for (int i = 0; i < 4; i++) {
-                writer.putByte((byte) header.getSignature().charAt(i));
-            }
-            writer.putLong(header.getFileSize());
-            writer.putInt(header.getHeaderSize());
-            writer.putAsciiString(header.getCopyright());
-            if (!is64BitWzFile()) {
-                writer.putShort(header.getEncVersion());
-            }
-            log.info("保存 {} Wz Dirs 2/4", getName());
-            wzDirectory.saveDirectory(writer);
-            writer.getStringCache().clear();
-            log.info("保存 {} Wz Images 3/4", getName());
-            wzDirectory.saveImages(writer, tempWriter);
-            writer.getStringCache().clear();
-            log.info("保存 {} Wz 写入文件 4/4", getName());
-            byte[] context = writer.output();
-            randomAccessFile.write(context);
-            randomAccessFile.setLength(context.length);
-            log.info("保存 {} Wz 完成", getName());
-            return true;
-        } catch (IOException e) {
-            log.error("无法保存文件 {}", e.getMessage());
-            return false;
+        Map<String, Integer> tempStringCache = new HashMap<>();
+        BinaryWriter tempWriter = new BinaryWriter();
+        log.info("保存 {} Generate Data File 1/4", getName());
+        wzDirectory.generateDataFile(tempWriter, tempStringCache);
+        tempStringCache.clear();
+        int totalLen = wzDirectory.getImgOffsets(wzDirectory.getOffsets(header.getDataStartPos() + (is64BitWzFile() ? 0 : 2)));
+        BinaryWriter writer = new BinaryWriter(true);
+        writer.setWzMutableKey(getWzMutableKey());
+        header.setFileSize(totalLen - header.getHeaderSize());
+        for (int i = 0; i < 4; i++) {
+            writer.putByte((byte) header.getSignature().charAt(i));
         }
+        writer.putLong(header.getFileSize());
+        writer.putInt(header.getHeaderSize());
+        writer.putAsciiString(header.getCopyright());
+        if (!is64BitWzFile()) {
+            writer.putShort(header.getEncVersion());
+        }
+        log.info("保存 {} Wz Dirs 2/4", getName());
+        wzDirectory.saveDirectory(writer);
+        writer.getStringCache().clear();
+        log.info("保存 {} Wz Images 3/4", getName());
+        wzDirectory.saveImages(writer, tempWriter);
+        writer.getStringCache().clear();
+        log.info("保存 {} Wz 写入文件 4/4", getName());
+        byte[] context = writer.output();
+        ServerManager.getBean(FileWriteQueue.class).addToQueue(Path.of(path), context);
+        log.info("保存 {} Wz 的任务已提交", getName());
+        return true;
     }
 
     /**
