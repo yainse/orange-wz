@@ -71,6 +71,12 @@ public class WzCanvasProperty extends WzExtended {
 
     // Override --------------------------------------------------------------------------------------------------------
     @Override
+    public void setWzImage(WzImage wzImage) {
+        this.wzImage = wzImage;
+        png.setWzImage(wzImage);
+    }
+
+    @Override
     public void writeValue(BinaryWriter writer) {
         writer.writeStringBlock(WzExtendedType.CANVAS.getString(), WzImage.withoutOffsetFlag, WzImage.withOffsetFlag);
         writer.putByte((byte) 0);

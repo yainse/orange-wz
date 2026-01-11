@@ -100,17 +100,22 @@ public class WzImage extends WzObject {
             }
         }
 
-        BinaryWriter writer = new BinaryWriter();
-        writer.setWzMutableKey(reader.getWzMutableKey());
-        save(writer);
+        try {
+            BinaryWriter writer = new BinaryWriter();
+            writer.setWzMutableKey(reader.getWzMutableKey());
+            save(writer);
 
-        byte[] context = writer.output();
-        reader = null;
-        ServerManager.getBean(FileWriteQueue.class).addToQueue(path, context);
-        log.info("保存 {} IMG 的任务已提交", getName());
+            byte[] context = writer.output();
+            reader = null;
+            ServerManager.getBean(FileWriteQueue.class).addToQueue(path, context);
+            log.info("保存 {} IMG 的任务已提交", getName());
 
-        if (!parseStatus) unparse();
-        return true;
+            if (!parseStatus) unparse();
+            return true;
+        } catch (Exception e) {
+            log.error("保存出错 Img: {} 错误消息: {}", getName(), e.getMessage());
+            return false;
+        }
     }
 
     public boolean exportToXml(Path path, int indent, MediaExportType mediaExportType) {
@@ -148,6 +153,7 @@ public class WzImage extends WzObject {
         writer.putShort((short) 0);
         writer.writeCompressedInt(properties.size());
         for (WzImageProperty property : properties) {
+            log.info("writeListValue: {}", property.getPath());
             writer.writeStringBlock(property.getName(), 0x00, 0x01);
             if (property instanceof WzExtended) { // "imgdir(WzList)", "canvas", "vector", "convex", "sound(WzBinary)", "uol", "(WzRawData)"
                 writeExtendedValue(writer, (WzExtended) property);

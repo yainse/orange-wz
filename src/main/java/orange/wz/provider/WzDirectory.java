@@ -135,6 +135,7 @@ public class WzDirectory extends WzObject {
 
         BinaryWriter imgWriter;
         for (WzImage img : children.getImages()) {
+            log.debug("GenerateDataFile Image: {}", img.getName());
             if (img.isChanged()) {
                 imgWriter = new BinaryWriter();
                 imgWriter.setWzMutableKey(wzFile.getReader().getWzMutableKey());
@@ -166,6 +167,7 @@ public class WzDirectory extends WzObject {
         }
 
         for (WzDirectory dir : children.getDirectories()) {
+            log.debug("GenerateDataFile Directory: {}", dir.getName());
             dir.calcCheckSum();
             int nameLen = WzTool.getWzObjectValueLength(dir.getName(), (byte) 3, tempStringCache);
             dataSize += nameLen;
