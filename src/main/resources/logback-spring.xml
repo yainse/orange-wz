@@ -33,10 +33,14 @@
         </encoder>
     </appender>
 
+    <!-- ================= APP 日志 ================= -->
+    <appender name="APP" class="orange.wz.log.LogAppender"/>
+
     <!-- ================= Root ================= -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
+        <appender-ref ref="APP"/>
     </root>
 
 </configuration>

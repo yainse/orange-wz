@@ -90,7 +90,7 @@ public final class XmlImport {
             }
             return true;
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("Xml 导入失败 文件: {} 错误信息: {}", wzXmlFile.getName(), e.getMessage());
             return false;
         }
     }

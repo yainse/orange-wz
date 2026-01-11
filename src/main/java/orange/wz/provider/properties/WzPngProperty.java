@@ -190,7 +190,7 @@ public class WzPngProperty extends WzImageProperty {
             ImageIO.write(image, "PNG", stream);
             return stream.toByteArray();
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.error("加载图片二进制数据失败 节点: {} 消息: {}", getPath(), e.getMessage());
         }
         return null;
     }

@@ -73,7 +73,7 @@ public class SoundForm extends AbstractValueForm {
                 fos.write(soundBytes);
                 JMessageUtil.info("保存成功：\n" + file.getAbsolutePath());
             } catch (IOException ex) {
-                log.error(ex.getMessage());
+                log.error("保存失败：{}", ex.getMessage());
                 JMessageUtil.error("保存失败：" + ex.getMessage());
             }
         });
@@ -87,7 +87,7 @@ public class SoundForm extends AbstractValueForm {
             try {
                 setData(Files.readAllBytes(file.toPath()), -1);
             } catch (IOException ex) {
-                log.error(ex.getMessage());
+                log.error("读取文件失败：{}", ex.getMessage());
                 JMessageUtil.error("读取文件失败：" + ex.getMessage());
             }
         });
@@ -240,7 +240,7 @@ public class SoundForm extends AbstractValueForm {
                 }
             });
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("无法加载音频: {}", e.getMessage());
             JMessageUtil.error("无法加载音频: " + e.getMessage());
         }
     }

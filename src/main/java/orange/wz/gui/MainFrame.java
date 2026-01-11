@@ -4,6 +4,7 @@ import com.formdev.flatlaf.FlatLightLaf;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.component.FileDialog;
+import orange.wz.gui.component.dialog.LogDialog;
 import orange.wz.gui.component.key.KeyBox;
 import orange.wz.gui.component.key.KeyManager;
 import orange.wz.gui.component.panel.CenterPane;
@@ -37,6 +38,8 @@ public class MainFrame extends JFrame {
     private JLabel statusLabel;
 
     private final Clipboard clipboard = new Clipboard();
+
+    private LogDialog logDialog;
 
     public static MainFrame getInstance() {
         if (instance == null) {
@@ -128,7 +131,16 @@ public class MainFrame extends JFrame {
         JMenu help = new JMenu("帮助");
         JMenuItem bbs = new JMenuItem("论坛");
         bbs.addActionListener(e -> UrlUtil.open("https://moguwuyu.com/"));
+        JMenuItem log = new JMenuItem("日志");
+        log.addActionListener(e -> {
+            if (logDialog == null) {
+                logDialog = new LogDialog(this);
+            }
+            logDialog.setVisible(true);
+        });
+
         help.add(bbs);
+        help.add(log);
 
 
         WzKey[] keys = wzKeyStorage.loadAll().toArray(new WzKey[0]);

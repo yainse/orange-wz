@@ -97,7 +97,7 @@ public class WzFolder extends WzObject {
                     children.add(folder);
                     folder.loadFolder();
                 } else if (filename.endsWith("List.wz")) {
-                    log.info("展开目录跳过 List.wz 文件");
+                    log.info("展开目录 {} 跳过 List.wz 文件", getName());
                 } else if (filename.endsWith(".wz")) {
                     children.add(new WzFile(pathStr, (short) -1, keyBoxName, iv, key).getWzDirectory());
                 } else if (filename.endsWith(".img")) {
