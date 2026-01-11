@@ -106,7 +106,6 @@ public class WzImage extends WzObject {
             save(writer);
 
             byte[] context = writer.output();
-            reader = null;
             ServerManager.getBean(FileWriteQueue.class).addToQueue(path, context);
             log.info("保存 {} IMG 的任务已提交", getName());
 
