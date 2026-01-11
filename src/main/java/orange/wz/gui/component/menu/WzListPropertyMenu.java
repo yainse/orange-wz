@@ -172,6 +172,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
                             }
                         }
                         target.addChild(prop);
+                        target.getWzImage().setChanged(true);
                     }
                     editPane.insertNodeToTree(node, obj, true, index);
                 }

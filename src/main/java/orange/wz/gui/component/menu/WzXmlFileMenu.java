@@ -252,6 +252,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
                             }
                         }
                         target.addChild(prop);
+                        target.setChanged(true);
                     }
                     editPane.insertNodeToTree(node, obj, true, index);
                 }

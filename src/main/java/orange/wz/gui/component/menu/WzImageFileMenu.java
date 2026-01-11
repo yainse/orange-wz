@@ -261,6 +261,7 @@ public final class WzImageFileMenu extends JPopupMenu {
                             }
                         }
                         target.addChild(prop);
+                        target.setChanged(true);
                     }
                     editPane.insertNodeToTree(node, obj, true, index);
                 }

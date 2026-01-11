@@ -513,6 +513,7 @@ public final class EditPane extends JSplitPane {
                 }
                 addChildrenRecursively(node, wzImg, expand);
             }
+            case WzImageProperty property -> addChildrenRecursively(node, property, expand); // 粘贴后的 List 节点
             default -> {
             }
         }
