@@ -379,7 +379,9 @@ public class WzPngProperty extends WzImageProperty {
         // 该方法在处理CMS079的Map.wz时要额外花费123秒，只是为了List.wz的图片
         byte[] compressedBytes = getCompressedBytes(false);
         byte[] rawBytes = decompress(compressedBytes);
-        compressBytes(rawBytes, wzMutableKey);
+        if (listWzUsed) {
+            compressBytes(rawBytes, wzMutableKey);
+        }
     }
 
     private static BufferedImage deepClone(BufferedImage src) {
