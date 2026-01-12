@@ -220,7 +220,18 @@ public final class WzDirectoryMenu extends JPopupMenu {
                 WzObject wzObject = (WzObject) node.getUserObject();
                 WzObject pWzObject = wzObject.getParent();
 
-                if (pWzObject instanceof WzDirectory directory && directory.removeImageChild(wzObject.getName())) {
+                if (pWzObject instanceof WzDirectory directory) {
+                    boolean success = false;
+                    if (wzObject instanceof WzImage wzImg) {
+                        success = directory.removeImageChild(wzImg.getName());
+                    } else if (wzObject instanceof WzDirectory wzDir) {
+                        success = directory.removeDirectoryChild(wzDir.getName());
+                    }
+
+                    if (!success) {
+                        log.warn("节点删除失败, 父节点: {} 子节点: {}", pWzObject.getName(), directory.getName());
+                        continue;
+                    }
                     editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
                 } else {
                     log.error("无法删除节点, 父节点类型: {}", pWzObject.getClass().getName());
@@ -354,7 +365,7 @@ public final class WzDirectoryMenu extends JPopupMenu {
     private void addImportXmlBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
             TreePath[] selectedPaths = tree.getSelectionPaths();
-            if(TreePathUtil.isNullOrMultiple(selectedPaths)) return;
+            if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
 
             editPane.importXml((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent());
         });
