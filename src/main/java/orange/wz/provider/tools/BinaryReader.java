@@ -57,6 +57,14 @@ public final class BinaryReader {
      * 只做临时使用，不做解析
      *
      */
+    public BinaryReader(WzMutableKey wzMutableKey) {
+        this.wzMutableKey = wzMutableKey;
+    }
+
+    /**
+     * 只做临时使用，不做解析
+     *
+     */
     public BinaryReader(byte[] data, byte[] iv, byte[] userKey) {
         buffer = ByteBuffer.allocate(0);
         putBytes(data);

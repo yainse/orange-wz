@@ -17,10 +17,7 @@ import orange.wz.manager.ServerManager;
 import orange.wz.model.Pair;
 import orange.wz.provider.*;
 import orange.wz.provider.properties.*;
-import orange.wz.provider.tools.FileTool;
-import orange.wz.provider.tools.FileWriteQueue;
-import orange.wz.provider.tools.WzFileStatus;
-import orange.wz.provider.tools.WzType;
+import orange.wz.provider.tools.*;
 import orange.wz.provider.tools.wzkey.WzKey;
 
 import javax.swing.*;
@@ -1260,6 +1257,13 @@ public final class EditPane extends JSplitPane {
         }
     }
 
+    /**
+     * 收集要导出的 Img节点
+     *
+     * @param node      要处理的节点
+     * @param folder    用于存放导出文件的文件夹
+     * @param collector 收集器
+     */
     private void collectExportImg(DefaultMutableTreeNode node, Path folder, List<Pair<WzImage, Path>> collector) {
         WzObject wzObject = (WzObject) node.getUserObject();
         if (wzObject instanceof WzFolder) {
@@ -1293,6 +1297,11 @@ public final class EditPane extends JSplitPane {
         }
     }
 
+    /**
+     * 导出 img
+     *
+     * @param selectedPaths 要处理的节点
+     */
     public void exportImg(TreePath[] selectedPaths) {
         File folder = FileDialog.chooseOpenFolder("请选择输出目录");
         if (folder == null) {
@@ -1339,6 +1348,13 @@ public final class EditPane extends JSplitPane {
         }.execute();
     }
 
+    /**
+     * 收集要导出的 XML 节点
+     *
+     * @param node      要处理的节点
+     * @param folder    用于存放导出文件的文件夹
+     * @param collector 收集器
+     */
     private void collectExportXml(DefaultMutableTreeNode node, Path folder, List<Pair<WzImage, Path>> collector) {
         WzObject wzObject = (WzObject) node.getUserObject();
 
@@ -1372,6 +1388,11 @@ public final class EditPane extends JSplitPane {
         }
     }
 
+    /**
+     * 导出 XML
+     *
+     * @param selectedPaths 要处理的节点
+     */
     public void exportXml(TreePath[] selectedPaths) {
         ExportXmlDialog dialog = new ExportXmlDialog(this);
         ExportXmlData data = dialog.getData();
@@ -1446,6 +1467,11 @@ public final class EditPane extends JSplitPane {
         return false;
     }
 
+    /**
+     * 修改密钥
+     *
+     * @param selectedPaths 要处理的节点
+     */
     public void changeKey(TreePath[] selectedPaths) {
         List<WzObject> collector = new ArrayList<>();
         boolean hasWzFile = false;
@@ -1485,6 +1511,80 @@ public final class EditPane extends JSplitPane {
                     get();
                     Instant end = Instant.now();
                     MainFrame.getInstance().setStatusText("密钥修改完成，耗时 %d 秒，请自行保存文件以应用新的密钥。", Duration.between(now, end).toSeconds());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }.execute();
+    }
+
+    /**
+     * 导入 Img
+     *
+     * @param node 导入到该节点
+     */
+    public void importImg(DefaultMutableTreeNode node) {
+        List<File> imgFiles = FileDialog.chooseOpenFiles(new String[]{"img"});
+
+        final int[] count = {0};
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                WzDirectory targetDirectory = (WzDirectory) node.getUserObject();
+                WzFile wzFile = targetDirectory.getWzFile();
+                String keyBoxName = wzFile.getKeyBoxName();
+                byte[] iv = wzFile.getIv();
+                byte[] key = wzFile.getKey();
+                int total = imgFiles.size();
+                OverwriteChoice choice = null;
+                int index = 0;
+                for (File imgFile : imgFiles) {
+                    String imgName = imgFile.getName();
+                    if (targetDirectory.existImage(imgName)) {
+                        if (choice == OverwriteChoice.SKIP_ALL) continue;
+                        else if (choice == OverwriteChoice.OVERWRITE_ALL) {
+                            targetDirectory.removeImageChild(imgName);
+                            DefaultMutableTreeNode childNode = findTreeNodeByName(node, imgName);
+                            index = node.getIndex(childNode);
+                            removeNodeFromTree(childNode);
+                        } else {
+                            choice = OverwriteDialog.show(EditPane.this, imgName);
+                            switch (choice) {
+                                case OVERWRITE, OVERWRITE_ALL -> {
+                                    targetDirectory.removeImageChild(imgName);
+                                    DefaultMutableTreeNode childNode = findTreeNodeByName(node, imgName);
+                                    index = node.getIndex(childNode);
+                                    removeNodeFromTree(childNode);
+                                }
+                                case SKIP, SKIP_ALL, CANCEL -> {
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    String filePathStr = imgFile.getAbsolutePath();
+                    WzImageFile wzImageFile = new WzImageFile(imgName, filePathStr, keyBoxName, iv, key);
+                    if (!wzImageFile.parse()) {
+                        MainFrame.getInstance().setStatusText("无法解析 Img, 停止导入。请确认 Img 的密钥和导入对象的密钥是否一致: %s", filePathStr);
+                        return null;
+                    }
+                    WzImage wzImage = wzImageFile.deepClone(targetDirectory);
+                    wzImage.setReader(new BinaryReader(wzFile.getWzMutableKey()));
+                    wzImage.setChildrenWzImage();
+                    wzImage.setTempChanged(true);
+                    targetDirectory.addChild(wzImage);
+                    insertNodeToTree(node, wzImage, true, index);
+                    MainFrame.getInstance().updateProgress(++count[0], total);
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    MainFrame.getInstance().setStatusText("共导入 %d 个文件", count[0]);
                 } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }

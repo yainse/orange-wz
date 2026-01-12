@@ -10,6 +10,7 @@ import orange.wz.gui.component.dialog.OverwriteChoice;
 import orange.wz.gui.component.dialog.OverwriteDialog;
 import orange.wz.gui.component.form.data.NodeFormData;
 import orange.wz.gui.component.panel.EditPane;
+import orange.wz.gui.utils.TreePathUtil;
 import orange.wz.gui.utils.ChineseUtil;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.gui.utils.Outlink;
@@ -409,73 +410,9 @@ public final class WzFileMenu extends JPopupMenu {
     private void addImportImgBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
             TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-            if (selectedPaths.length != 1) {
-                JMessageUtil.error("该功能不支持多选");
-                return;
-            }
+            if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
 
-            List<File> imgFiles = FileDialog.chooseOpenFiles(new String[]{"img"});
-            final int[] count = {0};
-            new SwingWorker<Void, Void>() {
-                @Override
-                protected Void doInBackground() {
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
-                    WzDirectory target = (WzDirectory) node.getUserObject();
-                    WzFile wzFile = target.getWzFile();
-                    String keyBoxName = wzFile.getKeyBoxName();
-                    byte[] iv = wzFile.getIv();
-                    byte[] key = wzFile.getKey();
-                    int total = imgFiles.size();
-                    OverwriteChoice choice = null;
-                    int index = 0;
-                    for (File imgFile : imgFiles) {
-                        String name = imgFile.getName();
-                        if (target.existImage(name)) {
-                            if (choice == OverwriteChoice.SKIP_ALL) continue;
-                            else if (choice == OverwriteChoice.OVERWRITE_ALL) {
-                                target.removeImageChild(name);
-                                DefaultMutableTreeNode childNode = editPane.findTreeNodeByName(node, name);
-                                index = node.getIndex(childNode);
-                                editPane.removeNodeFromTree(childNode);
-                            } else {
-                                choice = OverwriteDialog.show(editPane, name);
-                                switch (choice) {
-                                    case OVERWRITE, OVERWRITE_ALL -> {
-                                        target.removeImageChild(name);
-                                        DefaultMutableTreeNode childNode = editPane.findTreeNodeByName(node, name);
-                                        index = node.getIndex(childNode);
-                                        editPane.removeNodeFromTree(childNode);
-                                    }
-                                    case SKIP, SKIP_ALL, CANCEL -> {
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                        WzImageFile wzImageFile = new WzImageFile(name, imgFile.getAbsolutePath(), keyBoxName, iv, key);
-                        wzImageFile.parse();
-                        WzImage wzImage = wzImageFile.deepClone(target);
-                        wzImage.setTempChanged(true);
-                        target.addChild(wzImage);
-                        editPane.insertNodeToTree(node, wzImage, true, index);
-                        MainFrame.getInstance().updateProgress(++count[0], total);
-                    }
-
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        MainFrame.getInstance().setStatusText("共导入 %d 个文件", count[0]);
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            }.execute();
-
+            editPane.importImg((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent());
         });
     }
 

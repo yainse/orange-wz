@@ -152,7 +152,7 @@ public class WzImage extends WzObject {
         writer.putShort((short) 0);
         writer.writeCompressedInt(properties.size());
         for (WzImageProperty property : properties) {
-            log.info("writeListValue: {}", property.getPath());
+            log.debug("writeListValue: {}", property.getPath());
             writer.writeStringBlock(property.getName(), 0x00, 0x01);
             if (property instanceof WzExtended) { // "imgdir(WzList)", "canvas", "vector", "convex", "sound(WzBinary)", "uol", "(WzRawData)"
                 writeExtendedValue(writer, (WzExtended) property);
@@ -214,6 +214,13 @@ public class WzImage extends WzObject {
 
     public boolean existChild(String name) {
         return children.existChild(name);
+    }
+
+    public void setChildrenWzImage() {
+        for (WzImageProperty property : children.get()) {
+            property.setWzImage(this);
+            property.setChildrenWzImage(this);
+        }
     }
 
     // ChangeKey -------------------------------------------------------------------------------------------------------

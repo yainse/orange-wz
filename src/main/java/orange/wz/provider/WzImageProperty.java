@@ -64,10 +64,23 @@ public abstract class WzImageProperty extends WzObject {
 
     /**
      * 判断是否是 List 节点: 指的是 children 对象不为 null 的节点，即可拥有子节点的对象。
+     *
      * @return children != null
      */
     public boolean isListProperty() {
         return children != null;
+    }
+
+    public void setChildrenWzImage(WzImage wzImage) {
+        if (this instanceof WzCanvasProperty canvas) {
+            canvas.setWzImage(wzImage);
+            return;
+        } else if (children == null) return;
+
+        for (WzImageProperty property : children.get()) {
+            property.setWzImage(wzImage);
+            property.setChildrenWzImage(wzImage);
+        }
     }
 
     // 解析 -------------------------------------------------------------------------------------------------------------
