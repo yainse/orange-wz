@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.Clipboard;
 import orange.wz.gui.MainFrame;
-import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.canvas.CanvasWall;
 import orange.wz.gui.component.dialog.NodeDialog;
 import orange.wz.gui.component.dialog.OverwriteChoice;
@@ -13,14 +12,13 @@ import orange.wz.gui.component.form.data.NodeFormData;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.CanvasUtil;
 import orange.wz.gui.utils.CanvasUtilData;
-import orange.wz.gui.utils.TreePathUtil;
 import orange.wz.gui.utils.JMessageUtil;
+import orange.wz.gui.utils.TreePathUtil;
 import orange.wz.provider.*;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -356,75 +354,9 @@ public final class WzDirectoryMenu extends JPopupMenu {
     private void addImportXmlBtnAction(JMenuItem item) {
         item.addActionListener(e -> {
             TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-            if (selectedPaths.length != 1) {
-                JMessageUtil.error("该功能不支持多选");
-                return;
-            }
+            if(TreePathUtil.isNullOrMultiple(selectedPaths)) return;
 
-            List<File> xmlFiles = FileDialog.chooseOpenFiles(new String[]{"xml"});
-            final int[] count = {0};
-            new SwingWorker<Void, Void>() {
-                @Override
-                protected Void doInBackground() {
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
-                    WzDirectory target = (WzDirectory) node.getUserObject();
-                    WzFile wzFile = target.getWzFile();
-                    String keyBoxName = wzFile.getKeyBoxName();
-                    byte[] iv = wzFile.getIv();
-                    byte[] key = wzFile.getKey();
-                    int total = xmlFiles.size();
-                    OverwriteChoice choice = null;
-                    int index = 0;
-                    for (File xmlFile : xmlFiles) {
-                        String name = xmlFile.getName();
-                        name = name.endsWith(".xml")
-                                ? name.substring(0, name.length() - 4)
-                                : name;
-                        if (target.existImage(name)) {
-                            if (choice == OverwriteChoice.SKIP_ALL) continue;
-                            else if (choice == OverwriteChoice.OVERWRITE_ALL) {
-                                target.removeImageChild(name);
-                                DefaultMutableTreeNode childNode = editPane.findTreeNodeByName(node, name);
-                                index = node.getIndex(childNode);
-                                editPane.removeNodeFromTree(childNode);
-                            } else {
-                                choice = OverwriteDialog.show(editPane, name);
-                                switch (choice) {
-                                    case OVERWRITE, OVERWRITE_ALL -> {
-                                        target.removeImageChild(name);
-                                        DefaultMutableTreeNode childNode = editPane.findTreeNodeByName(node, name);
-                                        index = node.getIndex(childNode);
-                                        editPane.removeNodeFromTree(childNode);
-                                    }
-                                    case SKIP, SKIP_ALL, CANCEL -> {
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-                        WzXmlFile wzXmlFile = new WzXmlFile(name, xmlFile.getAbsolutePath(), keyBoxName, iv, key);
-                        wzXmlFile.parse();
-                        WzImage wzImage = wzXmlFile.deepClone(target);
-                        wzImage.setTempChanged(true);
-                        target.addChild(wzImage);
-                        editPane.insertNodeToTree(node, wzImage, true, index);
-                        MainFrame.getInstance().updateProgress(++count[0], total);
-                    }
-
-                    return null;
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        MainFrame.getInstance().setStatusText("共导入 %d 个文件", count[0]);
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            }.execute();
+            editPane.importXml((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent());
         });
     }
 }

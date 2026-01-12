@@ -1591,4 +1591,80 @@ public final class EditPane extends JSplitPane {
             }
         }.execute();
     }
+
+    /**
+     * 导入 XML
+     *
+     * @param node 导入到该节点
+     */
+    public void importXml(DefaultMutableTreeNode node) {
+        List<File> xmlFiles = FileDialog.chooseOpenFiles(new String[]{"xml"});
+        final int[] count = {0};
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                WzDirectory targetDirectory = (WzDirectory) node.getUserObject();
+                WzFile wzFile = targetDirectory.getWzFile();
+                String keyBoxName = wzFile.getKeyBoxName();
+                byte[] iv = wzFile.getIv();
+                byte[] key = wzFile.getKey();
+                int total = xmlFiles.size();
+                OverwriteChoice choice = null;
+                int index = 0;
+                for (File xmlFile : xmlFiles) {
+                    String imgName = xmlFile.getName();
+                    imgName = imgName.endsWith(".xml")
+                            ? imgName.substring(0, imgName.length() - 4)
+                            : imgName;
+                    if (targetDirectory.existImage(imgName)) {
+                        if (choice == OverwriteChoice.SKIP_ALL) continue;
+                        else if (choice == OverwriteChoice.OVERWRITE_ALL) {
+                            targetDirectory.removeImageChild(imgName);
+                            DefaultMutableTreeNode childNode = findTreeNodeByName(node, imgName);
+                            index = node.getIndex(childNode);
+                            removeNodeFromTree(childNode);
+                        } else {
+                            choice = OverwriteDialog.show(EditPane.this, imgName);
+                            switch (choice) {
+                                case OVERWRITE, OVERWRITE_ALL -> {
+                                    targetDirectory.removeImageChild(imgName);
+                                    DefaultMutableTreeNode childNode = findTreeNodeByName(node, imgName);
+                                    index = node.getIndex(childNode);
+                                    removeNodeFromTree(childNode);
+                                }
+                                case SKIP, SKIP_ALL, CANCEL -> {
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                    String filePathStr = xmlFile.getAbsolutePath();
+                    WzXmlFile wzXmlFile = new WzXmlFile(imgName, xmlFile.getAbsolutePath(), keyBoxName, iv, key);
+                    if (!wzXmlFile.parse()) {
+                        MainFrame.getInstance().setStatusText("无法解析 Xml, 停止导入。请查看相关日志: %s", filePathStr);
+                        return null;
+                    }
+                    WzImage wzImage = wzXmlFile.deepClone(targetDirectory);
+                    wzImage.setReader(new BinaryReader(wzFile.getWzMutableKey()));
+                    wzImage.setChildrenWzImage();
+                    wzImage.setTempChanged(true);
+                    targetDirectory.addChild(wzImage);
+                    insertNodeToTree(node, wzImage, true, index);
+                    MainFrame.getInstance().updateProgress(++count[0], total);
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    MainFrame.getInstance().setStatusText("共导入 %d 个文件", count[0]);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }.execute();
+    }
 }
