@@ -76,6 +76,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         JMenuItem chineseBtn = new JMenuItem("汉化");
         JMenuItem imageBtn = new JMenuItem("图片嗅探");
         JMenuItem outlinkBtn = new JMenuItem("Outlink");
+        JMenuItem sicBtn = new JMenuItem("排序并改名");
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -96,6 +97,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         addChineseBtnAction(chineseBtn);
         addImageBtnAction(imageBtn);
         addOutlinkBtnAction(outlinkBtn);
+        addSICAction(sicBtn);
 
         add(addBtn);
         add(copyBtn);
@@ -104,6 +106,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         add(chineseBtn);
         add(imageBtn);
         add(outlinkBtn);
+        add(sicBtn);
     }
 
     private void addCopyBtnAction(JMenuItem item) {
@@ -805,6 +808,27 @@ public final class WzListPropertyMenu extends JPopupMenu {
                 }
             };
             worker.execute();
+        });
+    }
+
+    public void addSICAction(JMenuItem item) {
+        item.addActionListener(e -> {
+            TreePath[] selectedPaths = tree.getSelectionPaths();
+            if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
+
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
+            WzListProperty wzListProperty = (WzListProperty) node.getUserObject();
+
+            if (!wzListProperty.sortAndReindexChildren()) {
+                MainFrame.getInstance().setStatusText("节点已经是从0开始的序数了，什么都没有改变");
+                return;
+            }
+
+            DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+            int index = pNode.getIndex(node);
+            editPane.removeNodeFromTree(node);
+            MainFrame.getInstance().setStatusText("操作成功。");
+            editPane.insertNodeToTree(pNode, wzListProperty, true, index);
         });
     }
 }
