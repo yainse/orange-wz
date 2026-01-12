@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class LogDialog extends JDialog {
 
-    private static final int MAX_LINES = 5_000_000;
+    private static final int MAX_LINES = 5_000;
 
     private final JTextPane textPane = new JTextPane();
     private final StyledDocument doc = textPane.getStyledDocument();
