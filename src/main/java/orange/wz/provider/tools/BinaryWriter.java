@@ -77,7 +77,8 @@ public final class BinaryWriter {
             remaining = (int) (nextAllocateSize - buffer.position());
         }
 
-        int newSize = Math.toIntExact(nextAllocateSize);
+        int limit = Integer.MAX_VALUE - 8; // MaxValue无法创建
+        int newSize = nextAllocateSize > limit ? limit : (int) nextAllocateSize;
 
         ByteBuffer newBuffer = ByteBuffer.allocate(newSize);
         buffer.flip();
