@@ -44,7 +44,12 @@ public abstract class WzImageProperty extends WzObject {
 
     public boolean addChild(WzImageProperty child) {
         if (children == null) return false;
-        return children.add(child);
+        if (children.add(child)) {
+            wzImage.setChanged(true);
+            wzImage.setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public void addChildren(List<WzImageProperty> children) {
@@ -54,7 +59,12 @@ public abstract class WzImageProperty extends WzObject {
 
     public boolean removeChild(String name) {
         if (children == null) return false;
-        return children.remove(name);
+        if (children.remove(name)) {
+            wzImage.setChanged(true);
+            wzImage.setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean existChild(String name) {

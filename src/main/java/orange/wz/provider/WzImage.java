@@ -201,15 +201,21 @@ public class WzImage extends WzObject {
     }
 
     public boolean addChild(WzImageProperty child) {
-        return children.add(child);
-    }
-
-    public void addChildren(List<WzImageProperty> children) {
-        this.children.add(children);
+        if (children.add(child)) {
+            setChanged(true);
+            setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean removeChild(String name) {
-        return children.remove(name);
+        if (children.remove(name)) {
+            setChanged(true);
+            setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean existChild(String name) {
