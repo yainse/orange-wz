@@ -310,19 +310,35 @@ public class WzDirectory extends WzObject {
     }
 
     public boolean addChild(WzDirectory directory) {
-        return children.add(directory);
+        if (children.add(directory)) {
+            setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean addChild(WzImage image) {
-        return children.add(image);
+        if (children.add(image)) {
+            setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean removeDirectoryChild(String name) {
-        return children.removeDirectory(name);
+        if (children.removeDirectory(name)) {
+            setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean removeImageChild(String name) {
-        return children.removeImage(name);
+        if (children.removeImage(name)) {
+            setTempChanged(true);
+            return true;
+        }
+        return false;
     }
 
     public boolean existDirectory(String name) {
