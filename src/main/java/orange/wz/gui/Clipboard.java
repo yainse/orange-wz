@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public final class Clipboard {
-    @Getter
     private final List<WzObject> items = new ArrayList<>();
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -33,6 +32,15 @@ public final class Clipboard {
 
     public boolean isEmpty() {
         return items.isEmpty();
+    }
+
+    public List<WzObject> getItems() {
+        List<WzObject> items = new ArrayList<>();
+        for (WzObject item : this.items) {
+            items.add(item.deepClone(null)); // 重新克隆一份，避免剪贴板残留导致资源无法释放
+        }
+
+        return items;
     }
 
     public boolean canPaste(WzObject target) {

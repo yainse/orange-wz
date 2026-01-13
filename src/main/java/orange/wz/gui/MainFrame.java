@@ -72,47 +72,77 @@ public class MainFrame extends JFrame {
     private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
 
-        // 文件菜单
+        // 文件
         JMenu fileMenu = new JMenu("文件");
 
-        JMenu openItem = new JMenu("加载");
-        openItem.setIcon(FcFolderIcon);
-
+        JMenu load = new JMenu("加载");
+        load.setIcon(FcFolderIcon);
         JMenuItem openFiles = new JMenuItem("文件 wz/img/xml", FcFileIcon);
+        JMenuItem openFolders = new JMenuItem("文件夹...", FcFolderIcon);
+        load.add(openFiles);
+        load.add(openFolders);
+
+        JMenuItem unloadAll = new JMenuItem("卸载全部", AiOutlineCloseIcon);
+
+        fileMenu.add(load);
+        fileMenu.add(unloadAll);
+
+        // 工具
+        JMenu tools = new JMenu("工具");
+
+        JMenu view = new JMenu("视图");
+        view.setIcon(AiOutlineEye);
+        viewShow = new JMenuItem("显示");
+        JMenuItem viewSync = new JMenuItem("禁用同步");
+        view.add(viewShow);
+        view.add(viewSync);
+
+        JMenuItem clearCB = new JMenuItem("清空剪贴板");
+        JMenuItem gc = new JMenuItem("内存回收");
+
+        tools.add(view);
+        tools.add(clearCB);
+        tools.add(gc);
+
+        // 帮助
+        JMenu help = new JMenu("帮助");
+
+        JMenuItem bbs = new JMenuItem("论坛");
+        JMenuItem log = new JMenuItem("日志");
+
+        help.add(bbs);
+        help.add(log);
+
+        // 密钥
+        keyBox = new KeyBox(wzKeyStorage.loadAll().toArray(new WzKey[0])); // 选择框
+        JButton keyManager = new JButton("密钥管理");
+
+
+        menuBar.add(fileMenu);
+        menuBar.add(tools);
+        menuBar.add(help);
+        menuBar.add(Box.createHorizontalStrut(2));
+        menuBar.add(keyBox);
+        menuBar.add(Box.createHorizontalStrut(2));
+        menuBar.add(keyManager);
+
+
         openFiles.addActionListener(e -> {
             List<File> files = orange.wz.gui.component.FileDialog.chooseOpenFiles(new String[]{"wz", "img", "xml"});
             centerPane.getLeftEditPane().loadFiles(files);
         });
-        openItem.add(openFiles);
-
-        JMenuItem openFolders = new JMenuItem("文件夹...", FcFolderIcon);
         openFolders.addActionListener(e -> {
             List<File> files = FileDialog.chooseOpenFolders();
             centerPane.getLeftEditPane().loadFiles(files);
         });
-        openItem.add(openFolders);
-
-        JMenuItem unloadAll = new JMenuItem("卸载全部", AiOutlineCloseIcon);
         unloadAll.addActionListener(e -> {
             centerPane.getLeftEditPane().unloadAll();
             centerPane.getRightEditPane().unloadAll();
             System.gc();
         });
-
-        fileMenu.add(openItem);
-        fileMenu.add(unloadAll);
-
-
-        JMenu tools = new JMenu("工具");
-        JMenu view = new JMenu("视图");
-        view.setIcon(AiOutlineEye);
-
-        viewShow = new JMenuItem("显示");
         viewShow.addActionListener(e -> {
             centerPane.showRightEditPane(!centerPane.isRightShowing());
         });
-
-        JMenuItem viewSync = new JMenuItem("禁用同步");
         viewSync.addActionListener(e -> {
             if (centerPane.isSync()) {
                 centerPane.switchSync();
@@ -122,31 +152,13 @@ public class MainFrame extends JFrame {
                 viewSync.setText("禁用同步");
             }
         });
-
-        view.add(viewShow);
-        view.add(viewSync);
-        tools.add(view);
-
-
-        JMenu help = new JMenu("帮助");
-        JMenuItem bbs = new JMenuItem("论坛");
         bbs.addActionListener(e -> UrlUtil.open("https://moguwuyu.com/"));
-        JMenuItem log = new JMenuItem("日志");
         log.addActionListener(e -> {
             if (logDialog == null) {
                 logDialog = new LogDialog(this);
             }
             logDialog.setVisible(true);
         });
-
-        help.add(bbs);
-        help.add(log);
-
-
-        WzKey[] keys = wzKeyStorage.loadAll().toArray(new WzKey[0]);
-        keyBox = new KeyBox(keys);
-
-        JButton keyManager = new JButton("密钥管理");
         keyManager.addActionListener(e -> {
             if (this.keyManager == null) {
                 Window owner = SwingUtilities.getWindowAncestor(keyManager);
@@ -161,14 +173,8 @@ public class MainFrame extends JFrame {
             }
             this.keyManager.setVisible(true);
         });
-
-        menuBar.add(fileMenu);
-        menuBar.add(tools);
-        menuBar.add(help);
-        menuBar.add(Box.createHorizontalStrut(2));
-        menuBar.add(keyBox);
-        menuBar.add(Box.createHorizontalStrut(2));
-        menuBar.add(keyManager);
+        clearCB.addActionListener(e -> clearClipboard());
+        gc.addActionListener(e -> gc());
 
         return menuBar;
     }
@@ -221,9 +227,27 @@ public class MainFrame extends JFrame {
         progressBar.setString(current + "/" + total);
     }
 
+    /**
+     * 设置底部状态文字
+     *
+     * @param format 文字格式
+     * @param args   参数
+     */
     public void setStatusText(String format, Object... args) {
         if (statusLabel != null) {
             statusLabel.setText(String.format(format, args));
         }
+    }
+
+    private void gc() {
+        System.gc();
+        setStatusText("已向系统建议回收内存");
+    }
+
+    private void clearClipboard() {
+        clipboard.lock();
+        clipboard.clear();
+        clipboard.unlock();
+        setStatusText("剪贴板已清空");
     }
 }

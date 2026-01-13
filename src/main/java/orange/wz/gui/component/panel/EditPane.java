@@ -1795,7 +1795,6 @@ public final class EditPane extends JSplitPane {
         }
 
         resetValueForm();
-        clipboard.clear();
         clipboard.unlock();
     }
 }
