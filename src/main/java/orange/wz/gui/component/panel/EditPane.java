@@ -320,6 +320,8 @@ public final class EditPane extends JSplitPane {
     }
 
     private void collapseAll(TreePath parent) {
+        if (!tree.isExpanded(parent)) return;
+
         Object node = parent.getLastPathComponent();
         TreeModel model = treeModel;
 
