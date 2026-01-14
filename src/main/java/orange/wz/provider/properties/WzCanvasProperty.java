@@ -57,10 +57,6 @@ public class WzCanvasProperty extends WzExtended {
         png.setData(reader);
     }
 
-    public void setPng(BufferedImage pngImage, WzPngFormat pngFormat) {
-        png.setImage(pngImage, pngFormat, 0);
-    }
-
     public void setPng(BufferedImage pngImage, WzPngFormat format, int scale) {
         png.setImage(pngImage, format, scale);
     }

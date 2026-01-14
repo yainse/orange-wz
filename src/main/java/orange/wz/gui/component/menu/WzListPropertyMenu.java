@@ -164,7 +164,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
                 return;
             }
             prop.initPngProperty(name, prop, imageProperty.getWzImage());
-            prop.setPng(data.getValue(), data.getFormat());
+            prop.setPng(data.getValue(), data.getFormat(), data.getScale());
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
             prop.setTempChanged(true);

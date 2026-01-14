@@ -95,7 +95,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         addVectorBtnItem(addVectorBtn);
         saveBtnAction(saveBtn);
         saveAsBtnAction(saveAsBtn);
-        unloadBtnAction(unloadBtn);
+        unloadBtn.addActionListener(e -> editPane.unload());
         reloadBtnAction(reloadBtn);
         moveBtnAction(moveBtn);
         copyBtn.addActionListener(e -> editPane.doCopy());
@@ -139,28 +139,6 @@ public final class WzXmlFileMenu extends JPopupMenu {
             }
 
             editPane.saveAs((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent());
-        });
-    }
-
-    private void unloadBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
-
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzXmlFile imageFile = (WzXmlFile) node.getUserObject();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                if (pNode == null) continue;
-                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
-                    wzFolder.remove(imageFile);
-                }
-            }
-
-            editPane.resetValueForm();
-            System.gc();
         });
     }
 
@@ -238,7 +216,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
                 return;
             }
             prop.initPngProperty(name, prop, wzXmlFile);
-            prop.setPng(data.getValue(), data.getFormat());
+            prop.setPng(data.getValue(), data.getFormat(), data.getScale());
 
             if (node.isLeaf()) return; // isLeaf 说明未加载数据，就不要插入了
             prop.setTempChanged(true);

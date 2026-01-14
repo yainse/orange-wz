@@ -18,6 +18,7 @@ import java.nio.file.Files;
 public final class CanvasDialog extends NodeDialog {
     private final JTextField pathField = new JTextField(20);
     private final DisabledItemComboBox<WzPngFormat> formatField;
+    private final JTextField scaleField = new JTextField(20);
     private BufferedImage image;
 
     public CanvasDialog(String title, EditPane editPane) {
@@ -27,6 +28,8 @@ public final class CanvasDialog extends NodeDialog {
         formatField = new DisabledItemComboBox<>(WzPngFormat.values());
         formatField.setSelectedItem(WzPngFormat.ARGB8888);
         addRow("压缩", formatField);
+        addRow("Scale", scaleField);
+        scaleField.setText("0");
 
         JButton selectBtn = new JButton("选择图片");
         addRow("路径", pathField, selectBtn);
@@ -60,9 +63,18 @@ public final class CanvasDialog extends NodeDialog {
             JMessageUtil.error("没有选择图片");
             return null;
         }
+
+        int scale;
+        try {
+            scale = Integer.parseInt(scaleField.getText());
+        } catch (NumberFormatException e) {
+            scale = 0;
+        }
         return new CanvasFormData(nameField.getText().trim(),
                 "Canvas",
                 image,
-                (WzPngFormat) formatField.getSelectedItem());
+                (WzPngFormat) formatField.getSelectedItem(),
+                scale
+        );
     }
 }

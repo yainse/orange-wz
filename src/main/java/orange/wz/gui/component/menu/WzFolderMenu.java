@@ -42,7 +42,7 @@ public final class WzFolderMenu extends JPopupMenu {
 
         saveBtnAction(saveBtn);
         packageBtnAction(packageBtn);
-        unloadBtnAction(unloadBtn);
+        unloadBtn.addActionListener(e -> editPane.unload());
         reloadBtnAction(reloadBtn);
         addKeyBtnAction(keyBtn);
         addExportImgBtnAction(exportImgBtn);
@@ -135,28 +135,6 @@ public final class WzFolderMenu extends JPopupMenu {
                     }
                 }
             }.execute();
-        });
-    }
-
-    private void unloadBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
-
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzFolder folder = (WzFolder) node.getUserObject();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                if (pNode == null) continue;
-                if (pNode.getUserObject() instanceof WzFolder pFolder) {
-                    pFolder.remove(folder);
-                }
-            }
-
-            editPane.resetValueForm();
-            System.gc();
         });
     }
 

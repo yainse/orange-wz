@@ -68,7 +68,7 @@ public final class WzFileMenu extends JPopupMenu {
         addImgBtnAction(addImgBtn);
         saveBtnAction(saveBtn);
         saveAsBtnAction(saveAsBtn);
-        unloadBtnAction(unloadBtn);
+        unloadBtn.addActionListener(e -> editPane.unload());
         reloadBtnAction(reloadBtn);
         moveBtnAction(moveBtn);
         pasteBtn.addActionListener(e -> editPane.doPaste());
@@ -114,28 +114,6 @@ public final class WzFileMenu extends JPopupMenu {
             }
 
             editPane.saveAs((DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent());
-        });
-    }
-
-    private void unloadBtnAction(JMenuItem item) {
-        item.addActionListener(e -> {
-            TreePath[] selectedPaths = tree.getSelectionPaths();
-            if (selectedPaths == null) return;
-
-            for (TreePath treePath : selectedPaths) {
-                editPane.removeNodeFromTree((DefaultMutableTreeNode) treePath.getLastPathComponent());
-
-                DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                WzDirectory wzFile = (WzDirectory) node.getUserObject();
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                if (pNode == null) continue;
-                if (pNode.getUserObject() instanceof WzFolder wzFolder) {
-                    wzFolder.remove(wzFile);
-                }
-            }
-
-            editPane.resetValueForm();
-            System.gc();
         });
     }
 

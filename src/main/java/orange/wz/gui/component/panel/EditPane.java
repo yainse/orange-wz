@@ -1048,6 +1048,26 @@ public final class EditPane extends JSplitPane {
     }
 
     // 卸载 -------------------------------------------------------------------------------------------------------------
+    public void unload() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        for (TreePath treePath : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+            if (pNode == null) continue;
+
+            WzObject wzObject = (WzObject) node.getUserObject();
+            if (pNode.getUserObject() instanceof WzFolder pFolder) {
+                pFolder.remove(wzObject);
+            }
+
+            removeNodeFromTree(node);
+        }
+
+        clear();
+    }
+
     /**
      * 移除 Root 下全部节点
      */
@@ -1057,9 +1077,7 @@ public final class EditPane extends JSplitPane {
         resetValueForm();
     }
 
-    /**
-     * 对子列表进行排序，并将数值类型的名称按从0开始的自然序数进行改名，使其连续
-     */
+    // 排序并改名：对子列表进行排序，并将数值类型的名称按从0开始的自然序数进行改名，使其连续 --------------------------------------------
     public void sortAndReindexChildren() {
         TreePath[] selectedPaths = tree.getSelectionPaths();
         if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
