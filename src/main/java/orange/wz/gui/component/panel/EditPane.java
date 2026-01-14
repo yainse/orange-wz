@@ -753,103 +753,7 @@ public final class EditPane extends JSplitPane {
         });
     }
 
-    /**
-     * 将文件加载到树里
-     *
-     * @param files 要打开的文件列表
-     */
-    public void loadFiles(List<File> files) {
-        WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
-        if (key == null) {
-            MainFrame.getInstance().setStatusText("没有选择密钥?");
-            return;
-        }
-
-        loadFiles(treeRoot, files, key);
-    }
-
-    public void loadFiles(DefaultMutableTreeNode pNode, List<File> files, WzKey key) {
-        files.forEach(f -> {
-            if (f.isFile()) {
-                if (f.getName().endsWith("List.wz")) {
-                    new ListEditor(f.getAbsolutePath(), key);
-                } else if (f.getName().endsWith(".wz")) {
-                    WzFile wzFile = new WzFile(f.getAbsolutePath(), (short) -1, key.getName(), key.getIv(), key.getUserKey());
-                    insertNodeToTree(pNode, wzFile.getWzDirectory(), true);
-                } else if (f.getName().endsWith(".img")) {
-                    WzImageFile wzImageFile = new WzImageFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
-                    insertNodeToTree(pNode, wzImageFile, true);
-                } else if (f.getName().endsWith(".xml")) {
-                    WzXmlFile wzXmlFile = new WzXmlFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
-                    insertNodeToTree(pNode, wzXmlFile, true);
-                }
-            } else if (f.isDirectory()) {
-                WzFolder folder = new WzFolder(f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
-                insertNodeToTree(pNode, folder, true);
-            }
-        });
-    }
-
-    /**
-     * 使用菜单栏的密钥重新载入文件节点
-     *
-     * @param treePaths tree 选中的节点
-     */
-    public void reloadFile(TreePath[] treePaths) {
-        WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
-        if (key == null) {
-            MainFrame.getInstance().setStatusText("没有选择密钥?");
-            return;
-        }
-
-        for (TreePath treePath : treePaths) {
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-            reloadFile(node, key);
-        }
-
-        clear();
-    }
-
-    private void reloadFile(DefaultMutableTreeNode node, WzKey key) {
-        DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-        int index = pNode.getIndex(node);
-        WzObject oldObject = (WzObject) node.getUserObject();
-        WzObject newObject = null;
-
-        if (oldObject instanceof WzFolder oldFolder) {
-            newObject = new WzFolder(oldFolder.getFilePath(), key.getName(), key.getIv(), key.getUserKey());
-        } else if (oldObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
-            if (wzDir.getWzFile().isNewFile()) {
-                JMessageUtil.error("新建的文件无法使用重载功能，请先另存为。");
-                return;
-            }
-            WzFile oldWzFile = wzDir.getWzFile();
-            String filePath = oldWzFile.getFilePath();
-            WzFile newWzFile = new WzFile(filePath, (short) -1, key.getName(), key.getIv(), key.getUserKey());
-            newObject = newWzFile.getWzDirectory();
-        } else if (oldObject instanceof WzImageFile oldImg) {
-            if (oldImg.isNewFile()) {
-                JMessageUtil.error("新建的文件无法使用重载功能，请先另存为。");
-                return;
-            }
-            Path filePath = Path.of(oldImg.getFilePath());
-            String filename = filePath.getFileName().toString();
-            newObject = new WzImageFile(filename, filePath.toString(), key.getName(), key.getIv(), key.getUserKey());
-        } else if (oldObject instanceof WzXmlFile oldXml) {
-            Path filePath = Path.of(oldXml.getFilePath());
-            String filename = filePath.getFileName().toString();
-            newObject = new WzXmlFile(filename, filePath.toString(), key.getName(), key.getIv(), key.getUserKey());
-        }
-
-        removeNodeFromTree(node);
-        insertNodeToTree(pNode, newObject, true, index);
-
-        if (pNode.getUserObject() instanceof WzFolder wzFolder) {
-            wzFolder.remove(oldObject);
-            wzFolder.add(newObject);
-        }
-    }
-
+    // Tree 操作 --------------------------------------------------------------------------------------------------------
     /**
      * 将 WzObject 插入到指定节点的末尾
      *
@@ -895,6 +799,81 @@ public final class EditPane extends JSplitPane {
     }
 
     /**
+     * 根据路径在树里查找 WzObject
+     *
+     * @param path 用 / 隔开，不含 Root
+     * @return WzObject
+     */
+    public WzObject findWzObjectInTreeByPath(String path) {
+        DefaultMutableTreeNode node = treeRoot;
+        String[] paths = path.split("/");
+        for (int i = 0; i < paths.length; i++) {
+            node = findTreeNodeByName(node, paths[i]);
+            if (node == null) break;
+
+            if (i == paths.length - 1) {
+                return (WzObject) node.getUserObject();
+            } else {
+                if (node.isLeaf()) {
+                    handleTreeDoubleClick(node);
+                } else {
+                    tree.expandPath(new TreePath(node.getPath()));
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 跳转到 path 对应的节点
+     *
+     * @param paths 节点路径，不含 Root
+     */
+    public void focusNodeByPath(List<String> paths) {
+        DefaultMutableTreeNode node = treeRoot;
+        for (int i = 0; i < paths.size(); i++) {
+            node = findTreeNodeByName(node, paths.get(i));
+            if (node == null) break;
+
+            if (i == paths.size() - 1) {
+                TreePath path = new TreePath(node.getPath());
+                tree.setSelectionPath(path);
+                tree.scrollPathToVisible(path); // 关键，滚动到可见
+            } else {
+                if (node.isLeaf()) {
+                    SwingWorker<Void, Void> worker = handleTreeDoubleClick(node);
+                    try {
+                        worker.get(); // 等待完成
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    tree.expandPath(new TreePath(node.getPath()));
+                }
+            }
+        }
+    }
+
+    /**
+     * 搜索 node 的下一级，查找符合名称的节点
+     *
+     * @param parent 要查找的 node
+     * @param name   要查找的名称 全匹配
+     * @return child node
+     */
+    public DefaultMutableTreeNode findTreeNodeByName(DefaultMutableTreeNode parent, String name) {
+        for (int j = 0; j < parent.getChildCount(); j++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(j);
+            if (name.equals(((WzObject) child.getUserObject()).getName())) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    // 编辑框 -----------------------------------------------------------------------------------------------------------
+    /**
      * 重置编辑框，避免编辑框里的 WzObject 占着已卸载的对象，无法释放内存
      */
     public void resetValueForm() {
@@ -902,6 +881,12 @@ public final class EditPane extends JSplitPane {
         switchForm("node");
     }
 
+    private void clear() {
+        resetValueForm();
+        System.gc();
+    }
+
+    // 同步 -------------------------------------------------------------------------------------------------------------
     /**
      * 在树里查找到 WzObject 对象（根据 WzObject.getPath 相对路径），并同步单击操作
      *
@@ -963,80 +948,106 @@ public final class EditPane extends JSplitPane {
         }
     }
 
-    /**
-     * 搜索 node 的下一级，查找符合名称的节点
-     *
-     * @param parent 要查找的 node
-     * @param name   要查找的名称 全匹配
-     * @return child node
-     */
-    public DefaultMutableTreeNode findTreeNodeByName(DefaultMutableTreeNode parent, String name) {
-        for (int j = 0; j < parent.getChildCount(); j++) {
-            DefaultMutableTreeNode child = (DefaultMutableTreeNode) parent.getChildAt(j);
-            if (name.equals(((WzObject) child.getUserObject()).getName())) {
-                return child;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 根据路径在树里查找 WzObject
-     *
-     * @param path 用 / 隔开，不含 Root
-     * @return WzObject
-     */
-    public WzObject findTreeWzObjectByPath(String path) {
-        DefaultMutableTreeNode node = treeRoot;
-        String[] paths = path.split("/");
-        for (int i = 0; i < paths.length; i++) {
-            node = findTreeNodeByName(node, paths[i]);
-            if (node == null) break;
-
-            if (i == paths.length - 1) {
-                return (WzObject) node.getUserObject();
-            } else {
-                if (node.isLeaf()) {
-                    handleTreeDoubleClick(node);
-                } else {
-                    tree.expandPath(new TreePath(node.getPath()));
+    // 加载 -------------------------------------------------------------------------------------------------------------
+    private void loadFiles(DefaultMutableTreeNode pNode, List<File> files, WzKey key) {
+        files.forEach(f -> {
+            if (f.isFile()) {
+                if (f.getName().endsWith("List.wz")) {
+                    new ListEditor(f.getAbsolutePath(), key);
+                } else if (f.getName().endsWith(".wz")) {
+                    WzFile wzFile = new WzFile(f.getAbsolutePath(), (short) -1, key.getName(), key.getIv(), key.getUserKey());
+                    insertNodeToTree(pNode, wzFile.getWzDirectory(), true);
+                } else if (f.getName().endsWith(".img")) {
+                    WzImageFile wzImageFile = new WzImageFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
+                    insertNodeToTree(pNode, wzImageFile, true);
+                } else if (f.getName().endsWith(".xml")) {
+                    WzXmlFile wzXmlFile = new WzXmlFile(f.getName(), f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
+                    insertNodeToTree(pNode, wzXmlFile, true);
                 }
+            } else if (f.isDirectory()) {
+                WzFolder folder = new WzFolder(f.getAbsolutePath(), key.getName(), key.getIv(), key.getUserKey());
+                insertNodeToTree(pNode, folder, true);
             }
-        }
-
-        return null;
+        });
     }
 
     /**
-     * 跳转到 path 对应的节点
+     * 将文件加载到树里
      *
-     * @param paths 节点路径，不含 Root
+     * @param files 要打开的文件列表
      */
-    public void focusNodeByPath(List<String> paths) {
-        DefaultMutableTreeNode node = treeRoot;
-        for (int i = 0; i < paths.size(); i++) {
-            node = findTreeNodeByName(node, paths.get(i));
-            if (node == null) break;
+    public void loadFiles(List<File> files) {
+        WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
+        if (key == null) {
+            MainFrame.getInstance().setStatusText("没有选择密钥?");
+            return;
+        }
 
-            if (i == paths.size() - 1) {
-                TreePath path = new TreePath(node.getPath());
-                tree.setSelectionPath(path);
-                tree.scrollPathToVisible(path); // 关键，滚动到可见
-            } else {
-                if (node.isLeaf()) {
-                    SwingWorker<Void, Void> worker = handleTreeDoubleClick(node);
-                    try {
-                        worker.get(); // 等待完成
-                    } catch (ExecutionException | InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                } else {
-                    tree.expandPath(new TreePath(node.getPath()));
-                }
+        loadFiles(treeRoot, files, key);
+    }
+
+    // 重载 -------------------------------------------------------------------------------------------------------------
+    private void reloadFile(DefaultMutableTreeNode node, WzKey key) {
+        DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+        int index = pNode.getIndex(node);
+        WzObject oldObject = (WzObject) node.getUserObject();
+        WzObject newObject = null;
+
+        if (oldObject instanceof WzFolder oldFolder) {
+            newObject = new WzFolder(oldFolder.getFilePath(), key.getName(), key.getIv(), key.getUserKey());
+        } else if (oldObject instanceof WzDirectory wzDir && wzDir.isWzFile()) {
+            if (wzDir.getWzFile().isNewFile()) {
+                JMessageUtil.error("新建的文件无法使用重载功能，请先另存为。");
+                return;
             }
+            WzFile oldWzFile = wzDir.getWzFile();
+            String filePath = oldWzFile.getFilePath();
+            WzFile newWzFile = new WzFile(filePath, (short) -1, key.getName(), key.getIv(), key.getUserKey());
+            newObject = newWzFile.getWzDirectory();
+        } else if (oldObject instanceof WzImageFile oldImg) {
+            if (oldImg.isNewFile()) {
+                JMessageUtil.error("新建的文件无法使用重载功能，请先另存为。");
+                return;
+            }
+            Path filePath = Path.of(oldImg.getFilePath());
+            String filename = filePath.getFileName().toString();
+            newObject = new WzImageFile(filename, filePath.toString(), key.getName(), key.getIv(), key.getUserKey());
+        } else if (oldObject instanceof WzXmlFile oldXml) {
+            Path filePath = Path.of(oldXml.getFilePath());
+            String filename = filePath.getFileName().toString();
+            newObject = new WzXmlFile(filename, filePath.toString(), key.getName(), key.getIv(), key.getUserKey());
+        }
+
+        removeNodeFromTree(node);
+        insertNodeToTree(pNode, newObject, true, index);
+
+        if (pNode.getUserObject() instanceof WzFolder wzFolder) {
+            wzFolder.remove(oldObject);
+            wzFolder.add(newObject);
         }
     }
 
+    /**
+     * 使用菜单栏的密钥重新载入文件节点
+     *
+     * @param treePaths tree 选中的节点
+     */
+    public void reloadFile(TreePath[] treePaths) {
+        WzKey key = (WzKey) MainFrame.getInstance().getKeyBox().getSelectedItem();
+        if (key == null) {
+            MainFrame.getInstance().setStatusText("没有选择密钥?");
+            return;
+        }
+
+        for (TreePath treePath : treePaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            reloadFile(node, key);
+        }
+
+        clear();
+    }
+
+    // 卸载 -------------------------------------------------------------------------------------------------------------
     /**
      * 移除 Root 下全部节点
      */
@@ -1046,11 +1057,39 @@ public final class EditPane extends JSplitPane {
         resetValueForm();
     }
 
-    private void clear() {
-        resetValueForm();
-        System.gc();
+    /**
+     * 对子列表进行排序，并将数值类型的名称按从0开始的自然序数进行改名，使其连续
+     */
+    public void sortAndReindexChildren() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
+
+        DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
+        WzObject wzObject = (WzObject) node.getUserObject();
+
+        boolean success;
+        if (wzObject instanceof WzListProperty listProperty) {
+            success = listProperty.sortAndReindexChildren();
+        } else if (wzObject instanceof WzImage image) {
+            success = image.sortAndReindexChildren();
+        } else {
+            MainFrame.getInstance().setStatusText("该功能仅支持 image 或者 list 节点");
+            return;
+        }
+
+        if (!success) {
+            MainFrame.getInstance().setStatusText("节点已经是从0开始的序数了，已经为你按顺序排列，但是名称没有发生变化。");
+            return;
+        }
+
+        DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+        int index = pNode.getIndex(node);
+        removeNodeFromTree(node);
+        MainFrame.getInstance().setStatusText("有名称发生了变化");
+        insertNodeToTree(pNode, wzObject, true, index);
     }
 
+    // 保存 -------------------------------------------------------------------------------------------------------------
     /**
      * 保存节点文件
      *
@@ -1230,6 +1269,7 @@ public final class EditPane extends JSplitPane {
         }
     }
 
+    // 导出 -------------------------------------------------------------------------------------------------------------
     /**
      * 收集要导出的 Img节点
      *
@@ -1414,6 +1454,7 @@ public final class EditPane extends JSplitPane {
         }.execute();
     }
 
+    // 修改密钥 ----------------------------------------------------------------------------------------------------------
     /**
      * 收集可以修改密钥的文件
      *
@@ -1491,6 +1532,7 @@ public final class EditPane extends JSplitPane {
         }.execute();
     }
 
+    // 导入--------------------------------------------------------------------------------------------------------------
     /**
      * 导入 Img
      *
@@ -1639,38 +1681,6 @@ public final class EditPane extends JSplitPane {
                 }
             }
         }.execute();
-    }
-
-    /**
-     * 对子列表进行排序，并将数值类型的名称按从0开始的自然序数进行改名，使其连续
-     */
-    public void sortAndReindexChildren() {
-        TreePath[] selectedPaths = tree.getSelectionPaths();
-        if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
-
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
-        WzObject wzObject = (WzObject) node.getUserObject();
-
-        boolean success;
-        if (wzObject instanceof WzListProperty listProperty) {
-            success = listProperty.sortAndReindexChildren();
-        } else if (wzObject instanceof WzImage image) {
-            success = image.sortAndReindexChildren();
-        } else {
-            MainFrame.getInstance().setStatusText("该功能仅支持 image 或者 list 节点");
-            return;
-        }
-
-        if (!success) {
-            MainFrame.getInstance().setStatusText("节点已经是从0开始的序数了，已经为你按顺序排列，但是名称没有发生变化。");
-            return;
-        }
-
-        DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-        int index = pNode.getIndex(node);
-        removeNodeFromTree(node);
-        MainFrame.getInstance().setStatusText("有名称发生了变化");
-        insertNodeToTree(pNode, wzObject, true, index);
     }
 
     // 剪贴板操作 --------------------------------------------------------------------------------------------------------

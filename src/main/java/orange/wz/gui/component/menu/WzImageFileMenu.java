@@ -783,7 +783,7 @@ public final class WzImageFileMenu extends JPopupMenu {
                     throw new RuntimeException();
                 }
 
-                WzImage from = (WzImage) MainFrame.getInstance().getCenterPane().getAnotherPane(editPane).findTreeWzObjectByPath(to.getPath());
+                WzImage from = (WzImage) MainFrame.getInstance().getCenterPane().getAnotherPane(editPane).findWzObjectInTreeByPath(to.getPath());
                 if (from == null) {
                     log.error("找不到中文版本的 {}", to.getName());
                     continue;
