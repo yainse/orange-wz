@@ -181,6 +181,10 @@ public class WzPngProperty extends WzImageProperty {
         image = img;
     }
 
+    public void clearImage() {
+        image = null;
+    }
+
     // Getter ----------------------------------------------------------------------------------------------------------
     public BufferedImage getImage(boolean saveInMem) {
         if (image == null) {

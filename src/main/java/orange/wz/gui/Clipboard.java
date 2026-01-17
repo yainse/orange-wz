@@ -1,6 +1,5 @@
 package orange.wz.gui;
 
-import lombok.Getter;
 import orange.wz.provider.WzDirectory;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;

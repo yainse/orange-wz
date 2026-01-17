@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 @Slf4j
-public class LogDialog extends JDialog {
+public final class LogDialog extends JDialog {
 
     private static final int MAX_LINES = 5_000;
 

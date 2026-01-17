@@ -72,6 +72,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         pasteBtn = new JMenuItem("粘贴", MdOutlineContentPaste);
         deleteBtn = new JMenuItem("删除节点", AiOutlineDelete);
         JMenuItem chineseBtn = new JMenuItem("汉化");
+        JMenuItem compareImgBtn = new JMenuItem("图片对比");
         JMenuItem imageBtn = new JMenuItem("图片嗅探");
         JMenuItem outlinkBtn = new JMenuItem("Outlink");
         JMenuItem sicBtn = new JMenuItem("排序并改名");
@@ -94,6 +95,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         pasteBtn.addActionListener(e -> editPane.doPaste());
         deleteBtnAction(deleteBtn);
         addChineseBtnAction(chineseBtn);
+        compareImgBtn.addActionListener(e -> editPane.compareImg());
         addImageBtnAction(imageBtn);
         addOutlinkBtnAction(outlinkBtn);
         sicBtn.addActionListener(e -> editPane.sortAndReindexChildren());
@@ -104,6 +106,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         add(pasteBtn);
         add(deleteBtn);
         add(chineseBtn);
+        add(compareImgBtn);
         add(imageBtn);
         add(outlinkBtn);
         add(sicBtn);

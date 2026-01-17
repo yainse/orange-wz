@@ -9,6 +9,7 @@ import orange.wz.gui.component.dialog.*;
 import orange.wz.gui.component.form.data.*;
 import orange.wz.gui.component.form.impl.*;
 import orange.wz.gui.component.menu.*;
+import orange.wz.gui.utils.ChineseUtil;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.gui.utils.SearchUtil;
 import orange.wz.gui.utils.TreePathUtil;
@@ -1940,5 +1941,31 @@ public final class EditPane extends JSplitPane {
         }
 
         MainFrame.getInstance().setStatusText("总共删除了 %d 个节点", count);
+    }
+
+    // 汉化 -------------------------------------------------------------------------------------------------------------
+    public void compareImg() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                ChineseUtil.initChineseImg();
+                for (TreePath treePath : selectedPaths) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                    WzImageProperty to = (WzImageProperty) node.getUserObject();
+
+                    WzImageProperty from = (WzImageProperty) MainFrame.getInstance().getCenterPane().getAnotherPane(EditPane.this).findWzObjectInTreeByPath(to.getPath());
+                    if (from == null) {
+                        log.error("找不到中文版本的 {}", to.getName());
+                        continue;
+                    }
+
+                    ChineseUtil.chineseImg(from, to);
+                }
+                return null;
+            }
+        }.execute();
     }
 }

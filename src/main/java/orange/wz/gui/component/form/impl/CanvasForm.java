@@ -8,6 +8,7 @@ import orange.wz.gui.component.form.base.DisabledItemComboBox;
 import orange.wz.gui.component.form.data.CanvasFormData;
 import orange.wz.gui.component.panel.CenterPane;
 import orange.wz.gui.component.panel.EditPane;
+import orange.wz.gui.component.panel.ImagePanel;
 import orange.wz.gui.utils.JMessageUtil;
 import orange.wz.model.TransferableImage;
 import orange.wz.provider.WzObject;
@@ -28,7 +29,6 @@ public class CanvasForm extends AbstractValueForm {
     private JTextField scaleField;
     private ImagePanel imagePanel;
     private JSlider zoomSlider; // 缩放条
-    private double zoomFactor = 1.0; // 当前缩放比例
 
     public CanvasForm(EditPane editPane) {
         super();
@@ -50,7 +50,7 @@ public class CanvasForm extends AbstractValueForm {
 
             try {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                ImageIO.write(imagePanel.image, "PNG", stream);
+                ImageIO.write(imagePanel.getImage(), "PNG", stream);
                 imageBytes = stream.toByteArray();
             } catch (Exception ex) {
                 throw new RuntimeException();
@@ -106,7 +106,7 @@ public class CanvasForm extends AbstractValueForm {
         });
 
         copyBtn.addActionListener(e -> {
-            TransferableImage trans = new TransferableImage(imagePanel.image);
+            TransferableImage trans = new TransferableImage(imagePanel.getImage());
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             clipboard.setContents(trans, null);
             MainFrame.getInstance().setStatusText("图片已经复制到系统剪贴板");
@@ -124,7 +124,7 @@ public class CanvasForm extends AbstractValueForm {
                 return;
             }
 
-            anotherPane.getCanvasForm().transferData(imagePanel.image, widthField.getText(), heightField.getText(), (WzPngFormat) formatField.getSelectedItem(), scaleField.getText());
+            anotherPane.getCanvasForm().transferData(imagePanel.getImage(), widthField.getText(), heightField.getText(), (WzPngFormat) formatField.getSelectedItem(), scaleField.getText());
         });
 
         addButton(downloadBtn);
@@ -216,7 +216,7 @@ public class CanvasForm extends AbstractValueForm {
         zoomSlider.setPaintTicks(true);
         zoomSlider.setPaintLabels(true);
         zoomSlider.addChangeListener(e -> {
-            zoomFactor = zoomSlider.getValue() / 100.0;
+            imagePanel.setZoomFactor(zoomSlider.getValue() / 100.0);
             imagePanel.repaint();
         });
 
@@ -239,7 +239,6 @@ public class CanvasForm extends AbstractValueForm {
         widthField.setText(image.getWidth() + "");
         heightField.setText(image.getHeight() + "");
         imagePanel.setImage(image);
-        imagePanel.repaint();
     }
 
     public void setData(String name, String type, BufferedImage image, int width, int height, WzPngFormat format, int scale, WzObject wzObject, EditPane editPane) {
@@ -251,7 +250,6 @@ public class CanvasForm extends AbstractValueForm {
         scaleField.setText(String.valueOf(scale));
 
         imagePanel.setImage(image);
-        imagePanel.repaint();
     }
 
     public void transferData(BufferedImage image, String width, String height, WzPngFormat format, String scale) {
@@ -261,34 +259,7 @@ public class CanvasForm extends AbstractValueForm {
         scaleField.setText(scale);
 
         imagePanel.setImage(image);
-        imagePanel.repaint();
         MainFrame.getInstance().setStatusText("转移成功，请手动点击保存按钮。");
-    }
-
-    @Setter
-    private class ImagePanel extends JPanel {
-        private BufferedImage image;
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (image != null) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                int imgWidth = (int) (image.getWidth() * zoomFactor);
-                int imgHeight = (int) (image.getHeight() * zoomFactor);
-
-                int x = (getWidth() - imgWidth) / 2;
-                int y = (getHeight() - imgHeight) / 2;
-
-                g2.drawImage(image, x, y, imgWidth, imgHeight, this);
-
-                g2.dispose();
-            }
-        }
     }
 
     @Override
@@ -303,7 +274,7 @@ public class CanvasForm extends AbstractValueForm {
         return new CanvasFormData(
                 nameInput.getText(),
                 typeInput.getText(),
-                imagePanel.image,
+                imagePanel.getImage(),
                 (WzPngFormat) formatField.getSelectedItem(),
                 scale
         );

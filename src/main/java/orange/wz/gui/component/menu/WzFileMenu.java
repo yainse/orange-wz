@@ -61,6 +61,7 @@ public final class WzFileMenu extends JPopupMenu {
         importBtn.add(importImgBtn);
         importBtn.add(importXmlBtn);
         JMenuItem chineseBtn = new JMenuItem("汉化");
+        JMenuItem compareImgBtn = new JMenuItem("图片对比");
         JMenuItem outlinkBtn = new JMenuItem("Outlink");
 
 
@@ -78,6 +79,7 @@ public final class WzFileMenu extends JPopupMenu {
         addImportImgBtnAction(importImgBtn);
         addImportXmlBtnAction(importXmlBtn);
         addChineseBtnAction(chineseBtn);
+        compareImgBtn.addActionListener(e -> editPane.compareImg());
         addOutlinkBtnAction(outlinkBtn);
 
         add(addBtn);
@@ -91,6 +93,7 @@ public final class WzFileMenu extends JPopupMenu {
         add(exportBtn);
         add(importBtn);
         add(chineseBtn);
+        add(compareImgBtn);
         add(outlinkBtn);
     }
 

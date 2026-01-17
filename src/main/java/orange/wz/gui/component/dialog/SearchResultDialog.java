@@ -16,7 +16,7 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class SearchResultDialog extends JDialog {
+public final class SearchResultDialog extends JDialog {
 
     private final JTable table;
     private final TableRowSorter<DefaultTableModel> sorter;

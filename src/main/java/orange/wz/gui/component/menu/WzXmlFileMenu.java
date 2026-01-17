@@ -75,6 +75,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         JMenu exportBtn = new JMenu("导出");
         JMenuItem exportImgBtn = new JMenuItem("Img");
         exportBtn.add(exportImgBtn);
+        JMenuItem compareImgBtn = new JMenuItem("图片对比");
         JMenuItem imageBtn = new JMenuItem("图片嗅探");
         JMenuItem sicBtn = new JMenuItem("排序并改名");
         JMenuItem delChild = new JMenuItem("批量删除");
@@ -101,6 +102,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         copyBtn.addActionListener(e -> editPane.doCopy());
         pasteBtn.addActionListener(e -> editPane.doPaste());
         addExportImgBtnAction(exportImgBtn);
+        compareImgBtn.addActionListener(e -> editPane.compareImg());
         addImageBtnAction(imageBtn);
         sicBtn.addActionListener(e -> editPane.sortAndReindexChildren());
         delChild.addActionListener(e -> editPane.removeAllWzChildWithName());
@@ -114,6 +116,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         add(copyBtn);
         add(pasteBtn);
         add(exportBtn);
+        add(compareImgBtn);
         add(imageBtn);
         add(sicBtn);
         add(delChild);
