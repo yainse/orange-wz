@@ -25,6 +25,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
@@ -299,9 +300,9 @@ public class MainFrame extends JFrame {
     }
 
     private void checkUpdate() {
-        new SwingWorker<JsonObject, Void>() {
+        new SwingWorker<Void, Void>() {
             @Override
-            protected JsonObject doInBackground() {
+            protected Void doInBackground() {
                 try {
                     String version = ServerManager.getVersion();
                     String key = ServerManager.getKey();
@@ -313,50 +314,84 @@ public class MainFrame extends JFrame {
                             "OrzRepacker", version, timestamp, token
                     );
 
-                    URL url = URI.create(urlStr).toURL();
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("GET");
-                    conn.setConnectTimeout(5000); // 连接超时
-                    conn.setReadTimeout(5000);    // 读取超时
-
-                    int responseCode = conn.getResponseCode();
-                    if (responseCode != 200) {
-                        log.warn("检查更新失败 Code {}", responseCode);
-                        return null;
+                    String response;
+                    try {
+                        response = requestByCurl(urlStr);
+                    } catch (Exception e) {
+                        response = requestByHttp(urlStr);
                     }
-
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
-                    );
-                    StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-                    reader.close();
 
                     final Gson gson = new Gson();
-                    JsonObject json = gson.fromJson(response.toString(), JsonObject.class);
+                    JsonObject json = gson.fromJson(response, JsonObject.class);
                     JsonObject data = json.getAsJsonObject("data");
                     JsonObject attributes = data.getAsJsonObject("attributes");
 
                     int code = attributes.get("code").getAsInt();
                     String message = attributes.get("message").getAsString();
 
-                    if (code == 200) return null;
                     if (code == 201) {
-                        newVerLabel.setText("<html><a href='' style='color:red;'>有新版本 " + message + "</a></html>");
+                        SwingUtilities.invokeLater(() ->
+                                newVerLabel.setText("<html><a href='' style='color:red;'>有新版本 " + message + "</a></html>")
+                        );
                     }
-                    return null;
 
                 } catch (ConnectException ignored) {
-                    return null;
+                    // ignore
                 } catch (Exception e) {
                     log.error(e.getMessage(), e);
-                    return null;
                 }
+                return null;
             }
         }.execute();
+    }
+
+    private String requestByCurl(String urlStr) throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(
+                "curl", "-s", "-L",
+                "-H", "User-Agent: OrzRepacker/1.0",
+                urlStr
+        );
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+
+        int exit = p.waitFor();
+        if (exit != 0 || sb.isEmpty()) {
+            throw new IOException("curl failed, exitCode=" + exit);
+        }
+        return sb.toString();
+    }
+
+    private String requestByHttp(String urlStr) throws IOException {
+        URL url = URI.create(urlStr).toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setConnectTimeout(5000);
+        conn.setReadTimeout(5000);
+        // conn.setRequestProperty("User-Agent", "OrzRepacker/1.0");
+
+        if (conn.getResponseCode() != 200) {
+            log.warn("检查更新失败 Code {}", conn.getResponseCode());
+            throw new RuntimeException();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+        return sb.toString();
     }
 
     private String generateHmacSha256(long timestamp, String key) throws Exception {
