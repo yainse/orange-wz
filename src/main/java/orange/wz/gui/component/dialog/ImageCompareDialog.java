@@ -17,6 +17,7 @@ public final class ImageCompareDialog extends JDialog {
 
     private JList<String> stringList;
     private DefaultListModel<String> listModel;
+    private final List<String> collections = new ArrayList<>();
     private ImagePanel imagePanel1;
     private ImagePanel imagePanel2;
     private JLabel widthLabel1;
@@ -304,17 +305,30 @@ public final class ImageCompareDialog extends JDialog {
 
     public synchronized void addCompare(WzCanvasProperty to, WzCanvasProperty from) {
         String path = to.getPath();
-        listModel.addElement(path);
+        // listModel.addElement(path);
+        collections.add(path);
         toMap.put(path, to);
         fromMap.put(path, from);
         setStatus("已修改 " + changedList.size() + " / " + listModel.getSize() + " 条");
 
-        // 如果之前列表为空，则选中新增加的元素并触发选中事件
-        if (listModel.getSize() == 1) {
-            stringList.setSelectedIndex(0);
-            stringList.ensureIndexIsVisible(0);
-            onStringSelected(path);
+        if (collections.size() > 25) {
+            boolean selFirst = listModel.getSize() == 0;
+
+            listModel.addAll(collections);
+            collections.clear();
+
+            if (selFirst) { // 选中第一个元素并触发选中事件
+                stringList.setSelectedIndex(0);
+                stringList.ensureIndexIsVisible(0);
+                onStringSelected(path);
+            }
         }
+    }
+
+    public void completeScan() {
+        listModel.addAll(collections);
+        collections.clear();
+        if (listModel.getSize() == 0) setStatus("扫描完毕，找不到数据。");
     }
 
     /**

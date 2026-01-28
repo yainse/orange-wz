@@ -64,22 +64,23 @@ public final class ChineseUtil {
         imageCompareDialog = new ImageCompareDialog(MainFrame.getInstance());
     }
 
+    public static void completeChineseImg() {
+        imageCompareDialog.completeScan();
+    }
+
     public static void chineseImg(WzObject from, WzObject to) {
         if (from == null || to == null) return;
 
-        if (to instanceof WzFile toFile && from instanceof WzFile fromFile) {
-            if (!toFile.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", toFile.getName(), toFile.getStatus().getMessage());
+        if (to instanceof WzDirectory toDirectory && from instanceof WzDirectory fromDirectory) {
+            if (toDirectory.isWzFile() && !toDirectory.getWzFile().parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", toDirectory.getWzFile().getName(), toDirectory.getWzFile().getStatus().getMessage());
                 throw new RuntimeException();
             }
-            if (!fromFile.parse()) {
-                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", fromFile.getName(), fromFile.getStatus().getMessage());
+            if (fromDirectory.isWzFile() && !fromDirectory.getWzFile().parse()) {
+                MainFrame.getInstance().setStatusText("文件 %s 解析失败: %s", fromDirectory.getWzFile().getName(), fromDirectory.getWzFile().getStatus().getMessage());
                 throw new RuntimeException();
             }
 
-            toFile.getWzDirectory().getDirectories().forEach(toDir -> chineseImg(fromFile.getWzDirectory().getDirectory(toDir.getName()), toDir));
-            toFile.getWzDirectory().getImages().forEach(toImage -> chineseImg(fromFile.getWzDirectory().getImage(toImage.getName()), toImage));
-        } else if (to instanceof WzDirectory toDirectory && from instanceof WzDirectory fromDirectory) {
             toDirectory.getDirectories().forEach(toDir -> chineseImg(fromDirectory.getDirectory(toDir.getName()), toDir));
             toDirectory.getImages().forEach(toImage -> chineseImg(fromDirectory.getImage(toImage.getName()), toImage));
         } else if (to instanceof WzImage toImage && from instanceof WzImage fromImage) {
