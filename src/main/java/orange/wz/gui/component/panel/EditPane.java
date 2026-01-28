@@ -1738,6 +1738,7 @@ public final class EditPane extends JSplitPane {
                 setPasteWzFileAndReader(dir.getChildren(), wzFile);
             } else if (item instanceof WzImage img) {
                 img.setReader(wzFile.getReader());
+                setPasteWzImage(img.getChildren(), img);
             } else {
                 MainFrame.getInstance().getClipboard().unlock();
                 throw new RuntimeException("无法给类型 " + item.getClass().getSimpleName() + " 设置 WzFile");
@@ -1745,7 +1746,7 @@ public final class EditPane extends JSplitPane {
         }
     }
 
-    private void setPasteWzImage(List<WzObject> items, WzImage image) {
+    private void setPasteWzImage(List<? extends WzObject> items, WzImage image) {
         for (WzObject item : items) {
             if (item instanceof WzImageProperty prop) {
                 prop.setWzImage(image);
