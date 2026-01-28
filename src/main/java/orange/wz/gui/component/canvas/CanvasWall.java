@@ -1,6 +1,7 @@
 package orange.wz.gui.component.canvas;
 
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.gui.MainFrame;
 import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.gui.utils.CanvasUtilData;
@@ -10,6 +11,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,13 +20,27 @@ import java.io.IOException;
 import java.util.List;
 
 @Slf4j
-public final class CanvasWall extends JDialog {
+public final class CanvasWall extends JFrame {
     public CanvasWall(List<CanvasUtilData> data, String title, DefaultMutableTreeNode node, EditPane editPane) {
-        setTitle("图片嗅探 " + title);
-        setModal(false); // 不要阻塞主窗口
+        super("图片嗅探 " + title);
+        setIconImage(MainFrame.getInstance().getIconImage()); // 继承主窗口 icon
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // 最大化
+        setExtendedState(JFrame.NORMAL); // 默认不是最大化
         setSize(810, 600);
         setLocationRelativeTo(null);
+
+        // esc 关闭
+        KeyStroke esc = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0);
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(esc, "ESC_CLOSE");
+        getRootPane().getActionMap().put("ESC_CLOSE", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+            }
+        });
+
 
         // 顶层容器
         JPanel mainPanel = new JPanel(new BorderLayout());
