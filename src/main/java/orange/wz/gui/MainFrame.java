@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.dialog.LogDialog;
+import orange.wz.gui.component.form.impl.CanvasForm;
 import orange.wz.gui.component.key.KeyBox;
 import orange.wz.gui.component.key.KeyManager;
 import orange.wz.gui.component.panel.CenterPane;
@@ -46,6 +47,8 @@ public class MainFrame extends JFrame {
     private KeyBox keyBox;
     private KeyManager keyManager;
     private JMenuItem viewShow;
+
+    private Color cavFormColor = null;
 
     private CenterPane centerPane;
 
@@ -107,6 +110,23 @@ public class MainFrame extends JFrame {
         // 工具
         JMenu tools = new JMenu("工具");
 
+        JMenuItem selectCavBGC = new JMenuItem("图像背景");
+        selectCavBGC.addActionListener(e -> {
+            cavFormColor = JColorChooser.showDialog(
+                    this,
+                    "图像背景",
+                    cavFormColor
+            );
+            if (cavFormColor != null) {
+                CanvasForm form = (CanvasForm) centerPane.getLeftEditPane().getNodeForms().get("canvas");
+                form.getImagePanel().setBackground(cavFormColor);
+                if (centerPane.isRightShowing()) {
+                    form = (CanvasForm) centerPane.getRightEditPane().getNodeForms().get("canvas");
+                    form.getImagePanel().setBackground(cavFormColor);
+                }
+            }
+        });
+
         JMenu view = new JMenu("视图");
         view.setIcon(AiOutlineEye);
         viewShow = new JMenuItem("显示");
@@ -117,6 +137,7 @@ public class MainFrame extends JFrame {
         JMenuItem clearCB = new JMenuItem("清空剪贴板");
         JMenuItem gc = new JMenuItem("内存回收");
 
+        tools.add(selectCavBGC);
         tools.add(view);
         tools.add(clearCB);
         tools.add(gc);

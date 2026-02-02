@@ -53,6 +53,7 @@ public final class EditPane extends JSplitPane {
 
     @Getter
     private String currentFormName;
+    @Getter
     private final Map<String, AbstractValueForm> nodeForms = Map.ofEntries(
             Map.entry("node", new NodeForm()),
             Map.entry("canvas", new CanvasForm(this)),

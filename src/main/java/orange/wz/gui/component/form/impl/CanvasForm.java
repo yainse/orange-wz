@@ -1,7 +1,7 @@
 package orange.wz.gui.component.form.impl;
 
 import com.formdev.flatlaf.util.SystemFileChooser;
-import lombok.Setter;
+import lombok.Getter;
 import orange.wz.gui.MainFrame;
 import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.form.base.DisabledItemComboBox;
@@ -27,6 +27,7 @@ public class CanvasForm extends AbstractValueForm {
     private JTextField heightField;
     protected DisabledItemComboBox<WzPngFormat> formatField;
     private JTextField scaleField;
+    @Getter
     private ImagePanel imagePanel;
     private JSlider zoomSlider; // 缩放条
 
