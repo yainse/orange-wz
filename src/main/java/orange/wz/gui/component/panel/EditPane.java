@@ -824,6 +824,11 @@ public final class EditPane extends JSplitPane {
         if (node == null) return;
         if (node.getParent() == null) return;
 
+        for (int i = 0; i < node.getChildCount(); i++) {
+            DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
+            removeNodeFromTree(child);
+        }
+        node.setUserObject(null);
         treeModel.removeNodeFromParent(node);
     }
 
@@ -1213,45 +1218,10 @@ public final class EditPane extends JSplitPane {
                 clear();
                 return null;
             }
-        }.execute();
-
-        new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() {
-                FileWriteQueue queue = ServerManager.getBean(FileWriteQueue.class);
-                Instant now = Instant.now();
-                boolean initial = false;
-                while (true) {
-                    if (!initial) {
-                        if (Instant.now().isAfter(now.plusSeconds(600))) {
-                            break; // 超时
-                        }
-                        if (!queue.isIdle()) {
-                            initial = true;
-                        }
-                    }
-
-                    if (initial) {
-                        MainFrame.getInstance().updateProgress(queue.getCount(), queue.getTotal());
-                        if (queue.isIdle() && queue.getCount() == queue.getTotal()) {
-                            MainFrame.getInstance().updateProgress(queue.getCount(), queue.getTotal());
-                            break;
-                        }
-                    }
-                }
-
-                clear();
-                return null;
-            }
 
             @Override
             protected void done() {
-                try {
-                    get();
-                    MainFrame.getInstance().setStatusText("文件保存完成");
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
+                MainFrame.getInstance().setStatusText("文件保存完毕");
             }
         }.execute();
     }
@@ -1315,13 +1285,13 @@ public final class EditPane extends JSplitPane {
             }
 
             if (wz.save()) {
-                reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
                 if (renamed) {
                     FileTool.deleteFile(oldPath);
                 }
             } else {
                 JMessageUtil.error("保存失败，请查看日志文件");
             }
+            reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
         }
     }
 
@@ -1361,11 +1331,10 @@ public final class EditPane extends JSplitPane {
                 return;
             }
             wz.setFilePath(saveFile.getAbsolutePath());
-            if (wz.save()) {
-                reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
-            } else {
+            if (!wz.save()) {
                 JMessageUtil.error("保存失败，请查看日志文件");
             }
+            reloadFile(node, new WzKey(-1, keyBoxName, iv, key));
         }
     }
 

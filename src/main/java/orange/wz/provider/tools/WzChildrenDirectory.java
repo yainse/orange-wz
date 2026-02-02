@@ -88,6 +88,11 @@ public class WzChildrenDirectory {
         }
     }
 
+    public void clear() {
+        directories.clear();
+        images.clear();
+    }
+
     public boolean existDirectory(String name) {
         return getDirectory(name) != null;
     }

@@ -130,6 +130,22 @@ public abstract class WzImageProperty extends WzObject {
         }
     }
 
+    public void clear() {
+        if (isListProperty()) {
+            for (WzImageProperty property : getChildren()) {
+                property.clear();
+            }
+            children.clear();
+        }
+
+        if (this instanceof WzCanvasProperty canvas) {
+            canvas.clearPngProperty();
+        }
+
+        parent = null;
+        wzImage = null;
+    }
+
     // 解析 -------------------------------------------------------------------------------------------------------------
     public static List<WzImageProperty> parsePropertyList(int offset, BinaryReader reader, WzObject parent) {
         WzImage wzImage = null;

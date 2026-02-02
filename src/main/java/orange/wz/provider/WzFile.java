@@ -7,6 +7,7 @@ import orange.wz.manager.ServerManager;
 import orange.wz.model.Pair;
 import orange.wz.provider.tools.*;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -173,10 +174,7 @@ public final class WzFile extends WzObject implements WzSavableFile {
 
     @Override
     public boolean save() {
-        return save(filePath);
-    }
-
-    private boolean save(String path) {
+        Path savePath = Path.of(filePath + ".bak");
         try {
             if (status != WzFileStatus.PARSE_SUCCESS) return false;
             log.info("保存 {} 开始", getName());
@@ -208,14 +206,40 @@ public final class WzFile extends WzObject implements WzSavableFile {
             log.info("保存 {} Wz 写入文件 4/4", getName());
             byte[] context = writer.output();
             reader = null;
-            ServerManager.getBean(FileWriteQueue.class).addToQueue(Path.of(path), context);
-            log.info("保存 {} Wz 的任务已提交", getName());
-            setNewFile(false);
-            return true;
+            clear();
+            if (FileTool.saveFile(savePath, context)) {
+                setNewFile(false);
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        FileTool.moveAndReplace(savePath, Path.of(filePath));
+                        log.info("{} 已保存", getName());
+                        return true;
+                    } catch (IOException e) {
+                        if (i == 0) {
+                            System.gc();
+                        } else if (i == 9) {
+                            log.error("{} 替换 {} 失败: {}", savePath, Path.of(filePath), e.getMessage());
+                        } else {
+                            log.warn("{} 处于被占用的状态，如果你运行的游戏客户端在使用该文件，请立刻关闭。第 {}/10 次尝试", getName(), i + 1);
+                        }
+                    }
+                    Thread.sleep(500);
+                }
+
+                log.warn("由于文件处于占用状态，已经尝试了10次均无法写入，已将 {} 保存为 {}.bak", getName(), getName());
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             log.error("保存出错 Wz: {} 错误消息: {}", getName(), e.getMessage());
             return false;
         }
+    }
+
+    public void clear() {
+        wzDirectory.getDirectories().forEach(WzDirectory::clear);
+        wzDirectory.getImages().forEach(WzImage::clear);
+        reader = null;
     }
 
     /**

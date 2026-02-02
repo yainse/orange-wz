@@ -6,10 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.stream.Stream;
 
@@ -139,5 +136,9 @@ public final class FileTool {
         }
 
         return safe.isEmpty() ? "unnamed" : safe;
+    }
+
+    public static void moveAndReplace(Path source, Path target) throws IOException {
+        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 }

@@ -9,6 +9,7 @@ import orange.wz.provider.properties.WzExtended;
 import orange.wz.provider.properties.WzListProperty;
 import orange.wz.provider.tools.*;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -90,6 +91,13 @@ public class WzImage extends WzObject {
         status = WzFileStatus.UNPARSE;
     }
 
+    public void clear() {
+        getChildren().forEach(WzImageProperty::clear);
+        parent = null;
+        reader = null;
+        unparse();
+    }
+
     public boolean save(Path path) {
         if (path == null) return false;
         boolean parseStatus = status == WzFileStatus.PARSE_SUCCESS;
@@ -106,11 +114,31 @@ public class WzImage extends WzObject {
             save(writer);
 
             byte[] context = writer.output();
-            ServerManager.getBean(FileWriteQueue.class).addToQueue(path, context);
-            log.info("保存 {} IMG 的任务已提交", getName());
+            clear();
+            String filePath = path.toString();
+            Path savePath = Path.of(filePath + ".bak");
+            if (FileTool.saveFile(savePath, context)) {
+                for (int i = 0; i < 10; i++) {
+                    try {
+                        FileTool.moveAndReplace(savePath, Path.of(filePath));
+                        log.info("{} 已保存", getName());
+                        return true;
+                    } catch (IOException e) {
+                        if (i == 0) {
+                            System.gc();
+                        } else if (i == 9) {
+                            log.error("{} 替换 {} 失败: {}", savePath, Path.of(filePath), e.getMessage());
+                        } else {
+                            log.warn("{} 处于被占用的状态，如果你运行的游戏客户端在使用该文件，请立刻关闭。第 {}/10 次尝试", getName(), i + 1);
+                        }
+                    }
+                    Thread.sleep(500);
+                }
 
-            if (!parseStatus) unparse();
-            return true;
+                log.warn("由于文件处于占用状态，已经尝试了10次均无法写入，已将 {} 保存为 {}.bak", getName(), getName());
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             log.error("保存出错 Img: {} 错误消息: {}", getName(), e.getMessage());
             return false;

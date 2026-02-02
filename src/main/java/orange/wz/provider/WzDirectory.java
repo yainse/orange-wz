@@ -309,6 +309,17 @@ public class WzDirectory extends WzObject {
         return children.getAllChildren();
     }
 
+    public void clear() {
+        getDirectories().forEach(WzDirectory::clear);
+        getImages().forEach(image -> {
+            image.parent = null;
+            image.clear();
+        });
+        wzFile = null;
+        parent = null;
+        children.clear();
+    }
+
     public boolean addChild(WzDirectory directory) {
         if (children.add(directory)) {
             setTempChanged(true);

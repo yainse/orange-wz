@@ -71,6 +71,11 @@ public class WzCanvasProperty extends WzExtended {
         png.clearImage();
     }
 
+    public void clearPngProperty() {
+        png.setParent(null);
+        png = null;
+    }
+
     // Override --------------------------------------------------------------------------------------------------------
     @Override
     public void setWzImage(WzImage wzImage) {
