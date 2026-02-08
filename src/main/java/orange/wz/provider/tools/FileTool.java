@@ -3,11 +3,16 @@ package orange.wz.provider.tools;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -140,5 +145,36 @@ public final class FileTool {
 
     public static void moveAndReplace(Path source, Path target) throws IOException {
         Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public static Map<String, List<Path>> getAllFiles(Path directory) {
+        Map<String, List<Path>> result = new LinkedHashMap<>();
+
+        String rootName = directory.getFileName().toString();
+
+        try {
+            Files.walkFileTree(directory, new SimpleFileVisitor<>() {
+                @NonNull
+                @Override
+                public FileVisitResult visitFile(@NonNull Path file, @NonNull BasicFileAttributes attrs) {
+                    Path relative = directory.relativize(file);
+                    Path parent = relative.getParent();
+
+                    String relativeDir = (parent == null)
+                            ? rootName
+                            : rootName + File.separator + parent;
+
+                    result
+                            .computeIfAbsent(relativeDir, k -> new ArrayList<>())
+                            .add(file.toAbsolutePath());
+
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            log.error("读取文件夹失败 {}", e.getMessage());
+        }
+
+        return result;
     }
 }

@@ -121,8 +121,9 @@ public abstract class WzImageProperty extends WzObject {
     public void setChildrenWzImage(WzImage wzImage) {
         if (this instanceof WzCanvasProperty canvas) {
             canvas.setWzImage(wzImage);
-            return;
-        } else if (children == null) return;
+        }
+
+        if (children == null) return;
 
         for (WzImageProperty property : children.get()) {
             property.setWzImage(wzImage);

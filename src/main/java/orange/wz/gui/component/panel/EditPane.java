@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 import static orange.wz.gui.Icons.*;
 
@@ -146,7 +147,7 @@ public final class EditPane extends JSplitPane {
         treeModel = (DefaultTreeModel) tree.getModel();
 
         tree.setDropMode(DropMode.ON);
-        tree.setTransferHandler(new FileDropTransferHandler(this, tree));
+        tree.setTransferHandler(new FileDropTransferHandler(this));
 
         // 节点自定义渲染器
         DefaultTreeCellRenderer renderer = new DefaultTreeCellRenderer() {
@@ -962,11 +963,9 @@ public final class EditPane extends JSplitPane {
 
     private static class FileDropTransferHandler extends TransferHandler {
         private final EditPane editPane;
-        private final JTree tree;
 
-        public FileDropTransferHandler(EditPane editPane, JTree tree) {
+        public FileDropTransferHandler(EditPane editPane) {
             this.editPane = editPane;
-            this.tree = tree;
         }
 
         @Override
@@ -1008,13 +1007,12 @@ public final class EditPane extends JSplitPane {
                     } else if (wzObject instanceof WzDirectory) {
                         List<File> imgFiles = new ArrayList<>();
                         List<File> xmlFiles = new ArrayList<>();
+                        List<File> dirs = new ArrayList<>();
                         for (File file : files) {
-                            if (file.isDirectory()) {
-                                log.warn("目录不能拖入到 WzDirectory");
-                                continue;
-                            }
                             String filename = file.getName();
-                            if (filename.endsWith(".img")) {
+                            if (file.isDirectory()) {
+                                dirs.add(file);
+                            } else if (filename.endsWith(".img")) {
                                 imgFiles.add(file);
                             } else if (filename.endsWith(".xml")) {
                                 xmlFiles.add(file);
@@ -1023,6 +1021,7 @@ public final class EditPane extends JSplitPane {
                             }
                         }
 
+                        editPane.attachWzDir(parent, dirs);
                         editPane.attachImg(parent, imgFiles);
                         editPane.attachXml(parent, xmlFiles);
                     } else {
@@ -1816,7 +1815,7 @@ public final class EditPane extends JSplitPane {
                         }
                     }
                     String filePathStr = xmlFile.getAbsolutePath();
-                    WzXmlFile wzXmlFile = new WzXmlFile(imgName, xmlFile.getAbsolutePath(), keyBoxName, iv, key);
+                    WzXmlFile wzXmlFile = new WzXmlFile(imgName, filePathStr, keyBoxName, iv, key);
                     if (!wzXmlFile.parse()) {
                         MainFrame.getInstance().setStatusText("无法解析 Xml, 停止导入。请查看相关日志: %s", filePathStr);
                         return null;
@@ -1874,6 +1873,107 @@ public final class EditPane extends JSplitPane {
                 try {
                     get();
                     MainFrame.getInstance().setStatusText("共导入 %d 个文件", count[0]);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }.execute();
+    }
+
+    private void attachWzDir(DefaultMutableTreeNode node, List<File> folders) {
+        final int[] count = {0};
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                WzDirectory wzDir = (WzDirectory) node.getUserObject();
+                WzFile wzFile = wzDir.getWzFile();
+                String keyBoxName = wzFile.getKeyBoxName();
+                byte[] iv = wzFile.getIv();
+                byte[] key = wzFile.getKey();
+                int total = folders.size();
+                OverwriteChoice choice = null;
+                MainFrame.getInstance().updateProgress(0, total);
+
+                for (File folder : folders) {
+                    for (Map.Entry<String, List<Path>> entry : FileTool.getAllFiles(folder.toPath()).entrySet()) {
+                        String[] relativize = entry.getKey().split(Pattern.quote(File.separator));
+                        WzDirectory curDir = wzDir;
+                        for (String r : relativize) {
+                            if (curDir.existDirectory(r)) {
+                                curDir = curDir.getDirectory(r);
+                            } else {
+                                WzDirectory newDir = new WzDirectory(r, curDir, wzFile);
+                                curDir.addChild(newDir);
+                                curDir = newDir;
+                            }
+                        }
+
+                        List<Path> files = entry.getValue();
+                        total += files.size();
+                        for (Path file : files) {
+                            String filename = file.getFileName().toString();
+                            boolean isXml = false;
+                            if (filename.endsWith(".xml")) {
+                                filename = filename.substring(0, filename.length() - 4);
+                                isXml = true;
+                            }
+                            if (curDir.existImage(filename)) {
+                                if (choice == null) choice = OverwriteDialog.show(EditPane.this, filename);
+
+                                if (choice == OverwriteChoice.SKIP_ALL || choice == OverwriteChoice.SKIP) {
+                                    if (choice == OverwriteChoice.SKIP) choice = null;
+
+                                    MainFrame.getInstance().updateProgress(++count[0], total);
+                                    continue;
+                                } else if (choice == OverwriteChoice.OVERWRITE_ALL || choice == OverwriteChoice.OVERWRITE) {
+                                    curDir.removeImageChild(filename);
+
+                                    if (choice == OverwriteChoice.OVERWRITE) choice = null;
+                                } else if (choice == OverwriteChoice.CANCEL) break;
+                            }
+
+                            String filePathStr = file.toString();
+                            WzImage wzImage;
+                            if (isXml) {
+                                WzXmlFile wzXmlFile = new WzXmlFile(filename, filePathStr, keyBoxName, iv, key);
+                                if (!wzXmlFile.parse()) {
+                                    MainFrame.getInstance().setStatusText("无法解析 Xml, 停止导入。请查看相关日志: %s", filePathStr);
+                                    return null;
+                                }
+                                wzImage = wzXmlFile.deepClone(curDir);
+                            } else {
+                                WzImageFile wzImageFile = new WzImageFile(filename, filePathStr, keyBoxName, iv, key);
+                                if (!wzImageFile.parse()) {
+                                    MainFrame.getInstance().setStatusText("无法解析 Img, 停止导入。请确认 Img 的密钥和导入对象的密钥是否一致: %s", filePathStr);
+                                    return null;
+                                }
+                                wzImage = wzImageFile.deepClone(curDir);
+                            }
+
+                            wzImage.setReader(new BinaryReader(wzFile.getWzMutableKey()));
+                            wzImage.setChildrenWzImage();
+                            wzImage.setTempChanged(true);
+                            curDir.addChild(wzImage);
+                            MainFrame.getInstance().updateProgress(++count[0], total);
+                        }
+                        if (choice == OverwriteChoice.CANCEL) break;
+                    }
+
+                    MainFrame.getInstance().updateProgress(++count[0], total);
+                    if (choice == OverwriteChoice.CANCEL) break;
+                }
+
+                node.removeAllChildren();
+                treeModel.reload();
+                handleTreeDoubleClick(node);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    MainFrame.getInstance().setStatusText("共导入 %d 个文件夹", count[0]);
                 } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }
