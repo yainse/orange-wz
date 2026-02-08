@@ -57,6 +57,7 @@ public final class WzDirectoryMenu extends JPopupMenu {
         importBtn.add(importImgBtn);
         importBtn.add(importXmlBtn);
         JMenuItem compareImgBtn = new JMenuItem("图片对比");
+        JMenuItem delNonCashEqpBtn = new JMenuItem("删除非时装");
 
         addDirBtnAction(addDirBtn);
         addImgBtnAction(addImgBtn);
@@ -67,6 +68,7 @@ public final class WzDirectoryMenu extends JPopupMenu {
         addImportImgBtnAction(importImgBtn);
         addImportXmlBtnAction(importXmlBtn);
         compareImgBtn.addActionListener(e -> editPane.compareImg());
+        delNonCashEqpBtn.addActionListener(e -> editPane.removeNonCashEqp());
 
         add(addBtn);
         add(copyBtn);
@@ -75,6 +77,7 @@ public final class WzDirectoryMenu extends JPopupMenu {
         add(imageBtn);
         add(importBtn);
         add(compareImgBtn);
+        add(delNonCashEqpBtn);
     }
 
     private void deleteBtnAction(JMenuItem item) {

@@ -2185,42 +2185,6 @@ public final class EditPane extends JSplitPane {
         insertNodeToTree(treeRoot, wzImageFile, true);
     }
 
-    public void removeAllWzChildWithName() {
-        TreePath[] selectedPaths = tree.getSelectionPaths();
-        if (selectedPaths == null) return;
-
-        NodeDialog dialog = new NodeDialog("批量删除节点", "节点名称", this);
-        NodeFormData data = dialog.getData();
-        if (data == null) return;
-
-        String name = data.getName();
-        int count = 0;
-        for (TreePath path : selectedPaths) {
-            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
-            WzObject wzObj = (WzObject) node.getUserObject();
-            int current = 0;
-            if (wzObj instanceof WzImage image) {
-                if (!image.parse()) {
-                    MainFrame.getInstance().setStatusText("由于 %s 解析失败，操作中断，已经删除了 %d 个节点", image.getName(), count);
-                    return;
-                }
-                current = image.removeAllChildWithName(name);
-            } else if (wzObj instanceof WzImageProperty prop) {
-                current = prop.removeAllChildWithName(name);
-            }
-
-            if (current > 0) {
-                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
-                int index = pNode.getIndex(node);
-                removeNodeFromTree(node);
-                insertNodeToTree(pNode, wzObj, true, index);
-                count += current;
-            }
-        }
-
-        MainFrame.getInstance().setStatusText("总共删除了 %d 个节点", count);
-    }
-
     // 汉化 -------------------------------------------------------------------------------------------------------------
     public void compareImg() {
         TreePath[] selectedPaths = tree.getSelectionPaths();
@@ -2278,5 +2242,92 @@ public final class EditPane extends JSplitPane {
                 return null;
             }
         }.execute();
+    }
+
+    public void removeAllWzChildWithName() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        NodeDialog dialog = new NodeDialog("批量删除节点", "节点名称", this);
+        NodeFormData data = dialog.getData();
+        if (data == null) return;
+
+        String name = data.getName();
+        int count = 0;
+        for (TreePath path : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+            WzObject wzObj = (WzObject) node.getUserObject();
+            int current = 0;
+            if (wzObj instanceof WzImage image) {
+                if (!image.parse()) {
+                    MainFrame.getInstance().setStatusText("由于 %s 解析失败，操作中断，已经删除了 %d 个节点", image.getName(), count);
+                    return;
+                }
+                current = image.removeAllChildWithName(name);
+            } else if (wzObj instanceof WzImageProperty prop) {
+                current = prop.removeAllChildWithName(name);
+            }
+
+            if (current > 0) {
+                DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
+                int index = pNode.getIndex(node);
+                removeNodeFromTree(node);
+                insertNodeToTree(pNode, wzObj, true, index);
+                count += current;
+            }
+        }
+
+        MainFrame.getInstance().setStatusText("总共删除了 %d 个节点", count);
+    }
+
+    public void removeNonCashEqp() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        int cashCount = 0;
+        int delCount = 0;
+        int notfoundCount = 0;
+        int size = 0;
+
+        for (TreePath path : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+            WzDirectory wzDir = (WzDirectory) node.getUserObject();
+            List<WzImage> images = wzDir.getImages();
+            size += images.size();
+            for (WzImage image : images) {
+                image.parse();
+                int cashValue = 0;
+                WzImageProperty info = image.getChild("info");
+
+                if (info != null) {
+                    WzImageProperty cash = info.getChild("cash");
+
+                    switch (cash) {
+                        case WzIntProperty c -> cashValue = c.getValue();
+                        case WzStringProperty c -> cashValue = Integer.parseInt(c.getValue());
+                        case null -> log.warn("{} 找不到 cash 节点视作非现金装备已被移除", info.getPath());
+                        default ->
+                                log.warn("{} cash 节点不是 Int 也不是 String 视作非现金装备已被移除", info.getPath());
+                    }
+                } else {
+                    log.warn("{} 找不到 info 节点视作非现金装备已被移除", image.getPath());
+                    notfoundCount++;
+                }
+
+                if (cashValue == 0) {
+                    wzDir.removeImageChild(image.getName());
+                    delCount++;
+                    continue;
+                }
+
+                cashCount++;
+            }
+
+            node.removeAllChildren();
+            tree.repaint();
+            handleTreeDoubleClick(node);
+        }
+
+        log.info("处理完毕: 共 {} 个装备, 现金装备 {} , 非现金装备 {}, 找不到 info 节点 {} 个", size, cashCount, delCount, notfoundCount);
     }
 }
