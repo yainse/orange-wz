@@ -51,4 +51,14 @@ public final class CanvasUtil {
         }
     }
 
+    public static void scaleImage(List<WzImageProperty> properties, double scale) {
+        for (WzImageProperty prop : properties) {
+            if (prop instanceof WzCanvasProperty canvas) {
+                canvas.scale(scale);
+                MainFrame.getInstance().setStatusText("已处理 %s", canvas.getPath());
+            } else if (prop.isListProperty()) {
+                scaleImage(prop.getChildren(), scale);
+            }
+        }
+    }
 }

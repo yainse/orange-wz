@@ -5,6 +5,8 @@ import orange.wz.provider.properties.WzPngFormat;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
 
 @Slf4j
 public final class ImgTool {
@@ -1259,5 +1261,63 @@ public final class ImgTool {
             case WzPngFormat.ARGB4444, ARGB8888, ARGB1555, DXT3, DXT5, BC7 -> BufferedImage.TYPE_INT_ARGB;
             case RGB565 -> BufferedImage.TYPE_USHORT_565_RGB;
         };
+    }
+
+    /**
+     * 放大图片，双三次 + 锐化
+     *
+     * @param original 原始图片
+     * @param scale    放大倍数
+     * @return 放大后的图片
+     */
+    public static BufferedImage scaleAndSharpen(BufferedImage original, double scale) {
+        int width = (int) (original.getWidth() * scale);
+        int height = (int) (original.getHeight() * scale);
+
+        // 创建放大后的空图像
+        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        Graphics2D g2d = scaledImage.createGraphics();
+
+        // 高质量缩放
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g2d.drawImage(original, 0, 0, width, height, null);
+        g2d.dispose();
+
+        // 锐化卷积核（增强细节）
+        float[] sharpenMatrix = {
+                0f, -0.25f, 0f,
+                -0.25f, 2f, -0.25f,
+                0f, -0.25f, 0f
+        };
+        Kernel kernel = new Kernel(3, 3, sharpenMatrix);
+        ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_NO_OP, null);
+
+        return op.filter(scaledImage, null);
+    }
+
+    /**
+     * 缩小图片，双线性，不锐化
+     *
+     * @param original 原始图片
+     * @param scale    缩小比例
+     * @return 缩小后的图片
+     */
+    public static BufferedImage scale(BufferedImage original, double scale) {
+        int width = (int) (original.getWidth() * scale);
+        int height = (int) (original.getHeight() * scale);
+
+        BufferedImage scaledImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = scaledImage.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g2d.drawImage(original, 0, 0, width, height, null);
+        g2d.dispose();
+        return scaledImage;
     }
 }

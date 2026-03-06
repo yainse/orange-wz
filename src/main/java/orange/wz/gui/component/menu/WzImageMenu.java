@@ -82,6 +82,7 @@ public final class WzImageMenu extends JPopupMenu {
         JMenuItem outlinkBtn = new JMenuItem("Outlink");
         JMenuItem sicBtn = new JMenuItem("排序并改名");
         JMenuItem delChild = new JMenuItem("批量删除");
+        JMenuItem scaleImage = new JMenuItem("图片缩放");
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -107,6 +108,7 @@ public final class WzImageMenu extends JPopupMenu {
         addOutlinkBtnAction(outlinkBtn);
         sicBtn.addActionListener(e -> editPane.sortAndReindexChildren());
         delChild.addActionListener(e -> editPane.removeAllWzChildWithName());
+        scaleImage.addActionListener(e -> editPane.scaleImage());
 
         add(addBtn);
         add(copyBtn);
@@ -119,6 +121,7 @@ public final class WzImageMenu extends JPopupMenu {
         add(outlinkBtn);
         add(sicBtn);
         add(delChild);
+        add(scaleImage);
     }
 
     private void deleteBtnAction(JMenuItem item) {

@@ -78,6 +78,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         JMenuItem sicBtn = new JMenuItem("排序并改名");
         JMenuItem delChild = new JMenuItem("批量删除");
         JMenuItem changeCavFmt = new JMenuItem("修改图片格式");
+        JMenuItem scaleImage = new JMenuItem("图片缩放");
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -102,6 +103,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         sicBtn.addActionListener(e -> editPane.sortAndReindexChildren());
         delChild.addActionListener(e -> editPane.removeAllWzChildWithName());
         changeCavFmt.addActionListener(e -> editPane.changeCavFmt());
+        scaleImage.addActionListener(e -> editPane.scaleImage());
 
         add(addBtn);
         add(copyBtn);
@@ -114,6 +116,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         add(sicBtn);
         add(delChild);
         add(changeCavFmt);
+        add(scaleImage);
     }
 
     private void deleteBtnAction(JMenuItem item) {

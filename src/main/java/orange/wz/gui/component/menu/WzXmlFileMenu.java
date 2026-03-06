@@ -79,6 +79,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         JMenuItem imageBtn = new JMenuItem("图片嗅探");
         JMenuItem sicBtn = new JMenuItem("排序并改名");
         JMenuItem delChild = new JMenuItem("批量删除");
+        JMenuItem scaleImage = new JMenuItem("图片缩放");
 
 
         addCanvasBtnItem(addCanvasBtn);
@@ -106,6 +107,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         addImageBtnAction(imageBtn);
         sicBtn.addActionListener(e -> editPane.sortAndReindexChildren());
         delChild.addActionListener(e -> editPane.removeAllWzChildWithName());
+        scaleImage.addActionListener(e -> editPane.scaleImage());
 
         add(addBtn);
         add(saveBtn);
@@ -120,6 +122,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         add(imageBtn);
         add(sicBtn);
         add(delChild);
+        add(scaleImage);
     }
 
     private void saveBtnAction(JMenuItem item) {

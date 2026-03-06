@@ -2254,6 +2254,33 @@ public final class EditPane extends JSplitPane {
         }.execute();
     }
 
+    // 批量缩放图片 ------------------------------------------------------------------------------------------------------
+    public void scaleImage() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        ScaleDialog dialog = new ScaleDialog(this);
+        DoubleFormData data = dialog.getData();
+        if (data == null) return;
+        double scale = data.getValue();
+        if (scale == 1.0) return;
+
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() {
+                List<WzImageProperty> properties = new ArrayList<>();
+                for (TreePath treePath : selectedPaths) {
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+                    WzImageProperty prop = (WzImageProperty) node.getUserObject();
+                    properties.add(prop);
+                }
+                CanvasUtil.scaleImage(properties, scale);
+                MainFrame.getInstance().setStatusText("修改完成");
+                return null;
+            }
+        }.execute();
+    }
+
     public void removeAllWzChildWithName() {
         TreePath[] selectedPaths = tree.getSelectionPaths();
         if (selectedPaths == null) return;

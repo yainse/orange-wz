@@ -3,10 +3,7 @@ package orange.wz.provider.properties;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;
-import orange.wz.provider.tools.BinaryReader;
-import orange.wz.provider.tools.BinaryWriter;
-import orange.wz.provider.tools.WzMutableKey;
-import orange.wz.provider.tools.WzType;
+import orange.wz.provider.tools.*;
 
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -74,6 +71,13 @@ public class WzCanvasProperty extends WzExtended {
     public void clearPngProperty() {
         png.setParent(null);
         png = null;
+    }
+
+    public void scale(double scale) {
+        BufferedImage originImage = getPngImage(false);
+        BufferedImage newImage = scale >= 1.0 ? ImgTool.scaleAndSharpen(originImage, scale) : ImgTool.scale(originImage, scale);
+
+        setPng(newImage, getFormat(), getScale());
     }
 
     // Override --------------------------------------------------------------------------------------------------------
