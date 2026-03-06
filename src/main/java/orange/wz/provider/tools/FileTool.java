@@ -71,8 +71,18 @@ public final class FileTool {
     }
 
     public static boolean saveFile(Path path, byte[] bytes) {
-        try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
-            fos.write(bytes);
+        try {
+            // 确保父目录存在
+            Path parentDir = path.getParent();
+            if (parentDir != null && !Files.exists(parentDir)) {
+                Files.createDirectories(parentDir);
+            }
+
+            // 写入文件
+            try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
+                fos.write(bytes);
+            }
+
             return true;
         } catch (IOException ex) {
             log.error("保存文件失败 {} : {}", path, ex.getMessage());
