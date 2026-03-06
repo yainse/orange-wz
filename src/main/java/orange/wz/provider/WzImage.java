@@ -123,7 +123,6 @@ public class WzImage extends WzObject {
             save(writer);
 
             byte[] context = writer.output();
-            clear();
             String filePath = path.toString();
             Path savePath = Path.of(filePath + ".bak");
             if (FileTool.saveFile(savePath, context)) {

@@ -71,7 +71,7 @@ public class WzImageFile extends WzImage implements WzSavableFile {
     @Override
     public boolean save() {
         boolean result = save(Path.of(filePath));
-        setReader(null);
+        clear();
         setNewFile(false);
         return result;
     }
