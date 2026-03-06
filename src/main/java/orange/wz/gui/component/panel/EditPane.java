@@ -67,7 +67,8 @@ public final class EditPane extends JSplitPane {
             Map.entry("string", new StringForm()),
             Map.entry("uolCanvas", new UolCanvasForm(this)),
             Map.entry("uolSound", new UolSoundForm()),
-            Map.entry("vector", new VectorForm())
+            Map.entry("vector", new VectorForm()),
+            Map.entry("lua", new LuaForm())
     );
 
     private final SearchDialog searchDialog = new SearchDialog("搜索", this);
@@ -123,6 +124,10 @@ public final class EditPane extends JSplitPane {
 
     public VectorForm getVectorForm() {
         return (VectorForm) nodeForms.get("vector");
+    }
+
+    public LuaForm getLuaForm() {
+        return (LuaForm) nodeForms.get("lua");
     }
 
     public EditPane(boolean oneTouchExpandable) {
@@ -188,6 +193,7 @@ public final class EditPane extends JSplitPane {
                         case STRING_PROPERTY -> StrIcon;
                         case UOL_PROPERTY -> UolIcon;
                         case VECTOR_PROPERTY -> VectorIcon;
+                        case LUA_PROPERTY -> LuaIcon;
                         case WZ_FILE, PNG_PROPERTY -> null;
                     };
                     setIcon(icon);
@@ -449,6 +455,10 @@ public final class EditPane extends JSplitPane {
             case WzVectorProperty obj -> {
                 getVectorForm().setData(obj.getName(), WzType.VECTOR_PROPERTY.name(), obj.getX(), obj.getY(), wzObject, this);
                 switchForm("vector");
+            }
+            case WzLuaProperty obj -> {
+                getLuaForm().setData(obj.getName(), WzType.LUA_PROPERTY.name(), obj.getString(), wzObject, this);
+                switchForm("lua");
             }
             default -> {
                 MainFrame.getInstance().setStatusText("%s 未知的节点类型 %s", wzObject.getName(), wzObject.getClass().getSimpleName());

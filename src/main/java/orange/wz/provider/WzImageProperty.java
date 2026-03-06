@@ -28,8 +28,8 @@ public abstract class WzImageProperty extends WzObject {
         this.children = switch (type) {
             case FOLDER, WZ_FILE, DIRECTORY, IMAGE -> throw new RuntimeException("不可使用的属性: " + type);
             case CANVAS_PROPERTY, CONVEX_PROPERTY, LIST_PROPERTY, RAW_DATA_PROPERTY -> new WzChildrenProperty();
-            case DOUBLE_PROPERTY, FLOAT_PROPERTY, INT_PROPERTY, LONG_PROPERTY, NULL_PROPERTY, PNG_PROPERTY,
-                 SHORT_PROPERTY, SOUND_PROPERTY, STRING_PROPERTY, UOL_PROPERTY, VECTOR_PROPERTY -> null;
+            case DOUBLE_PROPERTY, FLOAT_PROPERTY, INT_PROPERTY, LONG_PROPERTY, LUA_PROPERTY, NULL_PROPERTY,
+                 PNG_PROPERTY, SHORT_PROPERTY, SOUND_PROPERTY, STRING_PROPERTY, UOL_PROPERTY, VECTOR_PROPERTY -> null;
         };
     }
 
@@ -294,6 +294,19 @@ public abstract class WzImageProperty extends WzObject {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static WzLuaProperty parseLuaProperty(BinaryReader reader, WzObject parent) {
+        WzImage wzImage = null;
+        if (parent instanceof WzImage img) {
+            wzImage = img;
+        } else if (parent instanceof WzImageProperty prop) {
+            wzImage = prop.getWzImage();
+        }
+        int length = reader.readCompressedInt();
+        byte[] rawEncBytes = reader.getBytes(length);
+
+        return new WzLuaProperty("Script", rawEncBytes, parent, wzImage);
     }
 
     public abstract void writeValue(BinaryWriter writer);

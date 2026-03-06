@@ -27,6 +27,7 @@ public final class Icons {
     public static final FlatSVGIcon ShortIcon = getSVG("SHORT.svg", 16, 16);
     public static final FlatSVGIcon WavIcon = getSVG("WAV.svg", 16, 16);
     public static final FlatSVGIcon UolIcon = getSVG("UOL.svg", 16, 16);
+    public static final FlatSVGIcon LuaIcon = getSVG("LUA.svg", 16, 16);
     public static final FlatSVGIcon ConvexIcon = getSVG("CONVEX.svg", 16, 16);
     public static final FlatSVGIcon VectorIcon = getSVG("VECTOR.svg", 16, 16);
     public static final FlatSVGIcon AiOutlineSaveIcon = getSVG("AiOutlineSave.svg", 16, 16);

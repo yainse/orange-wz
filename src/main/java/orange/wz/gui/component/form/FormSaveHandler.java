@@ -29,6 +29,7 @@ public class FormSaveHandler {
             case STRING_PROPERTY -> changeString((WzStringProperty) wzObject, editPane);
             case UOL_PROPERTY -> changeUol((WzUOLProperty) wzObject, editPane);
             case VECTOR_PROPERTY -> changeVector((WzVectorProperty) wzObject, editPane);
+            case LUA_PROPERTY -> changeLua((WzLuaProperty) wzObject, editPane);
         };
 
         editPane.getTree().updateUI();
@@ -260,6 +261,20 @@ public class FormSaveHandler {
         }
         property.setX(data.getX());
         property.setY(data.getY());
+
+        property.getWzImage().setChanged(true);
+        property.setTempChanged(true);
+        return true;
+    }
+
+    private static boolean changeLua(WzLuaProperty property, EditPane editPane) {
+        StringFormData data = editPane.getLuaForm().getData();
+
+        if (!property.getName().equals(data.getName()) && !property.setName(data.getName())) {
+            JMessageUtil.error("存在同名节点，保存失败");
+            return false;
+        }
+        property.setString(data.getValue());
 
         property.getWzImage().setChanged(true);
         property.setTempChanged(true);

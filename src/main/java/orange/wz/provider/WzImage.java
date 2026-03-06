@@ -3,7 +3,6 @@ package orange.wz.provider;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import orange.wz.manager.ServerManager;
 import orange.wz.provider.properties.WzCanvasProperty;
 import orange.wz.provider.properties.WzExtended;
 import orange.wz.provider.properties.WzListProperty;
@@ -28,6 +27,7 @@ public class WzImage extends WzObject {
     private int tempFileStart;
     private int tempFileEnd;
 
+    public static final int withLuaFlag = 0x1;
     public static final int withOffsetFlag = 0x1B;
     public static final int withoutOffsetFlag = 0x73;
 
@@ -66,7 +66,16 @@ public class WzImage extends WzObject {
         if (!realParse) return true;
         reader.setPosition(offset);
         byte b = reader.getByte();
-        if (b != withoutOffsetFlag) {
+        if (b == withLuaFlag) {
+            if (!name.endsWith(".lua")) {
+                status = WzFileStatus.ERROR_SPECIAL_ENCODE;
+                return false;
+            }
+
+            children.add(WzImageProperty.parseLuaProperty(reader, this));
+            status = WzFileStatus.PARSE_SUCCESS;
+            return true;
+        } else if (b != withoutOffsetFlag) {
             status = WzFileStatus.ERROR_SPECIAL_ENCODE;
             return false;
         }
