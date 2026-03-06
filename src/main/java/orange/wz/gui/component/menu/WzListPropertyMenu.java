@@ -77,7 +77,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         JMenuItem outlinkBtn = new JMenuItem("Outlink");
         JMenuItem sicBtn = new JMenuItem("排序并改名");
         JMenuItem delChild = new JMenuItem("批量删除");
-        JMenuItem changeCavFmt = new JMenuItem("修改图片格式");
+        JMenuItem changeCavFmt = new JMenuItem("图片格式");
         JMenuItem scaleImage = new JMenuItem("图片缩放");
 
         addCanvasBtnItem(addCanvasBtn);
