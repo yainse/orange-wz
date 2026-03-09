@@ -106,6 +106,11 @@ public final class ChineseUtil {
                 // 完全相同释放内存
                 fromCav.clearImage();
                 toCav.clearImage();
+            } else if (fromCav.getHeight() == 1 && fromCav.getWidth() == 1) {
+                // 来源方没有图片
+                fromCav.clearImage();
+                toCav.clearImage();
+                log.info("{} 来源图片为 1x1 空白图片，已跳过", fromCav.getPath());
             } else {
                 imageCompareDialog.addCompare(toCav, fromCav);
                 log.debug("{} 差异率 {}", to.getPath(), diff);
