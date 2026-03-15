@@ -691,10 +691,10 @@ public final class EditPane extends JSplitPane {
                 TreePath[] selectedPaths = tree.getSelectionPaths();
                 if (selectedPaths == null) return;
 
-                if (selectedPaths.length != 1) {
-                    JMessageUtil.error("不要多选");
-                    return;
-                }
+                // if (selectedPaths.length != 1) {
+                //     JMessageUtil.error("不要多选");
+                //     return;
+                // }
 
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
                 WzObject wzObject = (WzObject) node.getUserObject();
@@ -2099,67 +2099,68 @@ public final class EditPane extends JSplitPane {
 
     public void doPaste() {
         TreePath[] selectedPaths = tree.getSelectionPaths();
-        if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
-
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) selectedPaths[0].getLastPathComponent();
-        WzObject to = (WzObject) node.getUserObject();
+        if (selectedPaths == null) return;
 
         Clipboard clipboard = MainFrame.getInstance().getClipboard();
         clipboard.lock();
+        OverwriteChoice choice = null;
+        for (TreePath treePath : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            WzObject to = (WzObject) node.getUserObject();
 
-        if (clipboard.isEmpty()) {
-            JMessageUtil.error("剪贴板是空的");
-            clipboard.unlock();
-            return;
-        }
-
-        if (clipboard.canPaste(to)) {
-            List<WzObject> cpItems = clipboard.getItems();
-            cpItems.forEach(cpItem -> cpItem.setParent(to)); // 复制的时候顶级对象没有 parent
-
-            // 这里的对象类型和canPaste保持一致
-            if (to instanceof WzDirectory wzDirectory) {
-                setPasteWzFileAndReader(cpItems, wzDirectory.getWzFile());
-            } else if (to instanceof WzImage wzImg) {
-                setPasteWzImage(cpItems, wzImg);
-            } else if (to instanceof WzImageProperty wzProp && wzProp.isListProperty()) {
-                setPasteWzImage(cpItems, wzProp.getWzImage());
+            if (clipboard.isEmpty()) {
+                JMessageUtil.error("剪贴板是空的");
+                clipboard.unlock();
+                return;
             }
 
-            OverwriteChoice choice = null;
-            for (WzObject item : cpItems) {
-                item.setTempChanged(true);
-                int index = 0;
-                if (isWzObjExistChild(to, item)) { // 发现重名
-                    if (choice == OverwriteChoice.SKIP_ALL) continue;
-                    else if (choice == OverwriteChoice.OVERWRITE_ALL) {
-                        removeWzObjChild(to, item);
-                        DefaultMutableTreeNode childNode = findTreeNodeByName(node, item.getName());
-                        index = node.getIndex(childNode);
-                        removeNodeFromTree(childNode);
-                    } else {
-                        choice = OverwriteDialog.show(this, item.getName());
-                        switch (choice) {
-                            case OVERWRITE, OVERWRITE_ALL -> {
-                                removeWzObjChild(to, item);
-                                DefaultMutableTreeNode childNode = findTreeNodeByName(node, item.getName());
-                                index = node.getIndex(childNode);
-                                removeNodeFromTree(childNode);
-                            }
-                            case SKIP, SKIP_ALL, CANCEL -> {
-                                continue;
+            if (clipboard.canPaste(to)) {
+                List<WzObject> cpItems = clipboard.getItems();
+                cpItems.forEach(cpItem -> cpItem.setParent(to)); // 复制的时候顶级对象没有 parent
+
+                // 这里的对象类型和canPaste保持一致
+                if (to instanceof WzDirectory wzDirectory) {
+                    setPasteWzFileAndReader(cpItems, wzDirectory.getWzFile());
+                } else if (to instanceof WzImage wzImg) {
+                    setPasteWzImage(cpItems, wzImg);
+                } else if (to instanceof WzImageProperty wzProp && wzProp.isListProperty()) {
+                    setPasteWzImage(cpItems, wzProp.getWzImage());
+                }
+
+                for (WzObject item : cpItems) {
+                    item.setTempChanged(true);
+                    int index = 0;
+                    if (isWzObjExistChild(to, item)) { // 发现重名
+                        if (choice == OverwriteChoice.SKIP_ALL) continue;
+                        else if (choice == OverwriteChoice.OVERWRITE_ALL) {
+                            removeWzObjChild(to, item);
+                            DefaultMutableTreeNode childNode = findTreeNodeByName(node, item.getName());
+                            index = node.getIndex(childNode);
+                            removeNodeFromTree(childNode);
+                        } else {
+                            choice = OverwriteDialog.show(this, item.getName());
+                            switch (choice) {
+                                case OVERWRITE, OVERWRITE_ALL -> {
+                                    removeWzObjChild(to, item);
+                                    DefaultMutableTreeNode childNode = findTreeNodeByName(node, item.getName());
+                                    index = node.getIndex(childNode);
+                                    removeNodeFromTree(childNode);
+                                }
+                                case SKIP, SKIP_ALL, CANCEL -> {
+                                    continue;
+                                }
                             }
                         }
                     }
-                }
-                addWzObjChild(to, item); // 已经设置 changed 了
+                    addWzObjChild(to, item); // 已经设置 changed 了
 
-                insertNodeToTree(node, item, true, index);
+                    insertNodeToTree(node, item, true, index);
+                }
+            } else {
+                JMessageUtil.error("复制的东西不能粘贴到 " + to.getClass().getSimpleName());
+                clipboard.unlock();
+                return;
             }
-        } else {
-            JMessageUtil.error("复制的东西不能粘贴到 " + to.getClass().getSimpleName());
-            clipboard.unlock();
-            return;
         }
 
         resetValueForm();
