@@ -617,6 +617,41 @@ public final class EditPane extends JSplitPane {
         // 获取 JTree 的输入映射和动作映射
         InputMap im = tree.getInputMap(JComponent.WHEN_FOCUSED);
         ActionMap am = tree.getActionMap();
+
+        // 空格键 单击事件
+        im.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "space");
+        am.put("space", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                TreePath[] selectedPaths = tree.getSelectionPaths();
+                if (TreePathUtil.isNullOrMultiple(selectedPaths)) return;
+
+                TreePath path = selectedPaths[0];
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                if (!node.isLeaf()) {
+                    if (tree.isExpanded(path)) {
+                        collapseAll(path);
+                    } else {
+                        tree.expandPath(path);
+                        Rectangle bounds = tree.getPathBounds(path);
+                        if (bounds == null) return;
+
+                        Rectangle visible = tree.getVisibleRect();
+
+                        // 计算当前可视区域的中线
+                        int middleY = visible.y + visible.height / 2;
+
+                        // 如果 node 在“下半区域”
+                        if (bounds.y > middleY) {
+                            tree.scrollRectToVisible(
+                                    new Rectangle(0, bounds.y, 1, visible.height)
+                            );
+                        }
+                    }
+                }
+            }
+        });
+
         // Delete 删除
         im.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "delete");
         am.put("delete", new AbstractAction() {
