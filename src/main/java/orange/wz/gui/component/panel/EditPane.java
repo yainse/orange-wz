@@ -2263,6 +2263,28 @@ public final class EditPane extends JSplitPane {
         }.execute();
     }
 
+    // 批量修改节点名称/值 -------------------------------------------------------------------------------------------------
+    public void changeNodeName() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        ChangeNodeNameDialog dialog = new ChangeNodeNameDialog(this);
+        ChangeNodeNameFormData data = dialog.getData();
+        if (data == null) return;
+        String oldName = data.getOldName();
+        String newName = data.getNewName();
+        int degree = data.getDegree();
+        if (degree < 1) return;
+
+        for (TreePath treePath : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            WzObject root = (WzObject) node.getUserObject();
+            WzNodeUtil.changeNodeName(root, oldName, newName, degree);
+        }
+        MainFrame.getInstance().setStatusText("修改完成");
+    }
+
+
     // 批量缩放图片 ------------------------------------------------------------------------------------------------------
     public void scaleImage() {
         TreePath[] selectedPaths = tree.getSelectionPaths();

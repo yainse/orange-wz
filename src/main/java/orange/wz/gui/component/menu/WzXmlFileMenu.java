@@ -81,6 +81,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         JMenuItem delChild = new JMenuItem("批量删除");
         JMenuItem changeCavFmt = new JMenuItem("图片格式");
         JMenuItem scaleImage = new JMenuItem("图片缩放");
+        JMenuItem changeNodeName = new JMenuItem("修改节点名");
 
 
         addCanvasBtnItem(addCanvasBtn);
@@ -110,6 +111,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         delChild.addActionListener(e -> editPane.removeAllWzChildWithName());
         changeCavFmt.addActionListener(e -> editPane.changeCavFmt());
         scaleImage.addActionListener(e -> editPane.scaleImage());
+        changeNodeName.addActionListener(e -> editPane.changeNodeName());
 
         add(addBtn);
         add(saveBtn);
@@ -126,6 +128,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         add(delChild);
         add(changeCavFmt);
         add(scaleImage);
+        add(changeNodeName);
     }
 
     private void saveBtnAction(JMenuItem item) {

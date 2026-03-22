@@ -1,0 +1,36 @@
+package orange.wz.gui.utils;
+
+import orange.wz.provider.WzImage;
+import orange.wz.provider.WzImageProperty;
+import orange.wz.provider.WzObject;
+
+public final class WzNodeUtil {
+    public static void changeNodeName(WzObject wzObject, String oldName, String newName, int degree) {
+        if (degree < 1) {
+            return;
+        } else if (degree == 1) {
+            WzImageProperty prop = null;
+            if (wzObject instanceof WzImage pImage) {
+                pImage.parse();
+                prop = pImage.getChild(oldName);
+            } else if (wzObject instanceof WzImageProperty pProp && pProp.isListProperty()) {
+                prop = pProp.getChild(oldName);
+            }
+
+            if (prop != null) {
+                prop.setName(newName);
+                prop.setTempChanged(true);
+                prop.getWzImage().setChanged(true);
+            }
+        } else {
+            degree--;
+            if (wzObject instanceof WzImage image) {
+                int finalDegree = degree;
+                image.getChildren().forEach(child -> changeNodeName(child, oldName, newName, finalDegree));
+            } else if (wzObject instanceof WzImageProperty pProp && pProp.isListProperty()) {
+                int finalDegree = degree;
+                pProp.getChildren().forEach(child -> changeNodeName(child, oldName, newName, finalDegree));
+            }
+        }
+    }
+}
