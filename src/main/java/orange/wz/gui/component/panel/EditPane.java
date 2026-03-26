@@ -2149,6 +2149,12 @@ public final class EditPane extends JSplitPane {
                 return;
             }
 
+            if (to instanceof WzImage image){
+                image.parse();
+            } else if (to instanceof WzDirectory wzDir && wzDir.isWzFile()) {
+                wzDir.getWzFile().parse();
+            }
+
             if (clipboard.canPaste(to)) {
                 List<WzObject> cpItems = clipboard.getItems();
                 cpItems.forEach(cpItem -> cpItem.setParent(to)); // 复制的时候顶级对象没有 parent
@@ -2189,7 +2195,9 @@ public final class EditPane extends JSplitPane {
                     }
                     addWzObjChild(to, item); // 已经设置 changed 了
 
-                    insertNodeToTree(node, item, true, index);
+                    if (!node.isLeaf()) {
+                        insertNodeToTree(node, item, false, index);
+                    }
                 }
             } else {
                 JMessageUtil.error("复制的东西不能粘贴到 " + to.getClass().getSimpleName());
