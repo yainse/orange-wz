@@ -156,7 +156,7 @@ public class WzImage extends WzObject {
         }
     }
 
-    public boolean exportToXml(Path path, int indent, MediaExportType mediaExportType) {
+    public boolean exportToXml(Path path, int indent, MediaExportType mediaExportType, boolean linux) {
         boolean parseStatus = status == WzFileStatus.PARSE_SUCCESS;
         if (!parseStatus) {
             if (!parse()) {
@@ -164,7 +164,8 @@ public class WzImage extends WzObject {
                 return false;
             }
         }
-        if (!XmlExport.export(this, path, indent, mediaExportType)) {
+        XmlExport export = new XmlExport(this, indent, linux, mediaExportType);
+        if (!export.export(path)) {
             return false;
         }
         if (!parseStatus) unparse();

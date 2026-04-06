@@ -17,11 +17,214 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.File;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 public final class XmlExport {
+    private final WzImage image;
+    private final int indent;
+    private final boolean linux;
+    private final MediaExportType meType;
+
+    private BufferedWriter writer;
+    private Path mediaFolder;
+    private int curIndent = 0;
+
+    public XmlExport(WzImage image, int indent, boolean linux, MediaExportType meType) {
+        this.image = image;
+        this.indent = indent;
+        this.linux = linux;
+        this.meType = meType;
+    }
+
+    private void writeLineSeparator() throws IOException {
+        if (indent <= 0) return;
+        writer.write(linux ? "\n" : "\r\n");
+    }
+
+    private void writeIndent() throws IOException {
+        if (indent <= 0 || curIndent <= 0) return;
+        int spaces = indent * curIndent;
+        char[] buffer = new char[spaces];
+        Arrays.fill(buffer, ' ');
+        writer.write(buffer);
+    }
+
+    public boolean export(Path filePath) {
+        String imgName = image instanceof WzXmlFile xml ? xml.getImgName() : image.getName();
+        mediaFolder = filePath.getParent().resolve("media").resolve(imgName);
+        if (meType == MediaExportType.FILE) {
+            try {
+                FileTool.deleteDirectory(mediaFolder);
+                FileTool.createDirectory(mediaFolder);
+            } catch (Exception e) {
+                log.error("media 目录被占用: {} {}", mediaFolder, e.getMessage());
+                return false;
+            }
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(filePath.toString())) {
+
+            writer = new BufferedWriter(
+                    new OutputStreamWriter(fos, StandardCharsets.UTF_8),
+                    64 * 1024 // 64KB buffer（可以调大）
+            );
+
+            writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            writeLineSeparator();
+
+
+            writer.write("<imgdir name=\"" + imgName + "\" indent=\"" + indent + "\" media=\"" + meType.name() + "\">");
+            writeLineSeparator();
+            curIndent++;
+            image.getChildren().forEach(prop -> writeProp(prop, ""));
+            curIndent--;
+            writer.write("</imgdir>");
+            writer.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return true;
+    }
+
+    private void writeProp(WzImageProperty property, String mediaFilename) {
+        try {
+            writeIndent();
+            switch (property) {
+                case WzCanvasProperty prop -> {
+                    String etName = escapeText(prop.getName());
+                    String width = String.valueOf(prop.getWidth());
+                    String height = String.valueOf(prop.getHeight());
+                    String format = String.valueOf(prop.getFormat().getValue());
+                    String scale = String.valueOf(prop.getScale());
+                    String context = "<canvas name=\"" + etName + "\" width=\"" + width + "\" height=\"" + height + "\" format=\"" + format + "\" scale=\"" + scale + "\"";
+
+                    if (meType == MediaExportType.BASE64)
+                        context = context + " basedata=\"" + Base64Tool.coverBytesToBase64(prop.getImageBytes(false)) + "\"";
+                    else if (meType == MediaExportType.FILE) {
+                        String filename = FileTool.safeFileName(mediaFilename + prop.getName() + ".png");
+                        Path p = mediaFolder.resolve(filename);
+                        FileTool.saveFile(p, prop.getImageBytes(false));
+                    }
+
+                    List<WzImageProperty> children = prop.getChildren();
+                    if (children.isEmpty()) {
+                        context += "/>";
+                        writer.write(context);
+                        writeLineSeparator();
+                    } else {
+                        context += ">";
+                        writer.write(context);
+                        writeLineSeparator();
+                        curIndent++;
+                        children.forEach(subProperty -> writeProp(subProperty, mediaFilename + prop.getName() + "."));
+                        curIndent--;
+                        writeIndent();
+                        writer.write("</canvas>");
+                        writeLineSeparator();
+                    }
+                }
+                case WzConvexProperty prop -> {
+                    writer.write("<extended name=\"" + escapeText(prop.getName()) + "\"");
+                    List<WzImageProperty> children = prop.getChildren();
+                    if (children.isEmpty()) {
+                        writer.write("/>");
+                        writeLineSeparator();
+                    } else {
+                        writer.write(">");
+                        writeLineSeparator();
+                        curIndent++;
+                        children.forEach(subProperty -> writeProp(subProperty, mediaFilename + prop.getName() + "."));
+                        curIndent--;
+                        writeIndent();
+                        writer.write("</extended>");
+                        writeLineSeparator();
+                    }
+                }
+                case WzDoubleProperty prop -> {
+                    writer.write("<double name=\"" + escapeText(prop.getName()) + "\" value=\"" + prop.getValue() + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzFloatProperty prop -> {
+                    writer.write("<float name=\"" + escapeText(prop.getName()) + "\" value=\"" + prop.getValue() + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzIntProperty prop -> {
+                    writer.write("<int name=\"" + escapeText(prop.getName()) + "\" value=\"" + prop.getValue() + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzListProperty prop -> {
+                    writer.write("<imgdir name=\"" + escapeText(prop.getName()) + "\"");
+                    List<WzImageProperty> children = prop.getChildren();
+                    if (children.isEmpty()) {
+                        writer.write("/>");
+                        writeLineSeparator();
+                    } else {
+                        writer.write(">");
+                        writeLineSeparator();
+                        curIndent++;
+                        children.forEach(subProperty -> writeProp(subProperty, mediaFilename + prop.getName() + "."));
+                        curIndent--;
+                        writeIndent();
+                        writer.write("</imgdir>");
+                        writeLineSeparator();
+                    }
+                }
+                case WzLongProperty prop -> {
+                    writer.write("<long name=\"" + escapeText(prop.getName()) + "\" value=\"" + prop.getValue() + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzNullProperty prop -> {
+                    writer.write("<null name=\"" + escapeText(prop.getName()) + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzShortProperty prop -> {
+                    writer.write("<short name=\"" + escapeText(prop.getName()) + "\" value=\"" + prop.getValue() + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzSoundProperty prop -> {
+                    String context = "<sound name=\"" + escapeText(prop.getName()) + "\"";
+
+                    if (meType == MediaExportType.BASE64) {
+                        String basehead = Base64Tool.coverBytesToBase64(prop.getHeader());
+                        String basedata = Base64Tool.coverBytesToBase64(prop.getSoundBytes(false));
+                        context = context + " length=\"" + prop.getLenMs() + "\" basehead=\"" + basehead + "\" basedata=\"" + basedata + "\"/>";
+                    } else if (meType == MediaExportType.FILE) {
+                        String basehead = Base64Tool.coverBytesToBase64(prop.getHeader());
+                        context = context + " length=\"" + prop.getLenMs() + "\" basehead=\"" + basehead + "\"/>";
+
+                        String filename = FileTool.safeFileName(mediaFilename + prop.getName() + ".mp3");
+                        Path p = mediaFolder.resolve(filename);
+                        FileTool.saveFile(p, prop.getSoundBytes(false));
+                    }
+
+                    writer.write(context);
+                    writeLineSeparator();
+                }
+                case WzStringProperty prop -> {
+                    writer.write("<string name=\"" + escapeText(prop.getName()) + "\" value=\"" + escapeText(prop.getValue()) + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzUOLProperty prop -> {
+                    writer.write("<uol name=\"" + escapeText(prop.getName()) + "\" value=\"" + escapeText(prop.getValue()) + "\"/>");
+                    writeLineSeparator();
+                }
+                case WzVectorProperty prop -> {
+                    writer.write("<vector name=\"" + escapeText(prop.getName()) + "\" x=\"" + prop.getX() + "\" y=\"" + prop.getY() + "\"/>");
+                    writeLineSeparator();
+                }
+                case null, default -> log.error("未知的节点类型: {}", property.getName());
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static String escapeText(String input) {
         if (input == null || input.isEmpty()) {
             return input;
@@ -53,160 +256,4 @@ public final class XmlExport {
         return sb.toString();
     }
 
-    public static boolean export(WzImage image, Path filePath, int indent, MediaExportType meType) {
-        try {
-            // 创建 Document
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.newDocument();
-
-            String imgName = image.getName();
-            if (image instanceof WzXmlFile xml) {
-                imgName = xml.getImgName();
-            }
-
-            // 插入数据
-            Element root = doc.createElement("imgdir");
-            doc.setXmlStandalone(true);
-            root.setAttribute("name", imgName);
-            if (indent > 0) {
-                root.setAttribute("indent", String.valueOf(indent));
-            }
-            root.setAttribute("media", meType.name());
-            Path mediaFolder = filePath.getParent().resolve("media").resolve(imgName);
-            if (meType == MediaExportType.FILE) {
-                try {
-                    FileTool.deleteDirectory(mediaFolder);
-                    FileTool.createDirectory(mediaFolder);
-                } catch (Exception e) {
-                    log.error("media 目录被占用: {} {}", mediaFolder, e.getMessage());
-                    return false;
-                }
-            }
-
-            doc.appendChild(root);
-            image.getChildren().forEach(prop -> writeProperties(doc, root, prop, meType, "", mediaFolder));
-
-
-            // 写入文件
-            TransformerFactory tf = TransformerFactory.newInstance();
-            Transformer transformer = tf.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, indent > 0 ? "yes" : "no");
-            transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-            transformer.setOutputProperty(OutputKeys.STANDALONE, "yes");
-            if (indent > 0) {
-                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", String.valueOf(indent));
-            }
-
-            DOMSource source = new DOMSource(doc);
-            StreamResult result = new StreamResult(new File(filePath.toString()));
-            transformer.transform(source, result);
-        } catch (ParserConfigurationException | TransformerException e) {
-            throw new RuntimeException(e);
-        }
-
-        return true;
-    }
-
-    private static void writeProperties(Document doc, Element parent, WzImageProperty property, MediaExportType meType, String mediaFileName, Path mediaPath) {
-        Element e;
-        switch (property) {
-            case WzCanvasProperty prop -> {
-                e = doc.createElement("canvas");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("width", String.valueOf(prop.getWidth()));
-                e.setAttribute("height", String.valueOf(prop.getHeight()));
-                e.setAttribute("format", String.valueOf(prop.getFormat().getValue()));
-                e.setAttribute("scale", String.valueOf(prop.getScale()));
-
-                if (meType == MediaExportType.BASE64)
-                    e.setAttribute("basedata", Base64Tool.coverBytesToBase64(prop.getImageBytes(false)));
-                else if (meType == MediaExportType.FILE) {
-                    String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".png");
-                    Path p = mediaPath.resolve(filename);
-                    FileTool.saveFile(p, prop.getImageBytes(false));
-                }
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
-            }
-            case WzConvexProperty prop -> {
-                e = doc.createElement("extended");
-                e.setAttribute("name", escapeText(prop.getName()));
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
-            }
-            case WzDoubleProperty prop -> {
-                e = doc.createElement("double");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", String.valueOf(prop.getValue()));
-            }
-            case WzFloatProperty prop -> {
-                e = doc.createElement("float");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", String.valueOf(prop.getValue()));
-            }
-            case WzIntProperty prop -> {
-                e = doc.createElement("int");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", String.valueOf(prop.getValue()));
-            }
-            case WzListProperty prop -> {
-                e = doc.createElement("imgdir");
-                e.setAttribute("name", escapeText(prop.getName()));
-                prop.getChildren().forEach(subProperty -> writeProperties(doc, e, subProperty, meType, mediaFileName + prop.getName() + ".", mediaPath));
-            }
-            case WzLongProperty prop -> {
-                e = doc.createElement("long");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", String.valueOf(prop.getValue()));
-            }
-            case WzNullProperty prop -> {
-                e = doc.createElement("null");
-                e.setAttribute("name", escapeText(prop.getName()));
-            }
-            case WzShortProperty prop -> {
-                e = doc.createElement("short");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", String.valueOf(prop.getValue()));
-            }
-            case WzSoundProperty prop -> {
-                e = doc.createElement("sound");
-                e.setAttribute("name", escapeText(prop.getName()));
-
-                if (meType == MediaExportType.BASE64) {
-                    e.setAttribute("length", String.valueOf(prop.getLenMs()));
-                    e.setAttribute("basehead", Base64Tool.coverBytesToBase64(prop.getHeader()));
-                    e.setAttribute("basedata", Base64Tool.coverBytesToBase64(prop.getSoundBytes(false)));
-                } else if (meType == MediaExportType.FILE) {
-                    e.setAttribute("length", String.valueOf(prop.getLenMs()));
-                    e.setAttribute("basehead", Base64Tool.coverBytesToBase64(prop.getHeader()));
-
-                    String filename = FileTool.safeFileName(mediaFileName + prop.getName() + ".mp3");
-                    Path p = mediaPath.resolve(filename);
-                    FileTool.saveFile(p, prop.getSoundBytes(false));
-                }
-            }
-            case WzStringProperty prop -> {
-                e = doc.createElement("string");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", escapeText(prop.getValue()));
-            }
-            case WzUOLProperty prop -> {
-                e = doc.createElement("uol");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("value", escapeText(prop.getValue()));
-            }
-            case WzVectorProperty prop -> {
-                e = doc.createElement("vector");
-                e.setAttribute("name", escapeText(prop.getName()));
-                e.setAttribute("x", String.valueOf(prop.getX()));
-                e.setAttribute("y", String.valueOf(prop.getY()));
-            }
-            case null, default -> e = null;
-        }
-
-        if (e != null) {
-            parent.appendChild(e);
-        } else {
-            log.error("未知的节点类型: {}", property.getName());
-        }
-    }
 }

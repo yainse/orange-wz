@@ -3,6 +3,7 @@ package orange.wz.provider;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import orange.wz.gui.component.dialog.ExportXmlDialog;
 import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.MediaExportType;
 import orange.wz.provider.tools.WzFileStatus;
@@ -10,6 +11,7 @@ import orange.wz.provider.tools.XmlImport;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.prefs.Preferences;
 
 @Getter
 @Setter
@@ -50,6 +52,7 @@ public class WzXmlFile extends WzImage implements WzSavableFile {
 
     @Override
     public boolean save() {
-        return exportToXml(Path.of(filePath), indent, meType);
+        String lineSeparator = Preferences.userNodeForPackage(ExportXmlDialog.class).get("lineSeparator", "windows");
+        return exportToXml(Path.of(filePath), indent, meType, lineSeparator.equals("linux"));
     }
 }
