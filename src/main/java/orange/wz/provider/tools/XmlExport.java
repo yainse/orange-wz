@@ -98,11 +98,9 @@ public final class XmlExport {
             switch (property) {
                 case WzCanvasProperty prop -> {
                     String etName = escapeText(prop.getName());
-                    String width = String.valueOf(prop.getWidth());
-                    String height = String.valueOf(prop.getHeight());
                     String format = String.valueOf(prop.getFormat().getValue());
                     String scale = String.valueOf(prop.getScale());
-                    String context = "<canvas name=\"" + etName + "\" width=\"" + width + "\" height=\"" + height + "\" format=\"" + format + "\" scale=\"" + scale + "\"";
+                    String context = "<canvas name=\"" + etName + "\" format=\"" + format + "\" scale=\"" + scale + "\"";
 
                     if (meType == MediaExportType.BASE64)
                         context = context + " basedata=\"" + Base64Tool.coverBytesToBase64(prop.getImageBytes(false)) + "\"";
