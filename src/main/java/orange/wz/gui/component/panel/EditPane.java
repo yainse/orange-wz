@@ -483,7 +483,7 @@ public final class EditPane extends JSplitPane {
         if (npcAction != null) {
             text = text + " (" + npcAction + ")";
         }
-        MainFrame.getInstance().setStatusText(text);
+        MainFrame.getInstance().setStatusTextDirect(text);
     }
 
     /**

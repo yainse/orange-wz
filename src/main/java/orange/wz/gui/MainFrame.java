@@ -319,6 +319,12 @@ public class MainFrame extends JFrame {
         }
     }
 
+    public void setStatusTextDirect(String format) {
+        if (statusLabel != null) {
+            statusLabel.setText(format);
+        }
+    }
+
     private void gc() {
         System.gc();
         setStatusText("已向系统建议回收内存");
