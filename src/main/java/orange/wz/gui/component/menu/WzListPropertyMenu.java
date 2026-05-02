@@ -80,6 +80,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         JMenuItem changeCavFmt = new JMenuItem("图片格式");
         JMenuItem scaleImage = new JMenuItem("图片缩放");
         JMenuItem changeNodeName = new JMenuItem("修改节点名");
+        JMenuItem changeIntNodeValue = new JMenuItem("修改int值");
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -106,6 +107,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         changeCavFmt.addActionListener(e -> editPane.changeCavFmt());
         scaleImage.addActionListener(e -> editPane.scaleImage());
         changeNodeName.addActionListener(e -> editPane.changeNodeName());
+        changeIntNodeValue.addActionListener(e -> editPane.changeIntNodeValue());
 
         add(addBtn);
         add(copyBtn);
@@ -120,6 +122,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         add(changeCavFmt);
         add(scaleImage);
         add(changeNodeName);
+        add(changeIntNodeValue);
     }
 
     private void deleteBtnAction(JMenuItem item) {

@@ -2327,6 +2327,24 @@ public final class EditPane extends JSplitPane {
         MainFrame.getInstance().setStatusText("修改完成");
     }
 
+    public void changeIntNodeValue() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        IntDialog dialog = new IntDialog("修改Int节点值", this);
+        IntFormData data = dialog.getData();
+        if (data == null) return;
+        String nodeName = data.getName();
+        int value = data.getValue();
+
+        for (TreePath treePath : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            WzObject root = (WzObject) node.getUserObject();
+            WzNodeUtil.changeIntNodeValue(root, nodeName, value);
+        }
+        MainFrame.getInstance().setStatusText("修改完成");
+    }
+
 
     // 批量缩放图片 ------------------------------------------------------------------------------------------------------
     public void scaleImage() {
@@ -2348,7 +2366,7 @@ public final class EditPane extends JSplitPane {
                 for (TreePath treePath : selectedPaths) {
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
                     WzObject prop = (WzObject) node.getUserObject();
-                    if (prop instanceof WzImageProperty listProp){
+                    if (prop instanceof WzImageProperty listProp) {
                         properties.add(listProp);
                     } else if (prop instanceof WzImage img) {
                         img.parse();
