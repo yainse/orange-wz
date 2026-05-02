@@ -84,6 +84,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         JMenuItem changeNodeName = new JMenuItem("修改节点名");
         JMenuItem changeIntNodeValue = new JMenuItem("修改int值");
         JMenuItem rawToIcon = new JMenuItem("RawToIcon");
+        JMenuItem changeOriginValue = new JMenuItem("修改图片origin");
 
 
         addCanvasBtnItem(addCanvasBtn);
@@ -116,6 +117,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         changeNodeName.addActionListener(e -> editPane.changeNodeName());
         changeIntNodeValue.addActionListener(e -> editPane.changeIntNodeValue());
         rawToIcon.addActionListener(e -> editPane.rawToIcon());
+        changeOriginValue.addActionListener(e -> editPane.changeOriginValue());
 
         add(addBtn);
         add(saveBtn);
@@ -135,6 +137,7 @@ public final class WzXmlFileMenu extends JPopupMenu {
         add(changeNodeName);
         add(changeIntNodeValue);
         add(rawToIcon);
+        add(changeOriginValue);
     }
 
     private void saveBtnAction(JMenuItem item) {

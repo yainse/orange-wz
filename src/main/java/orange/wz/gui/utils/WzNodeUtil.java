@@ -6,6 +6,7 @@ import orange.wz.provider.WzObject;
 import orange.wz.provider.properties.WzCanvasProperty;
 import orange.wz.provider.properties.WzIntProperty;
 import orange.wz.provider.properties.WzListProperty;
+import orange.wz.provider.properties.WzVectorProperty;
 
 public final class WzNodeUtil {
     public static void changeNodeName(WzObject wzObject, String oldName, String newName, int degree) {
@@ -62,6 +63,25 @@ public final class WzNodeUtil {
             image.getChildren().forEach(WzNodeUtil::rawToIcon);
         } else if (wzObject instanceof WzImageProperty pProp && pProp.isListProperty()) {
             pProp.getChildren().forEach(WzNodeUtil::rawToIcon);
+        }
+    }
+
+    public static void changeOriginValue(WzObject wzObject, String nodeName, int x, int y) {
+        if (wzObject instanceof WzCanvasProperty canvas) {
+            if (nodeName.isEmpty() || canvas.getName().equals(nodeName)){
+                WzVectorProperty origin = (WzVectorProperty) canvas.getChild("origin");
+                if (origin == null) return;
+                origin.setX(x);
+                origin.setY(y);
+                origin.setTempChanged(true);
+                canvas.setTempChanged(true);
+                canvas.getWzImage().setChanged(true);
+            }
+        } else if (wzObject instanceof WzImage image) {
+            image.parse();
+            image.getChildren().forEach(child -> changeOriginValue(child, nodeName, x, y));
+        } else if (wzObject instanceof WzImageProperty pProp && pProp.isListProperty()) {
+            pProp.getChildren().forEach(child -> changeOriginValue(child, nodeName, x, y));
         }
     }
 }

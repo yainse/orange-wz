@@ -2357,6 +2357,25 @@ public final class EditPane extends JSplitPane {
         MainFrame.getInstance().setStatusText("修改完成");
     }
 
+    public void changeOriginValue() {
+        TreePath[] selectedPaths = tree.getSelectionPaths();
+        if (selectedPaths == null) return;
+
+        VectorDialog dialog = new VectorDialog("origin (图片节点的名称，留空匹配所有图片)", this);
+        VectorFormData data = dialog.getData();
+        if (data == null) return;
+        String nodeName = data.getName();
+        int x = data.getX();
+        int y = data.getY();
+
+        for (TreePath treePath : selectedPaths) {
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
+            WzObject root = (WzObject) node.getUserObject();
+            WzNodeUtil.changeOriginValue(root, nodeName, x, y);
+        }
+        MainFrame.getInstance().setStatusText("修改完成");
+    }
+
 
     // 批量缩放图片 ------------------------------------------------------------------------------------------------------
     public void scaleImage() {

@@ -82,6 +82,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         JMenuItem changeNodeName = new JMenuItem("修改节点名");
         JMenuItem changeIntNodeValue = new JMenuItem("修改int值");
         JMenuItem rawToIcon = new JMenuItem("RawToIcon");
+        JMenuItem changeOriginValue = new JMenuItem("修改图片origin");
 
         addCanvasBtnItem(addCanvasBtn);
         addConvexBtnItem(addConvexBtn);
@@ -110,6 +111,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         changeNodeName.addActionListener(e -> editPane.changeNodeName());
         changeIntNodeValue.addActionListener(e -> editPane.changeIntNodeValue());
         rawToIcon.addActionListener(e -> editPane.rawToIcon());
+        changeOriginValue.addActionListener(e -> editPane.changeOriginValue());
 
         add(addBtn);
         add(copyBtn);
@@ -126,6 +128,7 @@ public final class WzListPropertyMenu extends JPopupMenu {
         add(changeNodeName);
         add(changeIntNodeValue);
         add(rawToIcon);
+        add(changeOriginValue);
     }
 
     private void deleteBtnAction(JMenuItem item) {
