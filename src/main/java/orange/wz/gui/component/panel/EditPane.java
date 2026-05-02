@@ -2347,8 +2347,13 @@ public final class EditPane extends JSplitPane {
                 List<WzImageProperty> properties = new ArrayList<>();
                 for (TreePath treePath : selectedPaths) {
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath.getLastPathComponent();
-                    WzImageProperty prop = (WzImageProperty) node.getUserObject();
-                    properties.add(prop);
+                    WzObject prop = (WzObject) node.getUserObject();
+                    if (prop instanceof WzImageProperty listProp){
+                        properties.add(listProp);
+                    } else if (prop instanceof WzImage img) {
+                        img.parse();
+                        properties.addAll(img.getChildren());
+                    }
                 }
                 CanvasUtil.scaleImage(properties, name, scale);
                 MainFrame.getInstance().setStatusText("修改完成");
