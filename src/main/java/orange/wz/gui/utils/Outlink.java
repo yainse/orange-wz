@@ -108,7 +108,7 @@ public final class Outlink {
         for (WzObject wzObject : objects) {
             if (wzObject instanceof WzCanvasProperty property) {
                 List<String> path = getOutlinkString(property);
-                if (path == null || path.isEmpty()) return;
+                if (path == null || path.isEmpty()) continue;
 
                 String image = null;
                 for (String pathStr : path) {
@@ -117,7 +117,7 @@ public final class Outlink {
                         break;
                     }
                 }
-                if (image == null) return;
+                if (image == null) continue;
 
                 List<Data> dataList = collector.computeIfAbsent(image, k -> new ArrayList<>());
                 dataList.add(new Data(property, path));
