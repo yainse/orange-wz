@@ -1,6 +1,108 @@
 ## OrzRepacker
 
-### 打包流程
+OrzRepacker / OrangeWz 是一个 MapleStory WZ/IMG 资源查看、导入导出与重打包工具。原项目以桌面 GUI 为主；本仓库现在额外提供一个 Linux/headless CLI 入口，方便服务器环境、脚本和 AI Agent 使用。
+
+## Linux / Headless CLI
+
+CLI 入口不会启动 Spring Boot 或 Swing，适合在 Linux 服务器上直接处理 `.img`、`.wz`、`.xml` 文件。
+
+### 构建
+
+需要 Java 21。
+
+```bash
+cd /home/edam/orange-wz
+./mvnw -DskipTests package
+```
+
+生成的 CLI jar：
+
+```text
+target/OrzRepacker-cli.jar
+```
+
+### 常用命令
+
+查看帮助：
+
+```bash
+java -jar target/OrzRepacker-cli.jar --help
+```
+
+查看内置 WZ key alias：
+
+```bash
+java -jar target/OrzRepacker-cli.jar keys
+```
+
+解析 `.img` 或 `.wz`，输出适合脚本/AI 读取的 JSON：
+
+```bash
+java -jar target/OrzRepacker-cli.jar info /path/to/Skill.img --key gms
+```
+
+导出 `.img` 为 XML：
+
+```bash
+java -jar target/OrzRepacker-cli.jar img-to-xml /path/to/Skill.img \
+  -o /tmp/Skill.img.xml \
+  --key gms \
+  --indent 2 \
+  --media none
+```
+
+从 XML 重新生成 `.img`：
+
+```bash
+java -jar target/OrzRepacker-cli.jar xml-to-img /tmp/Skill.img.xml \
+  -o /tmp/Skill.modified.img \
+  --key gms
+```
+
+导出完整 `.wz` 包中的 image XML：
+
+```bash
+java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/String.wz \
+  -o /tmp/String.wz.xml.d \
+  --key gms \
+  --indent 2 \
+  --media none
+```
+
+### 支持的 key alias
+
+- `gms`，默认
+- `cms`
+- `latest`
+- `empty`
+
+### AI 使用建议
+
+推荐流程：
+
+1. 先用 `info` 检查 `.img` / `.wz` 是否能解析；
+2. 用 `img-to-xml` 或 `wz-to-xml` 导出 XML；
+3. 让 AI 分析或修改 XML；
+4. 用 `xml-to-img` 生成新的 `.img` 文件；
+5. 手动备份并替换客户端资源文件；
+6. 用 Git 提交资源变更。
+
+处理文字类资源，例如 `String/Skill.img`，建议使用：
+
+```bash
+--media none
+```
+
+这样导出的 XML 更小、更适合 AI 阅读和 diff。
+
+更多说明见：
+
+- [CLI 使用文档](docs/cli.md)
+- [AI 使用指南](docs/ai-usage.md)
+- [Linux CLI / AI 文档实施计划](docs/cli-linux-ai-plan.md)
+
+## 打包流程
+
 1. 更新 application.properties 里新版本的 key
 2. 提交所有记录
 3. 执行 UpdateVersionNumber 更新版本号

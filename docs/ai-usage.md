@@ -1,0 +1,142 @@
+# AI Usage Guide for OrangeWz CLI
+
+This document is for AI agents using OrangeWz in Linux/headless environments.
+
+## Goal
+
+Use a stable CLI entry point without launching Spring Boot or Swing:
+
+```bash
+java -jar target/OrzRepacker-cli.jar ...
+```
+
+Main class:
+
+```text
+orange.wz.cli.OrangeWzCli
+```
+
+## Build
+
+```bash
+cd /home/edam/orange-wz
+./mvnw -DskipTests compile
+./mvnw -DskipTests package
+```
+
+Expected CLI artifact:
+
+```text
+target/OrzRepacker-cli.jar
+```
+
+## Recommended AI Workflow
+
+1. Inspect available key aliases:
+
+```bash
+java -jar target/OrzRepacker-cli.jar keys
+```
+
+2. Check parseability before exporting:
+
+```bash
+java -jar target/OrzRepacker-cli.jar info /data/Skill.img --key gms
+```
+
+3. Export XML with deterministic Linux line endings:
+
+```bash
+java -jar target/OrzRepacker-cli.jar img-to-xml /data/Skill.img \
+  -o /work/Skill.img.xml \
+  --key gms \
+  --indent 2 \
+  --media none
+```
+
+4. Edit XML using text tools or an AI model.
+
+5. Repack to a new `.img` path first:
+
+```bash
+java -jar target/OrzRepacker-cli.jar xml-to-img /work/Skill.img.xml \
+  -o /work/Skill.modified.img \
+  --key gms
+```
+
+6. Re-run `info` on the new image if needed:
+
+```bash
+java -jar target/OrzRepacker-cli.jar info /work/Skill.modified.img --key gms
+```
+
+## BeiDou Skill.img Example
+
+Assume the target file is copied to `/work/BeiDou/Skill.img`.
+
+```bash
+cd /home/edam/orange-wz
+./mvnw -DskipTests package
+
+java -jar target/OrzRepacker-cli.jar info /work/BeiDou/Skill.img --key gms
+
+java -jar target/OrzRepacker-cli.jar img-to-xml /work/BeiDou/Skill.img \
+  -o /work/BeiDou/Skill.img.xml \
+  --key gms \
+  --indent 2 \
+  --media none
+
+# AI/text edit /work/BeiDou/Skill.img.xml here.
+
+java -jar target/OrzRepacker-cli.jar xml-to-img /work/BeiDou/Skill.img.xml \
+  -o /work/BeiDou/Skill.modified.img \
+  --key gms
+```
+
+Use `--force` only when overwriting a disposable output file:
+
+```bash
+java -jar target/OrzRepacker-cli.jar xml-to-img /work/BeiDou/Skill.img.xml \
+  -o /work/BeiDou/Skill.modified.img \
+  --key gms \
+  --force
+```
+
+## Full WZ Export
+
+```bash
+java -jar target/OrzRepacker-cli.jar wz-to-xml /data/Skill.wz \
+  -o /work/Skill.wz.xml.d \
+  --key gms \
+  --indent 2 \
+  --media none
+```
+
+The output layout follows the internal WZ directory/image names. Each image is exported as `<image>.xml`.
+
+## Machine-Readable Info Output
+
+`info` prints JSON suitable for parsing by scripts/agents. Example shape:
+
+```json
+{
+  "path": "/work/BeiDou/Skill.img",
+  "name": "Skill.img",
+  "type": "img",
+  "keyAlias": "gms",
+  "parsed": true,
+  "status": "PARSE_SUCCESS",
+  "children": 10,
+  "propertyCount": 1234
+}
+```
+
+For `.wz`, the JSON includes directory/image counts.
+
+## Safety Rules for Agents
+
+- Never edit original game files in place.
+- Copy source files to a work directory first.
+- Use `xml-to-img` without `--force` by default.
+- Use `--media none` for smaller, text-focused XML diffs unless media payloads are required.
+- If parsing fails, try the key aliases in this order: `gms`, `cms`, `latest`, `empty`.
