@@ -164,7 +164,9 @@
    - 只删除直接子节点，且只匹配无符号、无前导零的数字名（如 `1`、`2`、`10`）；不递归删除嵌套子节点的奇偶名。
    - 保留原按名称递归删除能力；未改动 RawToIcon / origin / int / scale 菜单链路。
 3. 节点转移视图 bug 修复。
-   - 只从 guji 最新提交 `3a85e21` 精确提取修复点，不整文件覆盖 `EditPane`。
+   - 已在 Phase 7.4 完成：`转移视图` 改为摘下并重新挂载同一棵 `DefaultMutableTreeNode` 子树，保留已展开子节点与 `WzObject` 引用。
+   - 转移视图不再走 `removeNodeFromTree`，避免源侧移除时清空 userObject / 子节点导致目标侧只剩空节点或丢失已展开结构。
+   - 范围仅限 `WzFileMenu` / `WzImageFileMenu` / `WzXmlFileMenu` 的转移视图链路；复制粘贴 XML 互通改动较大，后置单独评估。
 4. 图片/动画预览缓存。
    - 进入 Phase 8 后单独做；必须复用 provider `WzMemoryReclaimer`，GUI cache 不得放入 provider。
 5. 视频/FFmpeg。
