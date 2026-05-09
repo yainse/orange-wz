@@ -68,6 +68,12 @@ public class WzCanvasProperty extends WzExtended {
         png.clearImage();
     }
 
+    public void discardHeavyGraphicCaches() {
+        if (png == null) return;
+        png.clearImage();
+        png.discardReloadableCompressedCopy();
+    }
+
     public void clearPngProperty() {
         png.setParent(null);
         png = null;

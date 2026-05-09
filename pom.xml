@@ -136,6 +136,24 @@
                         </exclude>
                     </excludes>
                 </configuration>
+                <!--
+                    Keep the Spring Boot GUI artifact under a separate classifier so the
+                    headless CLI shade jar remains a plain runnable jar at
+                    target/OrzRepacker-cli.jar.
+                -->
+                <executions>
+                    <execution>
+                        <id>repackage-gui-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>boot</classifier>
+                            <mainClass>orange.wz.OrangeWzApplication</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

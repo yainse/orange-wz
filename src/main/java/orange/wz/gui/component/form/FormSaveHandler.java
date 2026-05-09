@@ -13,7 +13,7 @@ public class FormSaveHandler {
         if (wzObject == null) return;
 
         boolean res = switch (wzObject.getType()) {
-            case FOLDER, WZ_FILE, PNG_PROPERTY, RAW_DATA_PROPERTY -> false;
+            case FOLDER, WZ_FILE, PNG_PROPERTY, RAW_DATA_PROPERTY, VIDEO_PROPERTY -> false;
             case DIRECTORY -> changeDir((WzDirectory) wzObject, editPane);
             case IMAGE -> changeImg((WzImage) wzObject, editPane);
             case CANVAS_PROPERTY -> changeCanvas((WzCanvasProperty) wzObject, editPane);

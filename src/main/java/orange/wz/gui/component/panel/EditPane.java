@@ -193,6 +193,7 @@ public final class EditPane extends JSplitPane {
                         case STRING_PROPERTY -> StrIcon;
                         case UOL_PROPERTY -> UolIcon;
                         case VECTOR_PROPERTY -> VectorIcon;
+                        case VIDEO_PROPERTY -> PngIcon;
                         case LUA_PROPERTY -> LuaIcon;
                         case WZ_FILE, PNG_PROPERTY -> null;
                     };

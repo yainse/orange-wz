@@ -29,16 +29,22 @@ public final class XmlExport {
     private final int indent;
     private final boolean linux;
     private final MediaExportType meType;
+    private final XmlExportVersion version;
 
     private BufferedWriter writer;
     private Path mediaFolder;
     private int curIndent = 0;
 
     public XmlExport(WzImage image, int indent, boolean linux, MediaExportType meType) {
+        this(image, indent, linux, meType, XmlExportVersion.DEFAULT);
+    }
+
+    public XmlExport(WzImage image, int indent, boolean linux, MediaExportType meType, XmlExportVersion version) {
         this.image = image;
         this.indent = indent;
         this.linux = linux;
         this.meType = meType;
+        this.version = version == null ? XmlExportVersion.DEFAULT : version;
     }
 
     private void writeLineSeparator() throws IOException {
@@ -78,7 +84,11 @@ public final class XmlExport {
             writeLineSeparator();
 
 
-            writer.write("<imgdir name=\"" + imgName + "\" indent=\"" + indent + "\" media=\"" + meType.name() + "\">");
+            if (version == XmlExportVersion.V125) {
+                writer.write("<imgdir name=\"" + imgName + "\">");
+            } else {
+                writer.write("<imgdir name=\"" + imgName + "\" indent=\"" + indent + "\" media=\"" + meType.name() + "\">");
+            }
             writeLineSeparator();
             curIndent++;
             image.getChildren().forEach(prop -> writeProp(prop, ""));
@@ -98,9 +108,16 @@ public final class XmlExport {
             switch (property) {
                 case WzCanvasProperty prop -> {
                     String etName = escapeText(prop.getName());
-                    String format = String.valueOf(prop.getFormat().getValue());
-                    String scale = String.valueOf(prop.getScale());
-                    String context = "<canvas name=\"" + etName + "\" format=\"" + format + "\" scale=\"" + scale + "\"";
+                    String width = String.valueOf(prop.getWidth());
+                    String height = String.valueOf(prop.getHeight());
+                    String context;
+                    if (version == XmlExportVersion.V125) {
+                        context = "<canvas name=\"" + etName + "\" width=\"" + width + "\" height=\"" + height + "\"";
+                    } else {
+                        String format = String.valueOf(prop.getFormat().getValue());
+                        String scale = String.valueOf(prop.getScale());
+                        context = "<canvas name=\"" + etName + "\" width=\"" + width + "\" height=\"" + height + "\" format=\"" + format + "\" scale=\"" + scale + "\"";
+                    }
 
                     if (meType == MediaExportType.BASE64)
                         context = context + " basedata=\"" + Base64Tool.coverBytesToBase64(prop.getImageBytes(false)) + "\"";
@@ -160,7 +177,11 @@ public final class XmlExport {
                     writer.write("<imgdir name=\"" + escapeText(prop.getName()) + "\"");
                     List<WzImageProperty> children = prop.getChildren();
                     if (children.isEmpty()) {
-                        writer.write("/>");
+                        if (version == XmlExportVersion.V125) {
+                            writer.write("></imgdir>");
+                        } else {
+                            writer.write("/>");
+                        }
                         writeLineSeparator();
                     } else {
                         writer.write(">");
@@ -201,6 +222,11 @@ public final class XmlExport {
                         FileTool.saveFile(p, prop.getSoundBytes(false));
                     }
 
+                    writer.write(context);
+                    writeLineSeparator();
+                }
+                case WzVideoProperty prop -> {
+                    String context = "<video name=\"" + escapeText(prop.getName()) + "\" type=\"" + Byte.toUnsignedInt(prop.getVideoType()) + "\" length=\"" + prop.getLength() + "\"/>";
                     writer.write(context);
                     writeLineSeparator();
                 }

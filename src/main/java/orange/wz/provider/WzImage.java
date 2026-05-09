@@ -185,6 +185,10 @@ public class WzImage extends WzObject {
     }
 
     public boolean exportToXml(Path path, int indent, MediaExportType mediaExportType, boolean linux) {
+        return exportToXml(path, indent, mediaExportType, linux, XmlExportVersion.DEFAULT);
+    }
+
+    public boolean exportToXml(Path path, int indent, MediaExportType mediaExportType, boolean linux, XmlExportVersion version) {
         boolean parseStatus = status == WzFileStatus.PARSE_SUCCESS;
         if (!parseStatus) {
             if (!parse()) {
@@ -192,7 +196,7 @@ public class WzImage extends WzObject {
                 return false;
             }
         }
-        XmlExport export = new XmlExport(this, indent, linux, mediaExportType);
+        XmlExport export = new XmlExport(this, indent, linux, mediaExportType, version);
         if (!export.export(path)) {
             return false;
         }

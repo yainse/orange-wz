@@ -11,6 +11,9 @@ import orange.wz.provider.WzImageProperty;
 import orange.wz.provider.WzObject;
 import orange.wz.provider.WzXmlFile;
 import orange.wz.provider.tools.MediaExportType;
+import orange.wz.provider.tools.MemoryMode;
+import orange.wz.provider.tools.WzMemoryReclaimer;
+import orange.wz.provider.tools.XmlExportVersion;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -76,7 +79,7 @@ public final class OrangeWzCli {
                 switch (arg) {
                     case "--help", "-h" -> help = true;
                     case "--force" -> force = true;
-                    case "--key", "-k", "--output", "-o", "--indent", "--media" -> {
+                    case "--key", "-k", "--output", "-o", "--indent", "--media", "--xml-version", "--memory-mode" -> {
                         if (i + 1 >= args.length) {
                             throw new IllegalArgumentException("Missing value for option: " + arg);
                         }
@@ -98,6 +101,8 @@ public final class OrangeWzCli {
                 case "--output", "-o" -> "output";
                 case "--indent" -> "indent";
                 case "--media" -> "media";
+                case "--xml-version" -> "xml-version";
+                case "--memory-mode" -> "memory-mode";
                 default -> option.replaceFirst("^-+", "");
             };
         }
@@ -154,7 +159,7 @@ public final class OrangeWzCli {
             if (!img.parse()) {
                 return fail("Failed to parse img: " + input + " status=" + img.getStatus());
             }
-            if (!img.exportToXml(output, indent(), mediaExportType(), true)) {
+            if (!img.exportToXml(output, indent(), mediaExportType(), true, xmlExportVersion())) {
                 return fail("Failed to export xml: " + output);
             }
             System.out.println("Exported " + input + " -> " + output);
@@ -192,14 +197,21 @@ public final class OrangeWzCli {
                 return fail("Failed to parse wz: " + input + " status=" + wz.getStatus());
             }
             List<Pair<WzImage, Path>> images = new ArrayList<>();
+            MemoryMode memoryMode = memoryMode();
             wz.exportFileToXml(output, images);
             int exported = 0;
             for (Pair<WzImage, Path> pair : images) {
                 ensureParent(pair.right);
-                if (!pair.left.exportToXml(pair.right, indent(), mediaExportType(), true)) {
+                if (!pair.left.exportToXml(pair.right, indent(), mediaExportType(), true, xmlExportVersion())) {
                     return fail("Failed to export image xml: " + pair.right);
                 }
                 exported++;
+                if (memoryMode == MemoryMode.LOW) {
+                    WzMemoryReclaimer.discardDecodedImages(pair.left);
+                    if (pair.left.getReader() != null && !pair.left.isChanged()) {
+                        pair.left.unparse();
+                    }
+                }
             }
             System.out.println("Exported " + exported + " image xml file(s) from " + input + " into " + output);
             return 0;
@@ -261,6 +273,14 @@ public final class OrangeWzCli {
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Invalid --media value: " + value.toLowerCase(Locale.ROOT) + " (expected none, base64, file)");
             }
+        }
+
+        private XmlExportVersion xmlExportVersion() {
+            return XmlExportVersion.fromCliValue(options.getOrDefault("xml-version", "default"));
+        }
+
+        private MemoryMode memoryMode() {
+            return MemoryMode.fromCliValue(options.getOrDefault("memory-mode", "normal"));
         }
 
         private String detectType(Path input) {
@@ -334,9 +354,9 @@ public final class OrangeWzCli {
                   java -jar target/OrzRepacker-cli.jar --help
                   java -jar target/OrzRepacker-cli.jar keys
                   java -jar target/OrzRepacker-cli.jar info <path.img|path.wz> --key gms
-                  java -jar target/OrzRepacker-cli.jar img-to-xml <input.img> -o <output.xml> --key gms --indent 2 --media none
+                  java -jar target/OrzRepacker-cli.jar img-to-xml <input.img> -o <output.xml> --key gms --indent 2 --media none [--xml-version default]
                   java -jar target/OrzRepacker-cli.jar xml-to-img <input.xml> -o <output.img> --key gms [--force]
-                  java -jar target/OrzRepacker-cli.jar wz-to-xml <input.wz> -o <output-dir> --key gms --indent 2 --media none
+                  java -jar target/OrzRepacker-cli.jar wz-to-xml <input.wz> -o <output-dir> --key gms --indent 2 --media none [--xml-version default] [--memory-mode normal]
 
                 Commands:
                   keys        Print supported key aliases as JSON.
@@ -350,6 +370,8 @@ public final class OrangeWzCli {
                   -o          Output file or directory.
                   --indent    XML indentation, 0..8. Default: 2.
                   --media     XML media mode: none, base64, file. Default: none.
+                  --xml-version XML export version: default, v125. Default: default.
+                  --memory-mode Memory mode for wz-to-xml: normal, low. Default: normal.
                   --force     Allow xml-to-img output overwrite.
                 """);
     }

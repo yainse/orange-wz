@@ -48,7 +48,8 @@ java -jar target/OrzRepacker-cli.jar img-to-xml /path/to/Skill.img \
   -o /tmp/Skill.img.xml \
   --key gms \
   --indent 2 \
-  --media none
+  --media none \
+  --xml-version default
 ```
 
 从 XML 重新生成 `.img`：
@@ -66,8 +67,21 @@ java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/String.wz \
   -o /tmp/String.wz.xml.d \
   --key gms \
   --indent 2 \
-  --media none
+  --media none \
+  --xml-version default \
+  --memory-mode low
 ```
+
+### CLI/headless 增强能力
+
+- XML 导出支持 `--xml-version default|v125`：
+  - `default` 保持当前 OrangeWz CLI XML 格式；
+  - `v125` 输出更接近 v125 兼容 XML 结构，便于与旧工具或脚本对接。
+- `.wz` 批量导出支持 `--memory-mode normal|low`：
+  - `normal` 为默认模式；
+  - `low` 会在每个 image XML 成功导出后释放可重载的图像缓存，适合服务器或大 WZ 包导出。
+- 已支持 `Canvas#Video` 的 headless 解析占位，XML 只导出视频元数据，例如类型和长度；目前不做播放、FFmpeg 导出，也不支持从 `<video>` XML 反向还原二进制视频。
+- `target/OrzRepacker-cli.jar` 现在是可直接 `java -jar` 运行的普通 CLI shaded jar；可用 `scripts/check-cli-jar.py` 检查打包结果，避免被 Spring Boot 重新打包成 `BOOT-INF` 布局。
 
 ### 支持的 key alias
 

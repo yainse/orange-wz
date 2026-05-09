@@ -186,7 +186,23 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     public void clearImage() {
+        BufferedImage oldImage = image;
         image = null;
+        if (oldImage != null) {
+            oldImage.flush();
+        }
+    }
+
+    /**
+     * 丢弃可从原始 WZ reader + offset 重新读取的压缩副本。
+     *
+     * <p>XML 导入、新建、克隆或编辑后的图片可能只有内存中的 image/compressedBytes，
+     * 不能在这些场景释放 compressedBytes。</p>
+     */
+    public void discardReloadableCompressedCopy() {
+        if (compressedBytes != null && offset != 0 && wzImage != null && wzImage.getReader() != null) {
+            compressedBytes = null;
+        }
     }
 
     // Getter ----------------------------------------------------------------------------------------------------------
