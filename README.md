@@ -80,6 +80,7 @@ java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/String.wz \
 - `.wz` 批量导出支持 `--memory-mode normal|low`：
   - `normal` 为默认模式；
   - `low` 会在每个 image XML 成功导出后释放可重载的图像缓存，适合服务器或大 WZ 包导出。
+- 新增 `imgs-to-xml` 受控并发导出：仅并发多个独立 `.img` 文件，`--threads` 默认 `1`、最大 `4`；`.wz`/`.ms` 内部导出仍保持顺序，避免共享 reader 风险。
 - 已支持 `Canvas#Video` 的 headless 解析占位，XML 只导出视频元数据，例如类型和长度；目前不做播放、FFmpeg 导出，也不支持从 `<video>` XML 反向还原二进制视频。
 - 新增 `.ms` read-only 支持：`info` 可识别 `.ms`，`ms-to-xml` 可将内部可读 `.img` entry 导出为 XML；输出路径会校验并拒绝绝对路径或 `..` 穿越，当前不支持 `.ms` 保存/重打包。
 - `target/OrzRepacker-cli.jar` 现在是可直接 `java -jar` 运行的普通 CLI shaded jar；可用 `scripts/check-cli-jar.py` 检查打包结果，避免被 Spring Boot 重新打包成 `BOOT-INF` 布局。

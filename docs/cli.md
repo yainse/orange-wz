@@ -96,6 +96,27 @@ XML export versions:
 
 Canvas#Video nodes are parsed in headless mode and exported as metadata-only `<video .../>` entries in this phase; video playback/media extraction is reserved for later GUI/video work. The metadata-only `<video>` tag is not importable by `xml-to-img` yet, so XML files containing these entries should be treated as inspection/export artifacts rather than full round-trip sources.
 
+### imgs-to-xml
+
+Export multiple independent `.img` files to XML files with bounded concurrency. This command is intentionally limited to separate `.img` files; `wz-to-xml` and `ms-to-xml` still export sequentially because shared WZ/MS reader safety is not assumed.
+
+```bash
+java -jar target/OrzRepacker-cli.jar imgs-to-xml /path/to/Skill.img /path/to/Item.img \
+  -o /tmp/img-xml \
+  --key gms \
+  --indent 2 \
+  --media none \
+  --xml-version default \
+  --threads 2
+```
+
+Threading rules:
+- `--threads` defaults to `1` and accepts `1..4`.
+- It only applies to `imgs-to-xml`.
+- Each worker creates an independent `WzImageFile`; no single `.wz` package or `.ms` package is parsed in parallel.
+- Output files are named `<input-file-name>.xml`; duplicate output names are rejected before workers start.
+- Batch export is not transactional: successfully written XML files are not rolled back if another input fails.
+
 ### xml-to-img
 
 Convert XML back to `.img`. By default, output overwrite is refused.

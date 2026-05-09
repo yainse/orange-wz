@@ -20,16 +20,23 @@ import orange.wz.provider.tools.XmlExportVersion;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Headless Linux-friendly CLI entry point. Does not start Spring or Swing.
  */
 public final class OrangeWzCli {
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
+    private static final int MAX_THREADS = 4;
 
     private OrangeWzCli() {
     }
@@ -63,6 +70,7 @@ public final class OrangeWzCli {
                     case "keys" -> keys();
                     case "info" -> info();
                     case "img-to-xml" -> imgToXml();
+                    case "imgs-to-xml" -> imgsToXml();
                     case "xml-to-img" -> xmlToImg();
                     case "wz-to-xml" -> wzToXml();
                     case "ms-to-xml" -> msToXml();
@@ -82,7 +90,7 @@ public final class OrangeWzCli {
                 switch (arg) {
                     case "--help", "-h" -> help = true;
                     case "--force" -> force = true;
-                    case "--key", "-k", "--output", "-o", "--indent", "--media", "--xml-version", "--memory-mode" -> {
+                    case "--key", "-k", "--output", "-o", "--indent", "--media", "--xml-version", "--memory-mode", "--threads" -> {
                         if (i + 1 >= args.length) {
                             throw new IllegalArgumentException("Missing value for option: " + arg);
                         }
@@ -106,6 +114,7 @@ public final class OrangeWzCli {
                 case "--media" -> "media";
                 case "--xml-version" -> "xml-version";
                 case "--memory-mode" -> "memory-mode";
+                case "--threads" -> "threads";
                 default -> option.replaceFirst("^-+", "");
             };
         }
@@ -176,6 +185,18 @@ public final class OrangeWzCli {
             }
             System.out.println("Exported " + input + " -> " + output);
             return 0;
+        }
+
+        private int imgsToXml() throws Exception {
+            int workerCount = threads();
+            List<ImgExportJob> jobs = planImgBatchExports();
+            ImgBatchResult result = runImgBatchExports(jobs, workerCount, this::exportImgJob);
+            for (ImgExportFailure failure : result.failures()) {
+                System.err.println("Failed to export " + failure.input() + ": " + failure.message());
+            }
+            System.out.println("Exported " + result.successCount() + " of " + jobs.size()
+                    + " image xml file(s) into " + requireOutput() + " using " + workerCount + " thread(s)");
+            return result.isSuccess() ? 0 : 1;
         }
 
         private int xmlToImg() throws Exception {
@@ -250,6 +271,18 @@ public final class OrangeWzCli {
             return 0;
         }
 
+        private void exportImgJob(Path input, Path output) throws Exception {
+            WzCliKeys.KeySpec key = keySpec();
+            ensureParent(output);
+            WzImageFile img = new WzImageFile(input.getFileName().toString(), input.toString(), key.keyBoxName(), key.iv(), key.key());
+            if (!img.parse()) {
+                throw new IllegalStateException("parse failed status=" + img.getStatus());
+            }
+            if (!img.exportToXml(output, indent(), mediaExportType(), true, xmlExportVersion())) {
+                throw new IllegalStateException("XML export returned false");
+            }
+        }
+
         private WzCliKeys.KeySpec keySpec() {
             return WzCliKeys.resolve(options.getOrDefault("key", "gms"));
         }
@@ -316,6 +349,19 @@ public final class OrangeWzCli {
             return MemoryMode.fromCliValue(options.getOrDefault("memory-mode", "normal"));
         }
 
+        private int threads() {
+            String value = options.getOrDefault("threads", "1");
+            try {
+                int threads = Integer.parseInt(value);
+                if (threads < 1 || threads > MAX_THREADS) {
+                    throw new NumberFormatException("out of range");
+                }
+                return threads;
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid --threads value: " + value + " (expected 1.." + MAX_THREADS + ")");
+            }
+        }
+
         private String detectType(Path input) {
             String name = input.getFileName().toString().toLowerCase(Locale.ROOT);
             if (name.endsWith(".img")) return "img";
@@ -329,6 +375,66 @@ public final class OrangeWzCli {
             String actual = detectType(input);
             if (!expected.equals(actual)) {
                 throw new IllegalArgumentException("Expected ." + expected + " input, got: " + input);
+            }
+        }
+
+        private List<ImgExportJob> planImgBatchExports() throws Exception {
+            if (positional.size() < 2) {
+                throw new IllegalArgumentException("Missing input. Usage: imgs-to-xml <input1.img> <input2.img> ...");
+            }
+            Path outputDir = requireOutput();
+            if (Files.exists(outputDir) && !Files.isDirectory(outputDir)) {
+                throw new IllegalArgumentException("Output must be a directory for imgs-to-xml: " + outputDir);
+            }
+            List<ImgExportJob> jobs = new ArrayList<>();
+            Set<Path> outputs = new HashSet<>();
+            for (int i = 1; i < positional.size(); i++) {
+                Path input = Path.of(positional.get(i));
+                if (!Files.isRegularFile(input)) {
+                    throw new IllegalArgumentException("Input file does not exist: " + input);
+                }
+                requireType(input, "img");
+                Path output = outputDir.resolve(input.getFileName().toString() + ".xml");
+                Path normalized = output.toAbsolutePath().normalize();
+                if (!outputs.add(normalized)) {
+                    throw new IllegalArgumentException("Duplicate output path for imgs-to-xml: " + output);
+                }
+                jobs.add(new ImgExportJob(input, output));
+            }
+            return jobs;
+        }
+
+        private ImgBatchResult runImgBatchExports(List<ImgExportJob> jobs, int workerCount, ImgExportWorker worker) throws InterruptedException {
+            ExecutorService executor = Executors.newFixedThreadPool(workerCount);
+            List<Future<ImgExportFailure>> futures = new ArrayList<>();
+            try {
+                for (ImgExportJob job : jobs) {
+                    futures.add(executor.submit(() -> {
+                        try {
+                            worker.export(job.input(), job.output());
+                            return null;
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return new ImgExportFailure(job.input(), "interrupted");
+                        } catch (Exception e) {
+                            return new ImgExportFailure(job.input(), e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                        }
+                    }));
+                }
+                List<ImgExportFailure> failures = new ArrayList<>();
+                for (Future<ImgExportFailure> future : futures) {
+                    try {
+                        ImgExportFailure failure = future.get();
+                        if (failure != null) {
+                            failures.add(failure);
+                        }
+                    } catch (ExecutionException e) {
+                        failures.add(new ImgExportFailure(Path.of("<executor>"), e.getCause() == null ? e.getMessage() : e.getCause().getMessage()));
+                    }
+                }
+                return new ImgBatchResult(jobs.size() - failures.size(), failures);
+            } finally {
+                executor.shutdownNow();
             }
         }
 
@@ -380,6 +486,27 @@ public final class OrangeWzCli {
         }
     }
 
+    private record ImgExportJob(Path input, Path output) {
+    }
+
+    @FunctionalInterface
+    private interface ImgExportWorker {
+        void export(Path input, Path output) throws Exception;
+    }
+
+    private record ImgExportFailure(Path input, String message) {
+    }
+
+    private record ImgBatchResult(int successCount, List<ImgExportFailure> failures) {
+        private int failureCount() {
+            return failures.size();
+        }
+
+        private boolean isSuccess() {
+            return failures.isEmpty();
+        }
+    }
+
     private static void printHelp() {
         System.out.println(helpText());
     }
@@ -393,6 +520,7 @@ public final class OrangeWzCli {
                   java -jar target/OrzRepacker-cli.jar keys
                   java -jar target/OrzRepacker-cli.jar info <path.img|path.wz|path.ms> --key gms
                   java -jar target/OrzRepacker-cli.jar img-to-xml <input.img> -o <output.xml> --key gms --indent 2 --media none [--xml-version default]
+                  java -jar target/OrzRepacker-cli.jar imgs-to-xml <input1.img> <input2.img> ... -o <output-dir> --key gms --indent 2 --media none [--xml-version default] [--threads 1]
                   java -jar target/OrzRepacker-cli.jar xml-to-img <input.xml> -o <output.img> --key gms [--force]
                   java -jar target/OrzRepacker-cli.jar wz-to-xml <input.wz> -o <output-dir> --key gms --indent 2 --media none [--xml-version default] [--memory-mode normal]
                   java -jar target/OrzRepacker-cli.jar ms-to-xml <input.ms> -o <output-dir> --key gms --indent 2 --media none [--xml-version default]
@@ -401,6 +529,7 @@ public final class OrangeWzCli {
                   keys        Print supported key aliases as JSON.
                   info        Parse .img, .wz, or .ms and print JSON summary.
                   img-to-xml  Export one .img file to XML with Linux LF line endings.
+                  imgs-to-xml Export multiple independent .img files to XML files with bounded concurrency.
                   xml-to-img  Convert XML back to .img; refuses to overwrite unless --force is set.
                   wz-to-xml   Export every image in a .wz package to XML files.
                   ms-to-xml   Export every image in a .ms package to XML files. Read-only; does not write .ms.
@@ -412,6 +541,7 @@ public final class OrangeWzCli {
                   --media     XML media mode: none, base64, file. Default: none.
                   --xml-version XML export version: default, v125. Default: default.
                   --memory-mode Memory mode for wz-to-xml: normal, low. Default: normal.
+                  --threads   Worker threads for independent .img batch export; only applies to imgs-to-xml. Default: 1, max: 4.
                   --force     Allow xml-to-img output overwrite.
                 """;
     }
