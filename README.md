@@ -15,6 +15,14 @@ cd /home/edam/orange-wz
 ./mvnw -DskipTests package
 ```
 
+如果本机没有 Java/JAVA_HOME，但有 Docker，可直接使用仓库提供的 headless 验证脚本构建并检查 CLI：
+
+```bash
+scripts/verify-cli-headless.sh
+```
+
+该脚本会在 Docker Maven/JRE 环境中执行 full test、package、CLI jar 结构检查、`--help`/`keys` smoke、provider GUI/native leak 检查和基础安全扫描。
+
 生成的 CLI jar：
 
 ```text
@@ -52,6 +60,18 @@ java -jar target/OrzRepacker-cli.jar img-to-xml /path/to/Skill.img \
   --xml-version default
 ```
 
+批量导出多个独立 `.img` 为 XML，可限制并发：
+
+```bash
+java -jar target/OrzRepacker-cli.jar imgs-to-xml /path/to/Skill.img /path/to/Item.img \
+  -o /tmp/img-xml \
+  --key gms \
+  --indent 2 \
+  --media none \
+  --xml-version default \
+  --threads 2
+```
+
 从 XML 重新生成 `.img`：
 
 ```bash
@@ -72,6 +92,17 @@ java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/String.wz \
   --media none \
   --xml-version default \
   --memory-mode low
+```
+
+导出 `.ms` 包中的 image XML（只读，不会写回 `.ms`）：
+
+```bash
+java -jar target/OrzRepacker-cli.jar ms-to-xml /path/to/Data.ms \
+  -o /tmp/Data.ms.xml.d \
+  --key gms \
+  --indent 2 \
+  --media none \
+  --xml-version default
 ```
 
 ### CLI/headless 增强能力
@@ -100,7 +131,7 @@ java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/String.wz \
 推荐流程：
 
 1. 先用 `info` 检查 `.img` / `.wz` 是否能解析；
-2. 用 `img-to-xml` 或 `wz-to-xml` 导出 XML；
+2. 用 `img-to-xml`、`imgs-to-xml`、`wz-to-xml` 或 `ms-to-xml` 导出 XML；
 3. 让 AI 分析或修改 XML；
 4. 用 `xml-to-img` 生成新的 `.img` 文件；
 5. 手动备份并替换客户端资源文件；
@@ -119,6 +150,23 @@ java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/String.wz \
 - [CLI 使用文档](docs/cli.md)
 - [AI 使用指南](docs/ai-usage.md)
 - [Linux CLI / AI 文档实施计划](docs/cli-linux-ai-plan.md)
+
+### 维护者验证
+
+在提交 CLI/headless 相关改动前，推荐运行：
+
+```bash
+scripts/verify-cli-headless.sh
+```
+
+如果需要替换 Docker 镜像或 Maven 缓存路径，可通过环境变量覆盖：
+
+```bash
+MAVEN_IMAGE=maven:3.9.9-eclipse-temurin-21 \
+JRE_IMAGE=eclipse-temurin:21-jre \
+M2_CACHE=/root/.m2 \
+scripts/verify-cli-headless.sh
+```
 
 ## 打包流程
 

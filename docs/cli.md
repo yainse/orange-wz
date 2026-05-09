@@ -13,6 +13,12 @@ cd /home/edam/orange-wz
 ./mvnw -DskipTests package
 ```
 
+If the host does not have a working Java/JAVA_HOME, use the Docker-based verification script instead:
+
+```bash
+scripts/verify-cli-headless.sh
+```
+
 CLI jar output:
 
 ```bash
@@ -23,6 +29,31 @@ If the final GUI packaging plugins fail in your environment, compile-only verifi
 
 ```bash
 ./mvnw -DskipTests compile
+```
+
+## Verify the headless path
+
+For maintainer or CI-style verification, run:
+
+```bash
+scripts/verify-cli-headless.sh
+```
+
+The script performs:
+- Docker Maven full test and fails if `MainFrame` / `HeadlessException` appears in test logs.
+- Docker Maven package.
+- Plain CLI jar structural check via `scripts/check-cli-jar.py`.
+- Docker JRE smoke for `--help` and `keys`.
+- Provider/headless forbidden dependency grep for GUI/native/process APIs.
+- 基础 added-line 安全扫描和 `git diff --check`。基础安全扫描用于快速拦截常见问题，不能替代人工审查。
+
+Optional environment overrides:
+
+```bash
+MAVEN_IMAGE=maven:3.9.9-eclipse-temurin-21 \
+JRE_IMAGE=eclipse-temurin:21-jre \
+M2_CACHE=/root/.m2 \
+scripts/verify-cli-headless.sh
 ```
 
 ## Commands
@@ -178,8 +209,26 @@ java -jar target/OrzRepacker-cli.jar ms-to-xml /path/to/Data.ms \
 
 Output paths preserve the internal entry structure and append `.xml` to each entry name. Unsafe entry paths such as absolute paths or `..` traversal are rejected before writing.
 
+## Recommended headless workflows
+
+### Inspect-first flow for AI agents
+
+1. Run `keys` to confirm the key aliases available in this build.
+2. Run `info` on the source `.img`, `.wz`, or `.ms` before attempting export.
+3. Prefer `--media none` for script/AI text inspection when image/audio payloads are not needed.
+4. Use `img-to-xml` for one `.img`, `imgs-to-xml --threads N` for multiple independent `.img` files, `wz-to-xml --memory-mode low` for large WZ packages, and `ms-to-xml` for read-only MS package inspection.
+5. Use `xml-to-img` to write a new output path first; only add `--force` for disposable outputs.
+6. Keep original game/client files backed up and commit generated resources separately from code when possible.
+
+### Large export recommendations
+
+- Use `--memory-mode low` with `wz-to-xml` on large packages.
+- Keep `--threads` at `1` unless exporting multiple independent `.img` files; never assume one `.wz`/`.ms` package can be parsed concurrently.
+- Use `--xml-version v125` only when a downstream legacy tool requires the v125-compatible XML shape; otherwise keep `default`.
+- Use `--zlib-mode brute_smallest` only when output size matters more than conversion speed.
+
 ## Notes
 
-- This is a minimal prototype for automation and AI workflows.
+- This CLI is intended for automation and AI workflows.
 - WZ version is auto-detected by `WzFile` using file version `-1`.
 - Avoid running this on the only copy of a game file. Work in a temporary directory and keep backups.
