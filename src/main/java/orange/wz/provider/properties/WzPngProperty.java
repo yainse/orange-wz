@@ -15,12 +15,57 @@ import java.awt.image.WritableRaster;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 @Getter
 @Slf4j
 public class WzPngProperty extends WzImageProperty {
+    public static class CompressedPngData {
+        private final int width;
+        private final int height;
+        private final WzPngFormat format;
+        private final int scale;
+        private final boolean listWzUsed;
+        private final byte[] compressedBytes;
+
+        public CompressedPngData(int width, int height, WzPngFormat format, int scale,
+                                 boolean listWzUsed, byte[] compressedBytes) {
+            this.width = width;
+            this.height = height;
+            this.format = format;
+            this.scale = scale;
+            this.listWzUsed = listWzUsed;
+            this.compressedBytes = compressedBytes == null ? null : Arrays.copyOf(compressedBytes, compressedBytes.length);
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public WzPngFormat getFormat() {
+            return format;
+        }
+
+        public int getScale() {
+            return scale;
+        }
+
+        public boolean isListWzUsed() {
+            return listWzUsed;
+        }
+
+        public byte[] getCompressedBytes() {
+            return compressedBytes == null ? null : Arrays.copyOf(compressedBytes, compressedBytes.length);
+        }
+    }
+
     private int width;
     private int height;
     private WzPngFormat format;
@@ -60,17 +105,93 @@ public class WzPngProperty extends WzImageProperty {
     public void setData(BinaryReader reader) {
         width = reader.readCompressedInt();
         height = reader.readCompressedInt();
-        format = WzPngFormat.getByValue(reader.readCompressedInt());
-        scale = reader.getByte();
+        readPngFormatAndScale(reader);
         reader.skip(4); // 跳过4个字节
         offset = reader.getPosition();
     }
 
+    private void readPngFormatAndScale(BinaryReader reader) {
+        int formatValue = reader.readCompressedInt();
+        int afterFormatPosition = reader.getPosition();
+
+        WzPngFormat directFormat = tryGetPngFormat(formatValue);
+        if (directFormat != null) {
+            format = directFormat;
+            scale = reader.getByte();
+            normalizeCompatibilityScale();
+            return;
+        }
+
+        try {
+            int format2 = reader.readCompressedInt();
+            int combinedFormat = formatValue + (format2 << 8);
+            format = WzPngFormat.getByValue(combinedFormat);
+            scale = 0;
+            normalizeCompatibilityScale();
+            return;
+        } catch (RuntimeException ignored) {
+            reader.setPosition(afterFormatPosition);
+        }
+
+        format = WzPngFormat.getByValue(formatValue);
+        scale = reader.getByte();
+        normalizeCompatibilityScale();
+    }
+
+    private WzPngFormat tryGetPngFormat(int value) {
+        try {
+            return WzPngFormat.getByValue(value);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    private void normalizeCompatibilityScale() {
+        if (format == WzPngFormat.FORMAT3) {
+            scale = 1;
+        } else if (format == WzPngFormat.FORMAT517) {
+            scale = 2;
+        }
+    }
+
     public void setImage(BufferedImage image, WzPngFormat format, int scale) {
+        setImage(image, format, scale, Deflater.DEFAULT_COMPRESSION, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public void setImage(BufferedImage image, WzPngFormat format, int scale, int zlibCompressionLevel) {
+        setImage(image, format, scale, zlibCompressionLevel, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public void setImage(BufferedImage image, WzPngFormat format, int scale, int zlibCompressionLevel,
+                         WzPngZlibCompressMode zlibMode) {
         this.format = format;
         this.scale = scale;
         this.image = image;
-        compressImage();
+        compressImage(zlibCompressionLevel, zlibMode);
+    }
+
+    public CompressedPngData exportCompressedData() {
+        byte[] bytes = getStoredCompressedBytes(false);
+        if (bytes == null) {
+            throw new IllegalStateException("没有可导出的 PNG 压缩数据");
+        }
+        return new CompressedPngData(width, height, format, scale, listWzUsed, bytes);
+    }
+
+    public void copyCompressedFrom(CompressedPngData data, boolean keepImageInMem) {
+        if (data == null || data.getCompressedBytes() == null) {
+            throw new IllegalArgumentException("compressed PNG data 不能为空");
+        }
+        width = data.getWidth();
+        height = data.getHeight();
+        format = data.getFormat();
+        scale = data.getScale();
+        listWzUsed = data.isListWzUsed();
+        compressedBytes = data.getCompressedBytes();
+        clearImage();
+        if (keepImageInMem) {
+            parse(true);
+        }
     }
 
     private void parse(boolean saveInMem) {
@@ -80,17 +201,22 @@ public class WzPngProperty extends WzImageProperty {
             return;
         }
         byte[] rawBytes = decompress(compressedBytes);
+        image = decodeRawBytes(rawBytes);
+    }
+
+    BufferedImage decodeRawBytes(byte[] rawBytes) {
         if (rawBytes.length == 0) {
             throw new RuntimeException("rawBytes 是空的");
         }
         BinaryReader rawBytesReader = new BinaryReader(rawBytes); // rawBytes 是小端序的，用Reader读更方便
 
+        WzPngFormat rawFormat = ImgTool.effectiveRawFormat(format);
         int[] argb32 = new int[width * height];
         int imageType = ImgTool.getBufferImageType(format);
         BufferedImage img = new BufferedImage(width, height, imageType);
         int actualScale = getActualScale();
 
-        switch (format) {
+        switch (rawFormat) {
             case WzPngFormat.ARGB4444:
                 if (getActualScale() == 1) {
                     for (int i = 0; rawBytesReader.hasRemaining(); i++) {
@@ -182,7 +308,7 @@ public class WzPngProperty extends WzImageProperty {
                 break;
         }
 
-        image = img;
+        return img;
     }
 
     public void clearImage() {
@@ -244,6 +370,9 @@ public class WzPngProperty extends WzImageProperty {
         if (!listWzUsed) {
             zlib = new InflaterInputStream(new ByteArrayInputStream(compressedBytes));
         } else {
+            if (wzMutableKey == null) {
+                throw new IllegalStateException("List.wz PNG 解压需要 WZ key");
+            }
             reader.setPosition(0);
             BinaryWriter writer = new BinaryWriter();
 
@@ -260,7 +389,7 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     private byte[] decompress(byte[] compressedBytes) {
-        WzMutableKey wzMutableKey = wzImage.getReader().getWzMutableKey();
+        WzMutableKey wzMutableKey = wzImage == null || wzImage.getReader() == null ? null : wzImage.getReader().getWzMutableKey();
         int size = ImgTool.getRawByteSize(format, getActualScale(), width, height);
         byte[] rawBytes = new byte[size]; // decompress byte
         // 使用 try-with-resources 确保资源正确关闭
@@ -284,7 +413,7 @@ public class WzPngProperty extends WzImageProperty {
         int[] argb32 = ImgTool.Argb32.fromBufferedImage(img);
         BinaryWriter writer = new BinaryWriter(false); // 把数据转为小端序
         int actualScale = getActualScale();
-        return switch (format) {
+        return switch (ImgTool.effectiveRawFormat(format)) {
             case WzPngFormat.ARGB4444 -> {
                 if (actualScale > 1) {
                     argb32 = ImgTool.Argb32.downscale(argb32, width, height, actualScale, true);
@@ -347,35 +476,86 @@ public class WzPngProperty extends WzImageProperty {
                 // ImgTool.Argb32.toBC7(img, writer);
                 yield writer.output();
             }
+            case FORMAT3, FORMAT517 -> throw new IllegalArgumentException(format + " 必须先转换为有效原始格式");
         };
     }
 
     private byte[] zlibCompress(byte[] rawBytes) {
-        ByteArrayOutputStream memStream = new ByteArrayOutputStream();
+        return zlibCompress(rawBytes, Deflater.DEFAULT_COMPRESSION, Deflater.DEFAULT_STRATEGY);
+    }
 
-        try (DeflaterOutputStream zip = new DeflaterOutputStream(memStream)) {
+    private byte[] zlibCompress(byte[] rawBytes, int level, int strategy) {
+        Deflater deflater = new Deflater(normalizeZlibLevel(level), false);
+        try {
+            deflater.setStrategy(strategy);
+        } catch (IllegalArgumentException e) {
+            deflater.end();
+            if (strategy == Deflater.DEFAULT_STRATEGY) {
+                throw e;
+            }
+            return zlibCompress(rawBytes, level, Deflater.DEFAULT_STRATEGY);
+        }
+
+        ByteArrayOutputStream memStream = new ByteArrayOutputStream();
+        try (DeflaterOutputStream zip = new DeflaterOutputStream(memStream, deflater)) {
             zip.write(rawBytes);
         } catch (IOException e) {
             throw new RuntimeException("压缩失败", e);
+        } finally {
+            deflater.end();
         }
 
         return memStream.toByteArray();
     }
 
+    private int normalizeZlibLevel(int level) {
+        return Math.max(Deflater.NO_COMPRESSION, Math.min(Deflater.BEST_COMPRESSION, level));
+    }
+
+    private byte[] zlibCompressSmallest(byte[] rawBytes, int level) {
+        byte[] best = null;
+        for (int strategy : WzPngZlibCompressMode.strategiesForBrute()) {
+            byte[] candidate = zlibCompress(rawBytes, level, strategy);
+            if (best == null || candidate.length < best.length) {
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private byte[] zlibCompressOnly(byte[] rawBytes, int level, WzPngZlibCompressMode zlibMode) {
+        WzPngZlibCompressMode mode = zlibMode == null ? WzPngZlibCompressMode.DEFAULT : zlibMode;
+        if (mode.brutePickSmallest()) {
+            return zlibCompressSmallest(rawBytes, level);
+        }
+        return zlibCompress(rawBytes, level, mode.deflaterStrategy());
+    }
+
     public void compressImage() {
-        WzMutableKey wzMutableKey = wzImage.getReader().getWzMutableKey();
+        compressImage(Deflater.DEFAULT_COMPRESSION, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public void compressImage(int zlibLevel, WzPngZlibCompressMode zlibMode) {
+        WzMutableKey wzMutableKey = wzImage == null || wzImage.getReader() == null ? null : wzImage.getReader().getWzMutableKey();
         width = image.getWidth();
         height = image.getHeight();
 
         byte[] rawBytes = getRawBytes(image, format);
-        compressBytes(rawBytes, wzMutableKey);
+        compressBytes(rawBytes, wzMutableKey, zlibLevel, zlibMode);
 
     }
 
     private void compressBytes(byte[] rawBytes, WzMutableKey wzMutableKey) {
-        compressedBytes = zlibCompress(rawBytes);
+        compressBytes(rawBytes, wzMutableKey, Deflater.DEFAULT_COMPRESSION, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    private void compressBytes(byte[] rawBytes, WzMutableKey wzMutableKey, int zlibLevel, WzPngZlibCompressMode zlibMode) {
+        compressedBytes = zlibCompressOnly(rawBytes, zlibLevel, zlibMode);
         if (listWzUsed) {
             BinaryWriter writer = new BinaryWriter(compressedBytes);
+            if (wzMutableKey == null) {
+                throw new IllegalStateException("List.wz PNG 重新压缩需要 WZ key");
+            }
             writer.setWzMutableKey(wzMutableKey);
             writer.putInt(2);
             for (int i = 0; i < 2; i++) {
@@ -389,6 +569,15 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     public byte[] getCompressedBytes(boolean saveInMem) {
+        byte[] bytes = resolveCompressedBytes(saveInMem);
+        return bytes == null ? null : Arrays.copyOf(bytes, bytes.length);
+    }
+
+    private byte[] getStoredCompressedBytes(boolean saveInMem) {
+        return resolveCompressedBytes(saveInMem);
+    }
+
+    private byte[] resolveCompressedBytes(boolean saveInMem) {
         if (compressedBytes == null) {
             byte[] returnBytes = null;
             if (offset != 0) {
@@ -419,7 +608,7 @@ public class WzPngProperty extends WzImageProperty {
 
     public void rebuildCompressedBytesUseNewWzKey(WzMutableKey wzMutableKey) {
         // 该方法在处理CMS079的Map.wz时要额外花费123秒，只是为了List.wz的图片
-        byte[] compressedBytes = getCompressedBytes(false);
+        byte[] compressedBytes = getStoredCompressedBytes(false);
         byte[] rawBytes = decompress(compressedBytes);
         if (listWzUsed) {
             compressBytes(rawBytes, wzMutableKey);

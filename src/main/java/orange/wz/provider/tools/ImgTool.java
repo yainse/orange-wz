@@ -1235,31 +1235,53 @@ public final class ImgTool {
     }
 
     public static int getRawByteSize(WzPngFormat format, int scale, int width, int height) {
-        if (scale > 1) {
-            if (width % scale != 0 || height % scale != 0) {
+        int effectiveScale = effectiveScale(format, scale);
+        if (effectiveScale > 1) {
+            if (width % effectiveScale != 0 || height % effectiveScale != 0) {
                 throw new IllegalArgumentException("width 和 height 不能被 scale 整除");
             }
-            width /= scale;
-            height /= scale;
+            width /= effectiveScale;
+            height /= effectiveScale;
         }
 
-        return getRawByteSize(format, width, height);
+        return getRawByteSize(effectiveRawFormat(format), width, height);
+    }
+
+    public static int effectiveScale(WzPngFormat format, int scale) {
+        return switch (format) {
+            case FORMAT3 -> 2;
+            case FORMAT517 -> 4;
+            default -> scale;
+        };
+    }
+
+    public static WzPngFormat effectiveRawFormat(WzPngFormat format) {
+        return switch (format) {
+            case FORMAT3 -> WzPngFormat.ARGB4444;
+            case FORMAT517 -> WzPngFormat.RGB565;
+            default -> format;
+        };
     }
 
     private static int getRawByteSize(WzPngFormat format, int width, int height) {
-        int size = width * height * 4;
-        return switch (format) {
-            case WzPngFormat.ARGB4444, WzPngFormat.ARGB1555, WzPngFormat.RGB565 -> size / 2; // int 压缩成 short 大小减半
-            case WzPngFormat.ARGB8888 -> size; // 原始数据
-            case WzPngFormat.DXT3, WzPngFormat.DXT5 -> size / 4; // 特殊压缩，大小为原来的1/4
-            case BC7 -> (width & ~3) * (height & ~3); // 宽度高度不总是4的倍数，NX会额外添加行数来补齐
+        long pixelBytes = Math.multiplyExact(Math.multiplyExact((long) width, height), 4L);
+        long size = switch (format) {
+            case WzPngFormat.ARGB4444, WzPngFormat.ARGB1555, WzPngFormat.RGB565 -> pixelBytes / 2; // int 压缩成 short 大小减半
+            case WzPngFormat.ARGB8888 -> pixelBytes; // 原始数据
+            case WzPngFormat.DXT3, WzPngFormat.DXT5 -> pixelBytes / 4; // 特殊压缩，大小为原来的1/4
+            case BC7 -> (long) (width & ~3) * (height & ~3); // 宽度高度不总是4的倍数，NX会额外添加行数来补齐
+            case FORMAT3, FORMAT517 -> throw new IllegalArgumentException(format + " 必须先转换为有效原始格式");
         };
+        if (size > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("图片原始数据过大");
+        }
+        return (int) size;
     }
 
     public static int getBufferImageType(WzPngFormat format) {
         return switch (format) {
-            case WzPngFormat.ARGB4444, ARGB8888, ARGB1555, DXT3, DXT5, BC7 -> BufferedImage.TYPE_INT_ARGB;
-            case RGB565 -> BufferedImage.TYPE_USHORT_565_RGB;
+            case WzPngFormat.ARGB4444, ARGB8888, ARGB1555, DXT3, DXT5, BC7, FORMAT3 -> BufferedImage.TYPE_INT_ARGB;
+            case RGB565, FORMAT517 -> BufferedImage.TYPE_USHORT_565_RGB;
         };
     }
 

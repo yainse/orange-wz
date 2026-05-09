@@ -55,8 +55,43 @@ public class WzCanvasProperty extends WzExtended {
     }
 
     public void setPng(BufferedImage pngImage, WzPngFormat format, int scale) {
-        png.setImage(pngImage, format, scale);
-        wzImage.setChanged(true);
+        setPng(pngImage, format, scale, java.util.zip.Deflater.DEFAULT_COMPRESSION, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public void setPng(BufferedImage pngImage, WzPngFormat format, int scale, int zlibCompressionLevel) {
+        setPng(pngImage, format, scale, zlibCompressionLevel, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public void setPng(BufferedImage pngImage, WzPngFormat format, int scale, int zlibCompressionLevel,
+                       WzPngZlibCompressMode zlibMode) {
+        png.setImage(pngImage, format, scale, zlibCompressionLevel, zlibMode);
+        if (wzImage != null) {
+            wzImage.setChanged(true);
+        }
+        setTempChanged(true);
+    }
+
+    public int getCompressedPngStorageLength() {
+        byte[] bytes = png.getCompressedBytes(false);
+        return bytes == null ? 0 : bytes.length;
+    }
+
+    public WzPngProperty.CompressedPngData exportCompressedPngData() {
+        return png.exportCompressedData();
+    }
+
+    public void copyPngFrom(WzCanvasProperty src, boolean keepImageInMem) {
+        if (src == null) {
+            throw new IllegalArgumentException("source canvas 不能为空");
+        }
+        copyPngFromCompressedData(src.exportCompressedPngData(), keepImageInMem);
+    }
+
+    public void copyPngFromCompressedData(WzPngProperty.CompressedPngData data, boolean keepImageInMem) {
+        png.copyCompressedFrom(data, keepImageInMem);
+        if (wzImage != null) {
+            wzImage.setChanged(true);
+        }
         setTempChanged(true);
     }
 

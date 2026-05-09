@@ -8,10 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 public enum WzPngFormat {
     ARGB4444(1),
     ARGB8888(2),
-    // Format3(3), // 废弃 实际是 format 1 + scale 2 其实和后面的 DXT3 1026是一样的
+    FORMAT3(3), // Harepacker 兼容格式：ARGB4444 + scale 2
     ARGB1555(257),
     RGB565(513),
-    // Format517(517), // 废弃 实际是 format 513 + scale 4
+    FORMAT517(517), // Harepacker 兼容格式：RGB565 + scale 4
     DXT3(1026),
     DXT5(2050),
     BC7(4098);
