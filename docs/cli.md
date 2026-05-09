@@ -55,11 +55,12 @@ Default: `gms`
 
 ### Info JSON
 
-Parse `.img` or `.wz` and print a JSON summary.
+Parse `.img`, `.wz`, or `.ms` and print a JSON summary. `.ms` support is read-only.
 
 ```bash
 java -jar target/OrzRepacker-cli.jar info /path/to/Skill.img --key gms
 java -jar target/OrzRepacker-cli.jar info /path/to/Skill.wz --key gms
+java -jar target/OrzRepacker-cli.jar info /path/to/Data.ms --key gms
 ```
 
 Fields include:
@@ -69,6 +70,7 @@ Fields include:
 - `parsed`
 - `status`
 - child/image/directory counts where applicable
+- `.ms` summaries also include `entries`, `propertyCount`, and `readOnly: true`
 
 ### img-to-xml
 
@@ -130,6 +132,21 @@ java -jar target/OrzRepacker-cli.jar wz-to-xml /path/to/Skill.wz \
 Memory modes for `wz-to-xml`:
 - `normal`: default behavior; keeps parsed image state and caches according to existing provider semantics.
 - `low`: after each image XML export succeeds, flushes decoded canvas images, drops compressed copies that can be safely reloaded from the original WZ reader, and unparses unchanged images when safe. This mode is intended for large batch exports and does not apply to `xml-to-img`, because XML-origin image data may not be reloadable.
+
+### ms-to-xml
+
+Export every readable image entry in a `.ms` package to XML files. This command is read-only: it parses/decrypts entries and writes XML output, but it never writes back to the `.ms` source file and does not support `.ms` repacking.
+
+```bash
+java -jar target/OrzRepacker-cli.jar ms-to-xml /path/to/Data.ms \
+  -o /tmp/data-ms-xml \
+  --key gms \
+  --indent 2 \
+  --media none \
+  --xml-version default
+```
+
+Output paths preserve the internal entry structure and append `.xml` to each entry name. Unsafe entry paths such as absolute paths or `..` traversal are rejected before writing.
 
 ## Notes
 

@@ -8,8 +8,10 @@ import orange.wz.provider.WzFile;
 import orange.wz.provider.WzImage;
 import orange.wz.provider.WzImageFile;
 import orange.wz.provider.WzImageProperty;
+import orange.wz.provider.WzMsImageFile;
 import orange.wz.provider.WzObject;
 import orange.wz.provider.WzXmlFile;
+import orange.wz.provider.ms.WzMsFile;
 import orange.wz.provider.tools.MediaExportType;
 import orange.wz.provider.tools.MemoryMode;
 import orange.wz.provider.tools.WzMemoryReclaimer;
@@ -63,6 +65,7 @@ public final class OrangeWzCli {
                     case "img-to-xml" -> imgToXml();
                     case "xml-to-img" -> xmlToImg();
                     case "wz-to-xml" -> wzToXml();
+                    case "ms-to-xml" -> msToXml();
                     default -> fail("Unknown command: " + command + "\nRun with --help for usage.");
                 };
             } catch (IllegalArgumentException e) {
@@ -139,6 +142,15 @@ public final class OrangeWzCli {
                 json.put("children", parsed ? root.getChildren().size() : 0);
                 json.put("directoryCount", parsed ? countDirectories(root) : 0);
                 json.put("imageCount", parsed ? countImages(root) : 0);
+            } else if ("ms".equals(type)) {
+                WzMsImageFile ms = new WzMsImageFile(input.getFileName().toString(), input.toString(), key.keyBoxName(), key.iv(), key.key());
+                boolean parsed = ms.parse();
+                json.put("parsed", parsed);
+                json.put("status", String.valueOf(ms.getStatus()));
+                json.put("entries", parsed ? ms.getSourceEntries().size() : 0);
+                json.put("children", parsed ? ms.getChildren().size() : 0);
+                json.put("propertyCount", parsed ? countImageProperties(ms) : 0);
+                json.put("readOnly", true);
             } else {
                 json.put("parsed", false);
                 json.put("status", "UNSUPPORTED_TYPE");
@@ -217,6 +229,27 @@ public final class OrangeWzCli {
             return 0;
         }
 
+        private int msToXml() throws Exception {
+            Path input = requireInput("ms-to-xml <input.ms>");
+            Path output = requireOutput();
+            requireType(input, "ms");
+            WzCliKeys.KeySpec key = keySpec();
+            Files.createDirectories(output);
+
+            List<WzMsFile.EntryImage> entries = WzMsFile.load(input, key.iv(), key.key());
+            int exported = 0;
+            for (WzMsFile.EntryImage entry : entries) {
+                Path xmlPath = WzMsFile.resolveEntryXmlPath(output, entry.getEntryName());
+                ensureParent(xmlPath);
+                if (!entry.getImage().exportToXml(xmlPath, indent(), mediaExportType(), true, xmlExportVersion())) {
+                    return fail("Failed to export MS entry xml: " + entry.getEntryName());
+                }
+                exported++;
+            }
+            System.out.println("Exported " + exported + " image xml file(s) from " + input + " into " + output + " (read-only .ms)");
+            return 0;
+        }
+
         private WzCliKeys.KeySpec keySpec() {
             return WzCliKeys.resolve(options.getOrDefault("key", "gms"));
         }
@@ -287,6 +320,7 @@ public final class OrangeWzCli {
             String name = input.getFileName().toString().toLowerCase(Locale.ROOT);
             if (name.endsWith(".img")) return "img";
             if (name.endsWith(".wz")) return "wz";
+            if (name.endsWith(".ms")) return "ms";
             if (name.endsWith(".xml")) return "xml";
             return "unknown";
         }
@@ -347,23 +381,29 @@ public final class OrangeWzCli {
     }
 
     private static void printHelp() {
-        System.out.println("""
+        System.out.println(helpText());
+    }
+
+    private static String helpText() {
+        return """
                 OrangeWz headless CLI
 
                 Usage:
                   java -jar target/OrzRepacker-cli.jar --help
                   java -jar target/OrzRepacker-cli.jar keys
-                  java -jar target/OrzRepacker-cli.jar info <path.img|path.wz> --key gms
+                  java -jar target/OrzRepacker-cli.jar info <path.img|path.wz|path.ms> --key gms
                   java -jar target/OrzRepacker-cli.jar img-to-xml <input.img> -o <output.xml> --key gms --indent 2 --media none [--xml-version default]
                   java -jar target/OrzRepacker-cli.jar xml-to-img <input.xml> -o <output.img> --key gms [--force]
                   java -jar target/OrzRepacker-cli.jar wz-to-xml <input.wz> -o <output-dir> --key gms --indent 2 --media none [--xml-version default] [--memory-mode normal]
+                  java -jar target/OrzRepacker-cli.jar ms-to-xml <input.ms> -o <output-dir> --key gms --indent 2 --media none [--xml-version default]
 
                 Commands:
                   keys        Print supported key aliases as JSON.
-                  info        Parse .img or .wz and print JSON summary.
+                  info        Parse .img, .wz, or .ms and print JSON summary.
                   img-to-xml  Export one .img file to XML with Linux LF line endings.
                   xml-to-img  Convert XML back to .img; refuses to overwrite unless --force is set.
                   wz-to-xml   Export every image in a .wz package to XML files.
+                  ms-to-xml   Export every image in a .ms package to XML files. Read-only; does not write .ms.
 
                 Options:
                   --key, -k   Key alias: gms, cms, latest, empty. Default: gms.
@@ -373,6 +413,6 @@ public final class OrangeWzCli {
                   --xml-version XML export version: default, v125. Default: default.
                   --memory-mode Memory mode for wz-to-xml: normal, low. Default: normal.
                   --force     Allow xml-to-img output overwrite.
-                """);
+                """;
     }
 }
