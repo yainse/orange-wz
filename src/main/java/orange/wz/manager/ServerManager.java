@@ -15,6 +15,7 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
 import javax.swing.*;
+import java.awt.GraphicsEnvironment;
 import java.util.List;
 import java.util.Objects;
 
@@ -54,6 +55,9 @@ public class ServerManager implements ApplicationContextAware, ApplicationRunner
 
     @Override
     public void run(@Nullable ApplicationArguments args) {
+        if (GraphicsEnvironment.isHeadless()) {
+            return;
+        }
         SwingUtilities.invokeLater(() -> {
             MainFrame frame = MainFrame.getInstance();
             frame.setIconImages(List.of(Objects.requireNonNull(Icons.loadImage("logo512.png"))));
