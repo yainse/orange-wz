@@ -16,8 +16,14 @@ public class WzCanvasProperty extends WzExtended {
     }
 
     public WzCanvasProperty(String name, int format, int scale, byte[] imageBytes, WzObject parent, WzImage wzImage) {
+        this(name, format, scale, imageBytes, parent, wzImage,
+                java.util.zip.Deflater.DEFAULT_COMPRESSION, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public WzCanvasProperty(String name, int format, int scale, byte[] imageBytes, WzObject parent, WzImage wzImage,
+                            int zlibCompressionLevel, WzPngZlibCompressMode zlibMode) {
         this(name, parent, wzImage);
-        png = new WzPngProperty(name, format, scale, imageBytes, this, wzImage);
+        png = new WzPngProperty(name, format, scale, imageBytes, this, wzImage, zlibCompressionLevel, zlibMode);
     }
 
     // Png -------------------------------------------------------------------------------------------------------------

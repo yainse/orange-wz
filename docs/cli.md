@@ -119,13 +119,20 @@ Threading rules:
 
 ### xml-to-img
 
-Convert XML back to `.img`. By default, output overwrite is refused.
+Convert XML back to `.img`. By default, output overwrite is refused. PNG zlib options only apply to canvas data imported from XML; they do not affect `img-to-xml`, `wz-to-xml`, `.ms` read-only export, or native/libimagequant compression.
 
 ```bash
 java -jar target/OrzRepacker-cli.jar xml-to-img /tmp/Skill.img.xml \
   -o /tmp/Skill.modified.img \
-  --key gms
+  --key gms \
+  --zlib-level -1 \
+  --zlib-mode default
 ```
+
+Supported PNG zlib options for `xml-to-img`:
+- `--zlib-level -1|0..9`: `-1` uses the JDK zlib default compression level; `0` stores without compression; `9` is best compression. Default: `-1`.
+- `--zlib-mode default|filtered|huffman_only|rle|brute_smallest`: chooses the zlib strategy for WZ PNG payloads. `brute_smallest` tries several Java zlib strategies and keeps the smallest output, but can be slower. Default: `default`.
+- `legacy-skill-effect` and native strong compression are intentionally not enabled in the CLI baseline.
 
 Overwrite explicitly:
 
@@ -133,7 +140,9 @@ Overwrite explicitly:
 java -jar target/OrzRepacker-cli.jar xml-to-img /tmp/Skill.img.xml \
   -o /tmp/Skill.modified.img \
   --key gms \
-  --force
+  --force \
+  --zlib-level 9 \
+  --zlib-mode brute_smallest
 ```
 
 ### wz-to-xml

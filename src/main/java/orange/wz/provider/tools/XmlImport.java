@@ -128,7 +128,9 @@ public final class XmlImport {
                     yield null;
                 }
 
-                WzCanvasProperty canvas = new WzCanvasProperty(name, format, scale, imageBytes, parent, image);
+                WzPngWriteOptions pngWriteOptions = image.getPngWriteOptions();
+                WzCanvasProperty canvas = new WzCanvasProperty(name, format, scale, imageBytes, parent, image,
+                        pngWriteOptions.zlibLevel(), pngWriteOptions.zlibMode());
                 readChildren(e, canvas, image, mediaFileName + name + ".");
                 yield canvas;
             }

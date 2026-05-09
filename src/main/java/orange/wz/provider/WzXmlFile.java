@@ -7,6 +7,7 @@ import orange.wz.provider.tools.BinaryReader;
 import orange.wz.provider.tools.MediaExportType;
 import orange.wz.provider.tools.WzFileStatus;
 import orange.wz.provider.tools.XmlImport;
+import orange.wz.provider.properties.WzPngWriteOptions;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ public class WzXmlFile extends WzImage implements WzSavableFile {
     private byte[] key;
     private int indent = 2;
     private MediaExportType meType = MediaExportType.BASE64;
+    private WzPngWriteOptions pngWriteOptions = WzPngWriteOptions.defaults();
 
     public WzXmlFile(String name, String filePath, String keyBoxName, byte[] iv, byte[] key) {
         super(name, null);
@@ -47,6 +49,10 @@ public class WzXmlFile extends WzImage implements WzSavableFile {
             return true;
         }
         return false;
+    }
+
+    public void setPngWriteOptions(WzPngWriteOptions pngWriteOptions) {
+        this.pngWriteOptions = pngWriteOptions == null ? WzPngWriteOptions.defaults() : pngWriteOptions;
     }
 
     @Override

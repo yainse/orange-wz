@@ -16,6 +16,8 @@ import orange.wz.provider.tools.MediaExportType;
 import orange.wz.provider.tools.MemoryMode;
 import orange.wz.provider.tools.WzMemoryReclaimer;
 import orange.wz.provider.tools.XmlExportVersion;
+import orange.wz.provider.properties.WzPngWriteOptions;
+import orange.wz.provider.properties.WzPngZlibCompressMode;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -90,7 +92,7 @@ public final class OrangeWzCli {
                 switch (arg) {
                     case "--help", "-h" -> help = true;
                     case "--force" -> force = true;
-                    case "--key", "-k", "--output", "-o", "--indent", "--media", "--xml-version", "--memory-mode", "--threads" -> {
+                    case "--key", "-k", "--output", "-o", "--indent", "--media", "--xml-version", "--memory-mode", "--threads", "--zlib-level", "--zlib-mode" -> {
                         if (i + 1 >= args.length) {
                             throw new IllegalArgumentException("Missing value for option: " + arg);
                         }
@@ -115,6 +117,8 @@ public final class OrangeWzCli {
                 case "--xml-version" -> "xml-version";
                 case "--memory-mode" -> "memory-mode";
                 case "--threads" -> "threads";
+                case "--zlib-level" -> "zlib-level";
+                case "--zlib-mode" -> "zlib-mode";
                 default -> option.replaceFirst("^-+", "");
             };
         }
@@ -208,6 +212,7 @@ public final class OrangeWzCli {
             ensureParent(output);
 
             WzXmlFile xml = new WzXmlFile(input.getFileName().toString(), input.toString(), key.keyBoxName(), key.iv(), key.key());
+            xml.setPngWriteOptions(new WzPngWriteOptions(zlibLevel(), zlibMode()));
             if (!xml.parse()) {
                 return fail("Failed to parse xml: " + input);
             }
@@ -359,6 +364,29 @@ public final class OrangeWzCli {
                 return threads;
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid --threads value: " + value + " (expected 1.." + MAX_THREADS + ")");
+            }
+        }
+
+        private int zlibLevel() {
+            String value = options.getOrDefault("zlib-level", "-1");
+            try {
+                int level = Integer.parseInt(value);
+                if (level != -1 && (level < 0 || level > 9)) {
+                    throw new NumberFormatException("out of range");
+                }
+                return level;
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid --zlib-level value: " + value + " (expected -1 or 0..9)");
+            }
+        }
+
+        private WzPngZlibCompressMode zlibMode() {
+            String value = options.getOrDefault("zlib-mode", "default").toUpperCase(Locale.ROOT);
+            try {
+                return WzPngZlibCompressMode.valueOf(value);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid --zlib-mode value: " + value.toLowerCase(Locale.ROOT)
+                        + " (expected default, filtered, huffman_only, rle, brute_smallest)");
             }
         }
 
@@ -521,7 +549,7 @@ public final class OrangeWzCli {
                   java -jar target/OrzRepacker-cli.jar info <path.img|path.wz|path.ms> --key gms
                   java -jar target/OrzRepacker-cli.jar img-to-xml <input.img> -o <output.xml> --key gms --indent 2 --media none [--xml-version default]
                   java -jar target/OrzRepacker-cli.jar imgs-to-xml <input1.img> <input2.img> ... -o <output-dir> --key gms --indent 2 --media none [--xml-version default] [--threads 1]
-                  java -jar target/OrzRepacker-cli.jar xml-to-img <input.xml> -o <output.img> --key gms [--force]
+                  java -jar target/OrzRepacker-cli.jar xml-to-img <input.xml> -o <output.img> --key gms [--force] [--zlib-level -1] [--zlib-mode default]
                   java -jar target/OrzRepacker-cli.jar wz-to-xml <input.wz> -o <output-dir> --key gms --indent 2 --media none [--xml-version default] [--memory-mode normal]
                   java -jar target/OrzRepacker-cli.jar ms-to-xml <input.ms> -o <output-dir> --key gms --indent 2 --media none [--xml-version default]
 
@@ -542,6 +570,8 @@ public final class OrangeWzCli {
                   --xml-version XML export version: default, v125. Default: default.
                   --memory-mode Memory mode for wz-to-xml: normal, low. Default: normal.
                   --threads   Worker threads for independent .img batch export; only applies to imgs-to-xml. Default: 1, max: 4.
+                  --zlib-level PNG zlib level for XML import canvas data; only applies to xml-to-img. Use -1 or 0..9. Default: -1.
+                  --zlib-mode PNG zlib mode for XML import canvas data; only applies to xml-to-img. Values: default, filtered, huffman_only, rle, brute_smallest. Default: default.
                   --force     Allow xml-to-img output overwrite.
                 """;
     }

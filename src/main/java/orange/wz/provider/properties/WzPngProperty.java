@@ -82,6 +82,12 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     public WzPngProperty(String name, int format, int scale, byte[] imageBytes, WzObject parent, WzImage wzImage) {
+        this(name, format, scale, imageBytes, parent, wzImage,
+                Deflater.DEFAULT_COMPRESSION, WzPngZlibCompressMode.DEFAULT);
+    }
+
+    public WzPngProperty(String name, int format, int scale, byte[] imageBytes, WzObject parent, WzImage wzImage,
+                         int zlibCompressionLevel, WzPngZlibCompressMode zlibMode) {
         this(name, parent, wzImage);
         this.format = WzPngFormat.getByValue(format);
         this.scale = scale;
@@ -92,9 +98,7 @@ public class WzPngProperty extends WzImageProperty {
                 if (image == null) {
                     throw new IOException("无法解码图片数据，可能不是支持的图片格式");
                 }
-                this.image = image;
-                this.width = image.getWidth();
-                this.height = image.getHeight();
+                setImage(image, this.format, scale, zlibCompressionLevel, zlibMode);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -509,6 +513,9 @@ public class WzPngProperty extends WzImageProperty {
     }
 
     private int normalizeZlibLevel(int level) {
+        if (level == Deflater.DEFAULT_COMPRESSION) {
+            return Deflater.DEFAULT_COMPRESSION;
+        }
         return Math.max(Deflater.NO_COMPRESSION, Math.min(Deflater.BEST_COMPRESSION, level));
     }
 

@@ -101,8 +101,7 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>cli</shadedClassifierName>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
                             <finalName>OrzRepacker-cli</finalName>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
