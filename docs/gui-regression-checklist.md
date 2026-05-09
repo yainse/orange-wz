@@ -110,7 +110,7 @@
 必须保留：
 
 - `WzFileMenu` / `WzFolderMenu` / `WzDirectoryMenu` / `WzImageFileMenu` / `WzImageMenu` / `WzXmlFileMenu` 的 XML 导入导出入口；
-- `ExportXmlDialog` 的 media 选项：`NONE` / `FILE` / `BASE64`，对应 UI `不输出` / `文件` / `Base64`，对应 CLI 术语 `none` / `path` / `base64`；
+- `ExportXmlDialog` 的 media 选项：`NONE` / `FILE` / `BASE64`，对应 UI `不输出` / `文件` / `Base64`，对应 CLI 术语 `none` / `file` / `base64`；
 - `ExportXmlDialog` 的导出版本选项：`默认` / `125`，对应 provider `XmlExportVersion.DEFAULT` / `XmlExportVersion.V125`；
 - 当前 provider `XmlExportVersion` / CLI `--xml-version` 能力；
 - `WzImage.saveFromXml(Path)` 与 CLI `xml-to-img` 所需链路。
@@ -240,7 +240,7 @@ git grep -n "java.awt" -- \
    - `iconRaw` 能复制到同级 `icon`；
    - 保存、关闭、重新打开后确认 icon 结果落盘。
 7. 执行 XML 导出：
-   - `none`、`path`、`base64` 三种 media 模式可用；
+   - `none`、`file`、`base64` 三种 media 模式可用；
    - 视频节点只导出 metadata。
 8. 执行 XML 导入/保存并重新打开。
 9. 执行复制、粘贴、删除、排序并改名、汉化、图片嗅探、图片对比、Outlink。
