@@ -4,6 +4,7 @@ import orange.wz.gui.component.FileDialog;
 import orange.wz.gui.component.form.data.ExportXmlData;
 import orange.wz.gui.component.panel.EditPane;
 import orange.wz.provider.tools.MediaExportType;
+import orange.wz.provider.tools.XmlExportVersion;
 
 import javax.swing.*;
 import java.awt.*;
@@ -18,6 +19,8 @@ public final class ExportXmlDialog extends BaseDialog<ExportXmlData> {
     private final JRadioButton fileRadio = new JRadioButton("文件");
     private final JRadioButton windowsRadio = new JRadioButton("Windows CRLF \\r\\n");
     private final JRadioButton linuxRadio = new JRadioButton("Linux LF \\n");
+    private final JRadioButton defaultVersionRadio = new JRadioButton("默认");
+    private final JRadioButton v125VersionRadio = new JRadioButton("125");
     private final JTextField pathField = new JTextField(20);
 
     public ExportXmlDialog(EditPane editPane) {
@@ -63,7 +66,22 @@ public final class ExportXmlDialog extends BaseDialog<ExportXmlData> {
         JPanel lineSepPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         lineSepPanel.add(windowsRadio);
         lineSepPanel.add(linuxRadio);
-        addRow("图片音频", lineSepPanel);
+        addRow("换行符", lineSepPanel);
+
+        ButtonGroup versionGroup = new ButtonGroup();
+        versionGroup.add(defaultVersionRadio);
+        versionGroup.add(v125VersionRadio);
+        String version = prefs.get("xmlExportVersion", "default");
+        if ("v125".equals(version) || "125".equals(version)) {
+            v125VersionRadio.setSelected(true);
+        } else {
+            defaultVersionRadio.setSelected(true);
+        }
+
+        JPanel versionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        versionPanel.add(defaultVersionRadio);
+        versionPanel.add(v125VersionRadio);
+        addRow("导出版本", versionPanel);
 
         addRow("导出路径", pathField, selectBtn);
     }
@@ -97,7 +115,15 @@ public final class ExportXmlDialog extends BaseDialog<ExportXmlData> {
             prefs.put("lineSeparator", "linux");
             linux = true;
         }
-        return new ExportXmlData(indent, meType, pathField.getText(), linux);
+        XmlExportVersion version;
+        if (v125VersionRadio.isSelected()) {
+            prefs.put("xmlExportVersion", "v125");
+            version = XmlExportVersion.V125;
+        } else {
+            prefs.put("xmlExportVersion", "default");
+            version = XmlExportVersion.DEFAULT;
+        }
+        return new ExportXmlData(indent, meType, pathField.getText(), linux, version);
     }
 
 }

@@ -1638,7 +1638,7 @@ public final class EditPane extends JSplitPane {
                 for (Pair<WzImage, Path> pair : collector) {
                     WzImage wzImage = pair.getLeft();
                     Path path = pair.getRight();
-                    if (wzImage.exportToXml(path, data.getIndent(), data.getMeType(), data.isLinux())) {
+                    if (wzImage.exportToXml(path, data.getIndent(), data.getMeType(), data.isLinux(), normalizeXmlExportVersion(data.getVersion()))) {
                         MainFrame.getInstance().updateProgress(++finish, total);
                     } else {
                         MainFrame.getInstance().setStatusText("%s 导出失败，请查看日志文件", wzImage.getName());
@@ -1658,6 +1658,10 @@ public final class EditPane extends JSplitPane {
                 }
             }
         }.execute();
+    }
+
+    static XmlExportVersion normalizeXmlExportVersion(XmlExportVersion version) {
+        return version == null ? XmlExportVersion.DEFAULT : version;
     }
 
     // 修改密钥 ----------------------------------------------------------------------------------------------------------

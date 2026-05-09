@@ -111,6 +111,7 @@
 
 - `WzFileMenu` / `WzFolderMenu` / `WzDirectoryMenu` / `WzImageFileMenu` / `WzImageMenu` / `WzXmlFileMenu` 的 XML 导入导出入口；
 - `ExportXmlDialog` 的 media 选项：`NONE` / `FILE` / `BASE64`，对应 UI `不输出` / `文件` / `Base64`，对应 CLI 术语 `none` / `path` / `base64`；
+- `ExportXmlDialog` 的导出版本选项：`默认` / `125`，对应 provider `XmlExportVersion.DEFAULT` / `XmlExportVersion.V125`；
 - 当前 provider `XmlExportVersion` / CLI `--xml-version` 能力；
 - `WzImage.saveFromXml(Path)` 与 CLI `xml-to-img` 所需链路。
 
@@ -155,6 +156,7 @@
 按风险从低到高：
 
 1. `ExportXmlDialog` / `ExportXmlData` 接入 provider `XmlExportVersion`。
+   - 已在 Phase 7.2 完成：GUI 导出 XML 提供 `默认` / `125` 版本选择，并通过 provider `XmlExportVersion` 传入 `WzImage.exportToXml(...)`。
    - GUI -> provider 单向依赖；provider 不引用 GUI。
    - 不影响 CLI 默认行为。
 2. `BatchDeleteNodeDialog` / `BatchDeleteNodeFormData` + `WzListPropertyMenu` 小范围菜单接入。
