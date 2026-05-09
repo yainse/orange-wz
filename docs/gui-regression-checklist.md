@@ -160,7 +160,9 @@
    - GUI -> provider 单向依赖；provider 不引用 GUI。
    - 不影响 CLI 默认行为。
 2. `BatchDeleteNodeDialog` / `BatchDeleteNodeFormData` + `WzListPropertyMenu` 小范围菜单接入。
-   - 只做批量删除奇数/偶数数字子节点；不要同时改预览/视频/压缩。
+   - 已在 Phase 7.3 完成：`批量删除` 对话框支持在原有“按名称递归删除”基础上勾选直接子节点数字名的奇数/偶数删除。
+   - 只删除直接子节点，且只匹配无符号、无前导零的数字名（如 `1`、`2`、`10`）；不递归删除嵌套子节点的奇偶名。
+   - 保留原按名称递归删除能力；未改动 RawToIcon / origin / int / scale 菜单链路。
 3. 节点转移视图 bug 修复。
    - 只从 guji 最新提交 `3a85e21` 精确提取修复点，不整文件覆盖 `EditPane`。
 4. 图片/动画预览缓存。

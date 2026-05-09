@@ -2420,27 +2420,43 @@ public final class EditPane extends JSplitPane {
         TreePath[] selectedPaths = tree.getSelectionPaths();
         if (selectedPaths == null) return;
 
-        NodeDialog dialog = new NodeDialog("批量删除节点", "节点名称", this);
-        NodeFormData data = dialog.getData();
+        BatchDeleteNodeDialog dialog = new BatchDeleteNodeDialog(this);
+        BatchDeleteNodeFormData data = dialog.getData();
         if (data == null) return;
 
         String name = data.getName();
+        if (name.isEmpty() && !data.isParityMode()) {
+            JMessageUtil.warn(this, "操作提示", "请填写节点名称，或至少勾选奇数/偶数之一。");
+            return;
+        }
+
         int count = 0;
+        int failed = 0;
         for (TreePath path : selectedPaths) {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
             WzObject wzObj = (WzObject) node.getUserObject();
             int current = 0;
-            if (wzObj instanceof WzImage image) {
-                if (!image.parse()) {
-                    MainFrame.getInstance().setStatusText("由于 %s 解析失败，操作中断，已经删除了 %d 个节点", image.getName(), count);
-                    return;
+            boolean refreshTree = false;
+            if (data.isParityMode()) {
+                ParityBatchDeleteResult result = deleteParityDirectChildren(wzObj, data.isDeleteOdd(), data.isDeleteEven());
+                current += result.success();
+                failed += result.failed();
+                refreshTree = result.refreshTree();
+            }
+            if (!name.isEmpty()) {
+                if (wzObj instanceof WzImage image) {
+                    if (!image.parse()) {
+                        MainFrame.getInstance().setStatusText("由于 %s 解析失败，操作中断，已经删除了 %d 个节点", image.getName(), count);
+                        return;
+                    }
+                    current += image.removeAllChildWithName(name);
+                } else if (wzObj instanceof WzImageProperty prop) {
+                    current += prop.removeAllChildWithName(name);
                 }
-                current = image.removeAllChildWithName(name);
-            } else if (wzObj instanceof WzImageProperty prop) {
-                current = prop.removeAllChildWithName(name);
+                refreshTree = refreshTree || current > 0;
             }
 
-            if (current > 0) {
+            if (refreshTree) {
                 DefaultMutableTreeNode pNode = (DefaultMutableTreeNode) node.getParent();
                 int index = pNode.getIndex(node);
                 removeNodeFromTree(node);
@@ -2449,7 +2465,88 @@ public final class EditPane extends JSplitPane {
             }
         }
 
-        MainFrame.getInstance().setStatusText("总共删除了 %d 个节点", count);
+        if (failed > 0) {
+            MainFrame.getInstance().setStatusText("总共删除了 %d 个节点，失败 %d 个", count, failed);
+        } else {
+            MainFrame.getInstance().setStatusText("总共删除了 %d 个节点", count);
+        }
+    }
+
+    static List<String> listParityDirectChildNames(WzObject wzObj, boolean deleteOdd, boolean deleteEven) {
+        if (!deleteOdd && !deleteEven) return List.of();
+
+        List<WzImageProperty> children = switch (wzObj) {
+            case WzImage image -> image.getChildren();
+            case WzImageProperty prop when prop.isListProperty() -> prop.getChildren();
+            default -> List.of();
+        };
+        if (children == null || children.isEmpty()) return List.of();
+
+        return children.stream()
+                .map(WzObject::getName)
+                .filter(name -> matchesNumericParity(name, deleteOdd, deleteEven))
+                .toList();
+    }
+
+    static boolean matchesNumericParity(String name, boolean deleteOdd, boolean deleteEven) {
+        if (!deleteOdd && !deleteEven) return false;
+        if (name == null || name.isEmpty()) return false;
+        if (name.length() > 1 && name.charAt(0) == '0') return false;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        long n;
+        try {
+            n = Long.parseLong(name);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        boolean odd = (n & 1L) != 0;
+        return deleteOdd && odd || deleteEven && !odd;
+    }
+
+    static ParityBatchDeleteResult deleteParityDirectChildren(WzObject wzObj, boolean deleteOdd, boolean deleteEven) {
+        int ok = 0;
+        int fail = 0;
+        if (wzObj instanceof WzImage image) {
+            if (!image.parse()) {
+                return new ParityBatchDeleteResult(0, 1, false);
+            }
+            List<String> names = listParityDirectChildNames(wzObj, deleteOdd, deleteEven);
+            if (names.isEmpty()) {
+                return new ParityBatchDeleteResult(0, 0, false);
+            }
+            for (String childName : names) {
+                if (image.removeChild(childName)) {
+                    ok++;
+                } else {
+                    fail++;
+                }
+            }
+            return new ParityBatchDeleteResult(ok, fail, ok > 0);
+        }
+        if (wzObj instanceof WzImageProperty prop && prop.isListProperty()) {
+            List<String> names = listParityDirectChildNames(wzObj, deleteOdd, deleteEven);
+            if (names.isEmpty()) {
+                return new ParityBatchDeleteResult(0, 0, false);
+            }
+            if (prop.getWzImage() == null) {
+                return new ParityBatchDeleteResult(0, names.size(), false);
+            }
+            for (String childName : names) {
+                if (prop.removeChild(childName)) {
+                    ok++;
+                } else {
+                    fail++;
+                }
+            }
+            return new ParityBatchDeleteResult(ok, fail, ok > 0);
+        }
+        return new ParityBatchDeleteResult(0, 0, false);
+    }
+
+    record ParityBatchDeleteResult(int success, int failed, boolean refreshTree) {
     }
 
     public void removeNonCashEqp() {
